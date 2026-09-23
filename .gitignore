@@ -1,0 +1,6 @@
+.DS_Store
+*.swp
+
+# Superseded design iterations kept locally, not published.
+old_files/
+**/old_files/
