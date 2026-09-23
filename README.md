@@ -1,15 +1,14 @@
 # forward-cam-umi
 
-Experimental add-ons to [YAM-UMI](https://github.com/YosubShin/yam-umi) that use
-an external, forward-facing camera instead of the wrist fisheye for:
+An attempt to remove the wrist camera from
+[YAM-UMI](https://github.com/YosubShin/yam-umi) and make the glove entirely
+electronics-free.
 
-- **Position tracking.** The dodecahedral marker ball from YAM-UMI is watched by
-  the external camera. This repository adds the parts that mount the same ball on
-  the YAM robot arm, so tracking can be checked against ground truth from the
-  robot's forward kinematics.
-- **Gripper width tracking.** Aperture is read by the external camera from
-  markers on printed tails behind the jaws, rather than from tip markers seen by
-  the wrist fisheye.
+YAM-UMI reads gripper width from AprilTags on the gripper tips, seen by the wrist
+camera, and can optionally track wrist pose with a dodecahedral marker ball seen
+by an external forward-facing camera. This project drops the wrist camera, so the
+forward camera has to recover **both** wrist pose and gripper width by itself.
+That takes extra markers and printed parts, which live here.
 
 This repository depends on YAM-UMI: the gripper, the dodecahedral ball, and its
 stalk and arc mount all come from there. Build YAM-UMI first.
@@ -19,12 +18,29 @@ stalk and arc mount all come from there. Build YAM-UMI first.
 
 ## Hardware
 
-| Part | Files | Notes |
-|---|---|---|
-| `wrist_stalk_adapter_v3` | STEP, STL | Mounts the ball's stalk on the YAM robot arm |
-| `retainer_radial_tab` | STEP, STL | Holds the ball on the robot-arm stalk |
-| `gripper_back_marker_holder` | STEP; STL left and right | Holds markers on the back of the gripper |
-| `aperture_tail` | STEP (right, v3); STL left and right | Printed tails that carry the aperture markers behind the jaws |
+### Gripper width from the forward camera
+
+The gripper tips are often occluded from the forward camera's vantage point, so
+their markers can't be relied on.
+
+- **`aperture_tail`** attaches to a gripper tip and moves with it as the gripper
+  opens and closes, carrying markers where the forward camera can see them. The
+  left and right tails are both derived from `STEP/aperture_tail_v3.step`; print
+  `STL/aperture_tail_left.stl` and `STL/aperture_tail_right.stl`.
+- **`gripper_back_marker_holder`** is the fixed reference the tails are measured
+  against. It is mounted on the back of the gripper, and each tail sits right
+  beside its holder when the gripper is fully closed and is farthest from it when
+  the gripper is fully open. You need two. The `_left` and `_right` STLs are the
+  same file, duplicated so a full set prints without renaming anything.
+
+### Ground truth on the robot
+
+To validate position tracking, the same dodecahedral ball is mounted on the YAM
+robot arm, so the tracked pose can be compared against the robot's forward
+kinematics.
+
+- **`wrist_stalk_adapter_v3`** mounts the ball's stalk on the robot arm.
+- **`retainer_radial_tab`** holds the ball on the robot-arm stalk.
 
 ## Markers
 
