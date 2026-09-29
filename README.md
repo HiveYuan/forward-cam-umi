@@ -16,6 +16,17 @@ stalk and arc mount all come from there. Build YAM-UMI first.
 > **Status: experimental.** These parts are for trying things out and are not
 > documented or characterised the way YAM-UMI is.
 
+## Design updates
+
+### 2026-09-28 — Aperture tail clearance
+
+- Raised the link extending from the gripper side as high as possible to
+  minimize collisions with objects.
+- Lengthened that link by a few millimeters to address slight interference with
+  the gripper plate when the gripper is fully closed.
+- Updated the [STEP model](STEP/aperture_tails.step) and both
+  [left](STL/aperture_tail_left.stl) and [right](STL/aperture_tail_right.stl) STLs.
+
 ## Hardware
 
 ### Gripper width from the forward camera
@@ -25,7 +36,7 @@ their markers can't be relied on.
 
 - **`aperture_tail`** attaches to a gripper tip and moves with it as the gripper
   opens and closes, carrying markers where the forward camera can see them. The
-  left and right tails are both derived from `STEP/aperture_tail_v3.step`; print
+  left and right tails are both derived from `STEP/aperture_tails.step`; print
   `STL/aperture_tail_left.stl` and `STL/aperture_tail_right.stl`.
 - **`gripper_back_marker_holder`** is the fixed reference the tails are measured
   against. It is mounted on the back of the gripper, and each tail sits right
