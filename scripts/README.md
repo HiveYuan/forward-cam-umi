@@ -74,9 +74,12 @@ python scripts/calibrate_uvc.py /dev/v4l/by-path/<forward> --square-mm 25.0 --ma
 python scripts/calibrate_uvc.py /dev/v4l/by-path/<second>  --name B0587b --square-mm 25.0 --marker-mm <caliper>
 python scripts/calibrate_uvc.py /dev/v4l/by-path/<fish>    --model rational --square-mm 25.0 --marker-mm <caliper>
 ```
-Expect ~0.7 px RMS at 4K on the holdout. `--model rational` is required for
-the fisheye. The wrist camera only needs calibrating if you will use it for
-metric tip-width (pipeline A); as a pure observation stream it does not.
+Expect ~0.7 px RMS at 4K on the holdout; the 1080p fisheye lands near 2.7 px
+with `--model rational` (required for it). **Calibrate the glove's wrist camera
+under its own `--name`** (e.g. `--name fisheye_glove_<unit>`): the wrist-observation
+arm reads gripper width from the 16h5 tip markers that camera sees, which is
+metric PnP, and the auto-derived name `fisheye` would overwrite another unit's
+file. Only a wrist stream used purely as observations can skip calibration.
 
 ## 4. Record a glove session
 

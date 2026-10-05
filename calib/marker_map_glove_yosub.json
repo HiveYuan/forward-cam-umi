@@ -41,6 +41,7 @@
  "wrist_cam": {
   "model": "Arducam 1080P Low Light (0c45:0261)",
   "serial": "UC684",
-  "note": "glove-mounted wrist fisheye, plugged 2026-10-05; a DIFFERENT unit from the robot's wrist cam, so fisheye_intrinsics.json does not apply to it \u2014 irrelevant for observation-only use, calibrate (--model rational) only if used for metric 16h5 tip width"
+  "note": "glove-mounted wrist fisheye, plugged 2026-10-05; a DIFFERENT unit from the robot's wrist cam. It IS metric here: the wrist-obs glove arm (pipeline A) reads width from the 16h5 tips 2/3 it sees, so it needs its own intrinsics \u2014 calibrate_uvc.py --name fisheye_glove_yosub --model rational (the default name would clobber the robot's fisheye_intrinsics.json).",
+  "intrinsics": "calib/fisheye_glove_yosub_intrinsics.json"
  }
 }
