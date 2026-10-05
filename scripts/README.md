@@ -135,6 +135,26 @@ The robot's solves are included as format examples
 calibration take. Dataset construction (labels → joint actions via IK) needs
 the robot's hand-eye and kinematics, so it runs on the robot side.
 
+## Command index
+
+Every command prints its full documentation with `--help`. Run from the
+repository root.
+
+| command | does | step |
+|---|---|---|
+| `focus_tune.py <dev>` | live sharpness meter to lock a barrel-focused lens | 2 |
+| `calibrate_uvc.py <dev> [--name] [--model rational] --square-mm --marker-mm` | live ChArUco intrinsics → `calib/<name>_intrinsics.json` | 3 |
+| `record_session.py --glove --dataset D --num_episodes N` | multi-camera session: pre-flight, ritual, episode marks, width holds | 4 |
+| `uvc_record.py <name> [dev] [WxH] [fps]` | one camera's raw MJPEG + wall clocks (launched by record_session) | 4 |
+| `detect_parallel.py <video.mkv> [--keep-27] [--workers N]` | ArUco 4x4 + AprilTag 16h5 detection caches | 5 |
+| `bundle_dodeca.py --npz= --intr= --marker-mm= --ball-ids=` | pass 2: free bundle of the ball's faces | 6 |
+| `bundle_dodeca_ideal.py --npz= --init= --intr= --marker-mm= --out=` | pass 3: dodecahedron-prior refinement → the bundle the pipeline uses | 6 |
+| `calibrate_gripper_bundle.py <stem> --bundle= --marker-map= --out=` | gripper-back markers in the ball's body frame | 6 |
+
+Libraries (not commands): `labels_lib.py` — the label stack (fused ball
+pose, body-frame aperture estimators); `uvc_ritual.py` — per-camera
+exposure/gain/focus controls, selected by device name.
+
 ## Where to edit
 
 This directory is the single source of truth for these scripts and for the

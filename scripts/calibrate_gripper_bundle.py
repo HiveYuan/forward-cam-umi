@@ -10,9 +10,24 @@ solutions land far from the rotation mode and are rejected).
 
 Writes calib/gripper_bundle.json {"markers": {id: 4x4}, "edge_mm": ...}.
 
-Usage: python scripts/calibrate_gripper_bundle.py <stem> [intrinsics]
-  e.g. python scripts/calibrate_gripper_bundle.py yam_sess1_b0587
+Usage: python scripts/calibrate_gripper_bundle.py <stem> [options]
+  stem              detection cache stem: calib/<stem>_dodeca_detections.npz
+  --bundle=PATH     the ball's solved bundle that defines the body frame
+                    (default calib/dodeca_bundle_ideal.json = robot ball)
+  --marker-map=PATH marker epoch: base ids + caliper sizes (REQUIRED for a
+                    glove unit, e.g. calib/marker_map_glove_<unit>.json)
+  --out=PATH        output json (default calib/gripper_bundle.json)
+  [intrinsics]      legacy positional: intrinsics path
+                    (default calib/B0587_intrinsics.json)
+  e.g. python scripts/calibrate_gripper_bundle.py glove_cal_b0587 \
+         --bundle=calib/glove_yuan_dodeca_bundle.json \
+         --marker-map=calib/marker_map_glove_yuan.json \
+         --out=calib/glove_yuan_gripper_bundle.json
 """
+import sys  # noqa: E402 — the guard must run before the heavy imports below
+if len(sys.argv) < 2 or any(a in ("-h", "--help") for a in sys.argv[1:]):
+    print(__doc__.strip())
+    sys.exit(0 if len(sys.argv) >= 2 else 2)
 import json
 import sys
 

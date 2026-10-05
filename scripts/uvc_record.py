@@ -8,7 +8,14 @@ crushed moving regions at default bitrate — detection collapsed above
 camera's per-frame MJPEG exactly as the live viewer sees it.
 
 Writes data/raw/<name>.avi (MJPEG passthrough) + <name>_ts.json.
-Usage: python scripts/uvc_record.py <name> [/dev/video0]
+Usage: python scripts/uvc_record.py <name> [dev] [WxH] [fps]
+  name  output stem: data/raw/<name>.mkv + <name>_ts.json (+ _meta.json)
+  dev   V4L2 node or /dev/v4l/by-path link   (default /dev/video0)
+  WxH   capture size, e.g. 3840x2160          (default 1920x1080)
+  fps   capture rate the camera advertises     (default 30)
+Normally launched by record_session.py, one process per camera; run it by
+hand only to test a single camera. Stop with Ctrl-C (or SIGTERM) and WAIT
+for the remux to finish — a 4K take needs about a minute.
 PREVIEW=1 additionally opens a live window (downscaled, ~12fps): the same
 ffmpeg tees a decoded rawvideo branch over stdout; this process overlays
 marker detections (headless cv2 draws fine, it just can't display) and
@@ -26,6 +33,9 @@ import subprocess
 import sys
 import time
 
+if len(sys.argv) < 2 or any(a in ("-h", "--help") for a in sys.argv[1:]):
+    print(__doc__.strip())
+    sys.exit(0 if len(sys.argv) >= 2 else 2)
 name = sys.argv[1]
 dev = sys.argv[2] if len(sys.argv) > 2 else "/dev/video0"
 RES = sys.argv[3] if len(sys.argv) > 3 else "1920x1080"

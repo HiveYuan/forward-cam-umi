@@ -10,7 +10,20 @@ bundle). Per face we estimate only print-plausible deviations:
 Plus per-frame camera pose. Body frame = ideal dodecahedron frame.
 
 Init from the free-bundle solutions (755-only preferred, 756-only fallback).
+
+Usage: python scripts/bundle_dodeca_ideal.py --npz=<detections.npz> --init=<pass2.json> [options]
+  --npz=A,B         detection caches (same ones pass 2 used)
+  --init=PATH[,..]  free-bundle json(s) from bundle_dodeca.py; markers are
+                    merged, first occurrence wins
+  --intr=PATH       intrinsics of the filming camera (default: robot's Sony)
+  --marker-mm=F     caliper edge of THIS ball's faces (default 14.54 = robot)
+  --out=PATH        final bundle (default calib/dodeca_bundle_ideal.json);
+                    this is what build_dataset.py --bundle consumes
+This is pass 3 of 3 (pass 1 = detect_parallel.py, pass 2 = bundle_dodeca.py).
 """
+if any(a in ("-h", "--help") for a in __import__("sys").argv[1:]):
+    print(__doc__.strip())
+    raise SystemExit(0)
 import sys
 import json
 import cv2

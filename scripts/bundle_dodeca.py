@@ -13,7 +13,20 @@ Validation: per-frame single-marker PnP solutions compared in body frame
 NOTE: marker edge length defaults to 15mm nominal — all translations scale
 linearly with the true printed size; measure with calipers and re-run with
 --marker-mm to get metric output.
+
+Usage: python scripts/bundle_dodeca.py --npz=<detections.npz>[,more] [options]
+  --npz=A,B         detection caches from detect_parallel.py (merged)
+  --intr=PATH       intrinsics of the camera that filmed them
+                    (default calib/C0754_intrinsics.json — the robot's Sony)
+  --marker-mm=F     caliper edge of THIS ball's faces (default 15.0 nominal)
+  --ball-ids=25-35  ids that are ball faces; "a-b" or "a,b,c" (default 0-10)
+  --out=PATH        free-bundle json (default calib/C0755_dodeca_bundle.json)
+  --max-nfev=N      optimizer budget (default 2000)
+This is pass 2 of 3: its output seeds bundle_dodeca_ideal.py (--init=).
 """
+if any(a in ("-h", "--help") for a in __import__("sys").argv[1:]):
+    print(__doc__.strip())
+    raise SystemExit(0)
 import sys
 import json
 import cv2

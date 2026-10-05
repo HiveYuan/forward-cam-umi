@@ -17,6 +17,9 @@ import time
 import cv2
 import numpy as np
 
+if any(a in ("-h", "--help") for a in sys.argv[1:]):
+    print(__doc__.strip())
+    sys.exit(0)
 DEV = sys.argv[1] if len(sys.argv) > 1 else "/dev/video0"
 
 import subprocess
