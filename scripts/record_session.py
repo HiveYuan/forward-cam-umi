@@ -33,7 +33,10 @@ import threading
 import time
 from pathlib import Path
 
-PILOT = Path(__file__).resolve().parent.parent
+# Resolve the DIRECTORY, not the file: this script may be reached through a
+# symlink from another working tree (pilot/scripts -> forward-cam-umi), and
+# the data/calib roots must belong to the tree it was invoked from.
+PILOT = Path(__file__).parent.parent.resolve()
 TELEOP = Path("~/lerobot_alohamini/examples/yam/record_yam_teleop.py").expanduser()
 
 # Cameras are pinned by USB PORT (/dev/v4l/by-path): the two B0587 twins

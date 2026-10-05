@@ -30,10 +30,11 @@ per group** and declare it in the config. Nominal is not enough.
 | workspace tags (`markers/apriltag_36h11_60mm_marker_75mm_tile_final.pdf`) | `calib/tags36h11_<unit>.json` | `edge_mm`; **use tags 1–5 only** |
 | ChArUco board (`markers/charuco_letter_8.5x11.pdf`) | flags to `calibrate_uvc.py` | `--square-mm`, `--marker-mm` |
 
-`calib/marker_map_glove_yuan.json` and `calib/tags36h11_yuan.json` are a
-complete, measured example (Yuan's unit). A second unit with the same sheet
-needs its **own** readings and its own bundle solves (step 6): copy
-`marker_map_glove_yosub.TEMPLATE.json`, fill every `MEASURE`, rename.
+Two built units are recorded, both from the same sheet and both complete:
+`calib/marker_map_glove_{yuan,yosub}.json` with `calib/tags36h11_{yuan,yosub}.json`.
+They differ by ~1% in every group — the normal print-to-print variance — which
+is why a new unit always gets its **own** file and its own bundle solves
+(step 6): copy one of them, replace every size with your calipers, rename.
 
 Two ID traps, already handled if you follow the commands below:
 `4x4-27` is a real ball face but aliases to AprilTag `16h5-1` (a robot tip
@@ -133,3 +134,11 @@ The robot's solves are included as format examples
 `calib/marker_map_glove_<unit>.json`, `calib/tags36h11_<unit>.json`, and the
 calibration take. Dataset construction (labels → joint actions via IK) needs
 the robot's hand-eye and kinematics, so it runs on the robot side.
+
+## Where to edit
+
+This directory is the single source of truth for these scripts and for the
+measured unit configs in `calib/`. The private experiment tree (`pilot`)
+links to them with relative symlinks rather than keeping copies, so a change
+committed here is immediately what the robot-side pipeline runs. Robot-only
+tooling (hand-eye, gap bench, dataset construction, training) is not here.
