@@ -37,5 +37,10 @@
   "34": "f9",
   "35": "f10"
  },
- "ball_edge_mm": 15.22
+ "ball_edge_mm": 15.22,
+ "wrist_cam": {
+  "model": "Arducam 1080P Low Light (0c45:0261)",
+  "serial": "UC684",
+  "note": "glove-mounted wrist fisheye, plugged 2026-10-05; a DIFFERENT unit from the robot's wrist cam, so fisheye_intrinsics.json does not apply to it \u2014 irrelevant for observation-only use, calibrate (--model rational) only if used for metric 16h5 tip width"
+ }
 }
