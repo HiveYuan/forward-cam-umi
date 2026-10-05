@@ -1,14 +1,41 @@
 {
-  "unit": "yosub",
-  "note": "GLOVE unit kept by Yosub — second physical print of glove_markers_v4 (md5 a30db471…), same ids and layout as Yuan's unit, SEPARATE calipers and SEPARATE bundle solves (glove_yosub_dodeca_bundle.json, glove_yosub_gripper_bundle.json). Caliper 2026-10-05: tails 12.18, bases 12.18, 16h5 tips 6.22. BALL FACE SIZE NOT YET RECORDED — the reported 6.22 duplicates the tip value and is impossible for the 15 mm face group; re-measure one ball face and set ball_edge_mm (it feeds the bundle solvers' --marker-mm, not this map's pipeline fields). Workspace tags: tags36h11_yosub.json. TRAPS as Yuan's unit: 4x4-27 is a real ball face — detect with --keep-27; 16h5-2/3 decode as phantom 4x4-17 (harmless, 17 is not a glove id).",
-  "tails": {"36": 12.18, "37": 12.18, "38": 12.18, "39": 12.18,
-            "42": 12.18, "43": 12.18, "44": 12.18, "45": 12.18,
-            "48": 12.18, "49": 12.18},
-  "bases": {"40": 12.18, "41": 12.18, "46": 12.18, "47": 12.18},
-  "tips": {"2": 6.22, "3": 6.22},
-  "tips_dict": "16h5",
-  "ball_faces": {"25": "f0", "26": "f1", "27": "f2", "28": "f3", "29": "f4",
-                 "30": "f5", "31": "f6", "32": "f7", "33": "f8", "34": "f9",
-                 "35": "f10"},
-  "ball_edge_mm": null
+ "unit": "yosub",
+ "note": "GLOVE unit kept by Yosub \u2014 second physical print of glove_markers_v4 (md5 a30db471\u2026), same ids and layout as Yuan's unit, SEPARATE calipers and SEPARATE bundle solves (glove_yosub_dodeca_bundle.json, glove_yosub_gripper_bundle.json). Caliper 2026-10-05: ball 15.22, tails 12.18, bases 12.18, 16h5 tips 6.22. Ball faces 15.22 (feeds the bundle solvers' --marker-mm). Workspace tags: tags36h11_yosub.json. TRAPS as Yuan's unit: 4x4-27 is a real ball face \u2014 detect with --keep-27; 16h5-2/3 decode as phantom 4x4-17 (harmless, 17 is not a glove id).",
+ "tails": {
+  "36": 12.18,
+  "37": 12.18,
+  "38": 12.18,
+  "39": 12.18,
+  "42": 12.18,
+  "43": 12.18,
+  "44": 12.18,
+  "45": 12.18,
+  "48": 12.18,
+  "49": 12.18
+ },
+ "bases": {
+  "40": 12.18,
+  "41": 12.18,
+  "46": 12.18,
+  "47": 12.18
+ },
+ "tips": {
+  "2": 6.22,
+  "3": 6.22
+ },
+ "tips_dict": "16h5",
+ "ball_faces": {
+  "25": "f0",
+  "26": "f1",
+  "27": "f2",
+  "28": "f3",
+  "29": "f4",
+  "30": "f5",
+  "31": "f6",
+  "32": "f7",
+  "33": "f8",
+  "34": "f9",
+  "35": "f10"
+ },
+ "ball_edge_mm": 15.22
 }
