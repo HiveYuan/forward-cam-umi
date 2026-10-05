@@ -1,0 +1,14 @@
+{
+  "unit": "yuan",
+  "note": "GLOVE unit given to Yuan. glove_markers_v4 sheet (md5 a30db471…), DICT_4X4_100 ids 25-49 (bit-identical to DICT_4X4_50 for these ids — detector unchanged). Layout = robot layout at id-25: ball f0-f10 = 25-35 (15.18 mm caliper; lives in this unit's BUNDLE file glove_yuan_dodeca_bundle.json, not here); tails BACK 36/37, OUTSIDE 38/39, BOTTOM 42/43, TOP 44/45, FORWARD 48/49 (12.18 mm); bases BACK 40/41, TOP 46/47 (12.14 mm); wrist tips AprilTag 16h5 2/3 (6.14 mm). Workspace tags: see tags36h11_yuan.json. TRAPS: 4x4-27 is a real ball face — detect with --keep-27 (its 16h5-1 alias is a robot tip, never in glove footage); 16h5-2/3 decode as phantom 4x4-17 under ecr=1.0 — harmless (17 is not a glove id). Sizes are PER PHYSICAL PRINT: another unit with the same ids needs its own calipers and its own bundle solves. Caliper 2026-09-28.",
+  "tails": {"36": 12.18, "37": 12.18, "38": 12.18, "39": 12.18,
+            "42": 12.18, "43": 12.18, "44": 12.18, "45": 12.18,
+            "48": 12.18, "49": 12.18},
+  "bases": {"40": 12.14, "41": 12.14, "46": 12.14, "47": 12.14},
+  "tips": {"2": 6.14, "3": 6.14},
+  "tips_dict": "16h5",
+  "ball_faces": {"25": "f0", "26": "f1", "27": "f2", "28": "f3", "29": "f4",
+                 "30": "f5", "31": "f6", "32": "f7", "33": "f8", "34": "f9",
+                 "35": "f10"},
+  "ball_edge_mm": 15.18
+}

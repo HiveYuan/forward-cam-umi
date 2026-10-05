@@ -1,0 +1,5 @@
+[
+  ["b0587",  "/dev/v4l/by-path/pci-0000:44:00.0-usb-0:1:1.0-video-index0", "B0587",          "3840x2160", "25"],
+  ["b0587b", "/dev/v4l/by-path/pci-0000:10:00.3-usb-0:2.1:1.0-video-index0", null,          "3840x2160", "25"],
+  ["fish",   "/dev/v4l/by-path/pci-0000:06:00.0-usb-0:1:1.0-video-index0", "1080P Low Light", "1920x1080", "30"]
+]

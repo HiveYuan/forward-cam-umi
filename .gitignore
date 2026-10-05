@@ -4,3 +4,11 @@
 # Superseded design iterations kept locally, not published.
 old_files/
 **/old_files/
+data/*
+!data/raw/
+data/raw/*
+!data/raw/.gitkeep
+calib/*_detections.*
+calib/*.npz
+calib/tmp_*
+__pycache__/

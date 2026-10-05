@@ -1,0 +1,4 @@
+opencv-contrib-python>=4.9   # cv2.aruco (ArUco 4x4, AprilTag 16h5/36h11, ChArUco)
+numpy
+scipy                        # bundle solvers (least_squares, Rotation)
+# system: ffmpeg + ffprobe (recording/remux, detection pre-split), v4l2-ctl (camera controls)

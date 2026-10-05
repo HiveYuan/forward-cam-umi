@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+"""Live ChArUco intrinsics calibration for a UVC camera.
+
+Wave the 10x7 board (25.0mm square / 18.0mm marker, DICT_5X5_250) through the
+view: near/far, corners, tilted. Frames with enough corners, spaced in time
+and board position, are collected automatically. After --n frames it
+calibrates, validates on a holdout, and writes calib/<name>_intrinsics.json
+(same schema the analysis scripts read).
+
+The output name is derived from the camera's sysfs device name (B0587 /
+B0591 / fisheye) — pass --name only for an unknown camera. An existing
+output file is backed up, never silently clobbered (a default-name overwrite
+destroyed the B0591 calibration on 2026-09-03).
+
+Collected views are saved to calib/<name>_charuco_views.npz; re-fit later
+without re-waving via --refit calib/<name>_charuco_views.npz.
+
+--model rational uses the 8-coefficient rational distortion model — needed
+for wide/fisheye lenses where the 5-coefficient fit fails (fisheye pinhole
+holdout was 7.2px; rational stays cv2.solvePnP-compatible downstream, unlike
+cv2.fisheye's equidistant coefficients).
+
+Lock focus/exposure BEFORE calibrating — intrinsics are focus-dependent.
+
+Usage: python scripts/calibrate_uvc.py [/dev/video0] [--model rational]
+"""
+import argparse
+import json
+import os
+import time
+
+import cv2
+import numpy as np
+
+from uvc_ritual import apply as apply_ritual, _name as device_name
+
+# sysfs device-name fragment -> calib file stem
+NAME_MAP = {"B0587": "B0587", "1080P-HDR": "B0591",
+            "1080P Low Light": "fisheye"}
+
+ap = argparse.ArgumentParser()
+ap.add_argument("dev", nargs="?", default="/dev/video0")
+ap.add_argument("--name", default=None,
+                help="calib file stem; default: derived from device name")
+ap.add_argument("--model", choices=["pinhole", "rational"], default="pinhole")
+ap.add_argument("--n", type=int, default=45)
+ap.add_argument("--square-mm", type=float, default=25.0,
+                help="ChArUco square edge as PRINTED (caliper it)")
+ap.add_argument("--marker-mm", type=float, default=18.06,
+                help="ChArUco marker edge as PRINTED (caliper it; the "
+                     "default is OUR board's 2026-09-01 measurement — a "
+                     "fresh print of charuco_letter_8.5x11.pdf will differ)")
+ap.add_argument("--holdout", type=int, default=10)
+ap.add_argument("--width", type=int, default=None,
+                help="default: native for 4K-named cameras, else 1920")
+ap.add_argument("--height", type=int, default=None)
+ap.add_argument("--refit", help="charuco_views.npz from a previous run — "
+                                "recalibrate without capturing")
+args = ap.parse_args()
+
+name = args.name
+if name is None and args.refit:
+    name = os.path.basename(args.refit).replace("_charuco_views.npz", "")
+if name is None:
+    dn = device_name(args.dev)
+    name = next((v for k, v in NAME_MAP.items() if k in dn), None)
+    if name is None:
+        raise SystemExit(f"unknown camera '{dn}' — pass --name explicitly")
+if args.width is None or args.height is None:
+    # calibrate at the RESOLUTION YOU RECORD AT — intrinsics don't transfer
+    # across modes (a 1080p fit on a 4K camera silently mismatches)
+    four_k = "4K" in device_name(args.dev)
+    args.width = args.width or (3840 if four_k else 1920)
+    args.height = args.height or (2160 if four_k else 1080)
+print(f"calibration target: {name}  (model: {args.model}, "
+      f"{args.width}x{args.height})")
+
+SQUARE_M, MARKER_M = args.square_mm / 1000.0, args.marker_mm / 1000.0
+d = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_250)
+board = cv2.aruco.CharucoBoard((10, 7), SQUARE_M, MARKER_M, d)
+cdet = cv2.aruco.CharucoDetector(board)
+
+if args.refit:
+    z = np.load(args.refit, allow_pickle=True)
+    views = [(z[f"c{i}"], z[f"i{i}"]) for i in range(int(z["n"]))]
+    W, H = int(z["width"]), int(z["height"])
+    print(f"refitting {len(views)} saved views @ {W}x{H}")
+else:
+    cap = cv2.VideoCapture(args.dev)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+    # UNSET fps negotiates a broken mode on the fisheye (10s+ stalls) —
+    # always request one
+    cap.set(cv2.CAP_PROP_FPS, 30)
+    if not cap.isOpened():
+        raise SystemExit(f"cannot open {args.dev}")
+    for _ in range(5):
+        cap.read()  # stream must be running before controls stick
+    apply_ritual(args.dev)
+    W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(f"{args.dev} @ {W}x{H} — show the board; collecting {args.n} diverse views")
+
+    views = []          # (charucoCorners, charucoIds)
+    last_t = 0.0
+    last_c = None
+    try:
+        while len(views) < args.n:
+            ok, img = cap.read()
+            if not ok:
+                continue
+            cc, ci, _, _ = cdet.detectBoard(img)
+            if cc is None or ci is None or len(cc) < 20:
+                continue
+            now = time.time()
+            cen = cc.reshape(-1, 2).mean(axis=0)
+            if now - last_t < 0.4:
+                continue
+            if last_c is not None and np.linalg.norm(cen - last_c) < 40:
+                continue  # board hasn't moved enough for a new view
+            views.append((cc.copy(), ci.copy()))
+            last_t, last_c = now, cen
+            print(f"\r  collected {len(views)}/{args.n} "
+                  f"({len(cc)} corners, center {cen[0]:.0f},{cen[1]:.0f})   ",
+                  end="", flush=True)
+    finally:
+        cap.release()
+    print()
+    vout = f"calib/{name}_charuco_views.npz"
+    np.savez_compressed(vout, n=len(views), width=W, height=H,
+                        **{f"c{i}": v[0] for i, v in enumerate(views)},
+                        **{f"i{i}": v[1] for i, v in enumerate(views)})
+    print(f"saved views to {vout} (refit anytime with --refit)")
+
+rng = np.random.default_rng(0)
+order = rng.permutation(len(views))
+hold = set(order[: args.holdout].tolist())
+obj_all, img_all = [], []
+for i, (cc, ci) in enumerate(views):
+    if i in hold:
+        continue
+    op, ip = board.matchImagePoints(cc, ci)
+    if op is not None and len(op) >= 6:
+        obj_all.append(op); img_all.append(ip)
+print(f"calibrating on {len(obj_all)} views (holdout {len(hold)})…")
+flags = cv2.CALIB_RATIONAL_MODEL if args.model == "rational" else 0
+rms, K, dist, rvecs, tvecs = cv2.calibrateCamera(
+    obj_all, img_all, (W, H), None, None, flags=flags)
+print(f"calibration RMS {rms:.3f}px  fx {K[0,0]:.1f} fy {K[1,1]:.1f} "
+      f"ppx {K[0,2]:.1f} ppy {K[1,2]:.1f}")
+
+errs = []
+for i in sorted(hold):
+    cc, ci = views[i]
+    op, ip = board.matchImagePoints(cc, ci)
+    if op is None or len(op) < 6:
+        continue
+    ok, rv, tv = cv2.solvePnP(op, ip, K, dist)
+    proj, _ = cv2.projectPoints(op, rv, tv, K, dist)
+    errs.append(float(np.linalg.norm((proj - ip).reshape(-1, 2), axis=1).mean()))
+if errs:
+    print(f"held-out reprojection: mean {np.mean(errs):.3f}px  "
+          f"worst {np.max(errs):.3f}px  ({len(errs)} frames)")
+
+out = f"calib/{name}_intrinsics.json"
+if os.path.exists(out):
+    bak = f"{out}.bak-{time.strftime('%Y%m%d-%H%M%S')}"
+    os.rename(out, bak)
+    print(f"existing {out} backed up to {bak}")
+json.dump({"camera_matrix": K.tolist(), "dist_coeffs": dist.ravel().tolist(),
+           "width": W, "height": H, "rms_px": rms, "model": args.model,
+           "holdout_mean_px": float(np.mean(errs)) if errs else None,
+           "device": args.dev, "note": "focus/exposure locked at calibration"},
+          open(out, "w"), indent=1)
+print(f"wrote {out}")

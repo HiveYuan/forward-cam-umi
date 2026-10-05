@@ -72,3 +72,13 @@ rigs can be in view at the same time.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Software
+
+The calibration, recording and tracking code lives in [`scripts/`](scripts/)
+with its own [README](scripts/README.md): camera intrinsics (live ChArUco),
+glove-session recording with episode marks and caliper width holds, marker
+detection, and the solvers that recover a ball's face layout and the
+gripper-back marker geometry. Measured marker configs for built units are in
+[`calib/`](calib/); every printed group must be caliper-measured and declared
+there — see the README's measurement table.

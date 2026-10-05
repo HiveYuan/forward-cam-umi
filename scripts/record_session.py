@@ -1,0 +1,565 @@
+#!/usr/bin/env python3
+"""One-command multi-pipeline recording session.
+
+Orchestrates the three processes of a collection session:
+  1. uvc_record on the forward B0587 (4K25) and wrist fisheye (1080p30),
+     devices resolved by sysfs NAME (indices shuffle across replugs)
+  2. record_yam_teleop --no_cameras in the foreground (Enter/r/q as usual)
+  3. clean shutdown: recorder exits -> camera recorders get SIGTERM and
+     finish their remux (do NOT kill them; 4K remux takes a minute)
+
+The host (yam_zmq_host) stays external — start it first, it owns the CAN
+buses and typically outlives many sessions:
+    ~/co/i2rt/.venv/bin/python yam_zmq_host.py \
+        --leader_channel can_leader --follower_channel can_follower
+
+Usage:
+  python scripts/record_session.py --dataset yam_sess0 --num_episodes 5 \
+      --episode_time 30 --task "pick red block"
+Camera stems land in data/raw/<dataset>_b0587.* and <dataset>_fish.*;
+afterwards run build_dataset.py per COLLECTION_RUNBOOK.md.
+"""
+import argparse
+import atexit
+import glob
+import json
+import os
+import signal
+import socket
+import subprocess
+import sys
+import termios
+import threading
+import time
+from pathlib import Path
+
+PILOT = Path(__file__).resolve().parent.parent
+TELEOP = Path("~/lerobot_alohamini/examples/yam/record_yam_teleop.py").expanduser()
+
+# Cameras are pinned by USB PORT (/dev/v4l/by-path): the two B0587 twins
+# share the serial "SN0001", so names can't tell them apart — if a camera
+# moves to a different port, update its by-path here.
+# (suffix, by-path device, sysfs-name fragment fallback, res, fps)
+CAMERAS = [
+    ("b0587", "/dev/v4l/by-path/pci-0000:44:00.0-usb-0:1:1.0-video-index0",
+     "B0587", "3840x2160", "25"),          # original, portrait mount
+    ("b0587b", "/dev/v4l/by-path/pci-0000:10:00.3-usb-0:2.1:1.0-video-index0",
+     None, "3840x2160", "25"),             # twin, landscape (no name fallback:
+    ("fish", "/dev/v4l/by-path/pci-0000:06:00.0-usb-0:1:1.0-video-index0",
+     "1080P Low Light", "1920x1080", "30"),  # a fallback could grab the twin's sibling)
+]
+
+
+# Another machine: put your cameras in calib/cameras.json instead of editing
+# the table above — a list of [suffix, by_path, name_fragment_or_null, "WxH",
+# "fps"]. Find by-path links with `ls -l /dev/v4l/by-path/`.
+_CAM_JSON = PILOT / "calib/cameras.json"
+if _CAM_JSON.exists():
+    CAMERAS = [tuple(c) for c in json.load(open(_CAM_JSON))]
+    print(f"cameras from {_CAM_JSON.name}: {[c[0] for c in CAMERAS]}")
+
+
+def find_dev(fragment):
+    for node in sorted(glob.glob("/sys/class/video4linux/video*")):
+        try:
+            name = open(f"{node}/name").read().strip()
+        except OSError:
+            continue
+        if fragment in name:
+            dev = f"/dev/{os.path.basename(node)}"
+            # only index-0 nodes of a camera expose the video stream
+            caps = subprocess.run(["v4l2-ctl", "-d", dev, "--list-formats"],
+                                  capture_output=True, text=True).stdout
+            if "MJPG" in caps or "YUYV" in caps:
+                return dev
+    return None
+
+
+def find_other_b0587(exclude):
+    """Fallback for the second B0587 (twin, now the head-worn glasses cam):
+    the two share serial 'SN0001', so names can't tell them apart — but 'the
+    B0587 that is NOT at any other camera's pinned path' is unique when both
+    are present. Returns its by-path link, or None if there isn't exactly
+    one candidate (then fail loudly rather than grab the wrong camera)."""
+    cands = []
+    for bp in sorted(glob.glob("/dev/v4l/by-path/*video-index0")):
+        if bp in exclude:
+            continue
+        node = os.path.basename(os.path.realpath(bp))
+        try:
+            name = open(f"/sys/class/video4linux/{node}/name").read()
+        except OSError:
+            continue
+        if "B0587" in name:
+            cands.append(bp)
+    return cands[0] if len(cands) == 1 else None
+
+
+def _tail_frame(stem):
+    """Latest complete JPEG from the newest growing segment, decoded.
+    Never frame 0 — pre-ritual boot frames are legitimately blown."""
+    import cv2
+    import numpy as _np
+    segs = sorted((PILOT / "data/raw").glob(f".{stem}_seg*.mkv"))
+    if not segs or segs[-1].stat().st_size < 500_000:
+        return None
+    raw = segs[-1].read_bytes()[-30_000_000:]
+    i2 = raw.rfind(b"\xff\xd8\xff")
+    i1 = raw.rfind(b"\xff\xd8\xff", 0, max(i2, 0))
+    i = i1 if i1 >= 0 else i2
+    j = raw.find(b"\xff\xd9", i) if i >= 0 else -1
+    if i < 0 or j <= i:
+        return None
+    return cv2.imdecode(_np.frombuffer(raw[i:j + 2], _np.uint8),
+                        cv2.IMREAD_COLOR)
+
+
+_DETS = {}
+
+
+def _frame_health(stem, img):
+    """(brightness mean, decoded fiducial count). The marker count is the
+    FUNCTIONAL check: exposure, focus, lens smudge, and framing all gate
+    it, and the rig guarantees markers in view (dodeca/tails for the
+    forward cams, 16h5 tips for the wrist fisheye)."""
+    import cv2
+    kind = "16h5" if "fish" in stem else "4x4"
+    if kind not in _DETS:
+        p = cv2.aruco.DetectorParameters()
+        p.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_APRILTAG
+        dic = (cv2.aruco.DICT_APRILTAG_16h5 if kind == "16h5"
+               else cv2.aruco.DICT_4X4_50)
+        _DETS[kind] = cv2.aruco.ArucoDetector(
+            cv2.aruco.getPredefinedDictionary(dic), p)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, ids, _ = _DETS[kind].detectMarkers(gray)
+    return float(gray.mean()), 0 if ids is None else len(ids)
+
+
+def _janitor(dataset, stems, stop_ev, seg_secs=60, keep_recent=300, margin=30):
+    """Prune idle camera segments: anything older than keep_recent seconds
+    that overlaps no saved episode (±margin) gets deleted, so pauses and
+    between-episode time never accumulate on disk. The 2 newest segments per
+    camera are never touched (one is still being written)."""
+    walls = (Path.home() / ".cache/huggingface/lerobot" / dataset
+             / "meta/episode_wallclock.jsonl")
+    freed = 0
+    tick = 0
+    bad_streak = {}
+    while not stop_ev.wait(30.0):
+        tick += 1
+        wins = []
+        if walls.exists():
+            for line in open(walls):
+                try:
+                    e = json.loads(line)
+                    wins.append((e["start_unix"] - margin,
+                                 e["end_unix"] + margin))
+                except Exception:
+                    pass
+        now = time.time()
+        for stem in stems:
+            segs = sorted(glob.glob(str(PILOT / "data/raw" / f".{stem}_seg*.mkv")))
+            # recorder health: segments must keep rolling while we record
+            if segs and now - os.path.getmtime(segs[-1]) > 90:
+                print(f"\n{'!'*70}\n!! {stem}: NO NEW FRAMES for "
+                      f"{now - os.path.getmtime(segs[-1]):.0f}s — camera "
+                      f"recorder may be dead; episodes since then have no "
+                      f"labels/obs from it\n{'!'*70}", flush=True)
+            # in-session health watchdog (~every 2 min): the pre-flight
+            # only guards session START; a mid-session lens smudge, bump,
+            # or control reset must not silently burn the remaining
+            # episodes (2026-09-11: 27 wrist-blind eps went undetected)
+            if tick % 4 == 0 and segs:
+                try:
+                    img = _tail_frame(stem)
+                    if img is not None:
+                        m, nmk = _frame_health(stem, img)
+                        bad = nmk == 0
+                        bad_streak[stem] = bad_streak.get(stem, 0) + 1 \
+                            if bad else 0
+                        if bad:
+                            print(f"\a\n{'!'*70}\n!! {stem}: LIVE HEALTH "
+                                  f"CHECK FAILED (x{bad_streak[stem]}) — "
+                                  f"frame mean {m:.0f}/255, {nmk} markers "
+                                  f"decoded. Footage since the last good "
+                                  f"check may be unusable — check the "
+                                  f"lens/preview NOW.\n{'!'*70}", flush=True)
+                except Exception:
+                    pass
+            for s in segs[:-2]:
+                end = os.path.getmtime(s)
+                start = end - seg_secs - 15
+                if now - end < keep_recent:
+                    continue
+                if any(start < w1 and end > w0 for w0, w1 in wins):
+                    continue
+                try:
+                    freed += os.path.getsize(s)
+                    os.remove(s)
+                except OSError:
+                    pass
+        if freed:
+            print(f"\r[janitor] pruned {freed/1e9:.1f} GB of idle footage so far",
+                  flush=True)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dataset", required=False,
+                    help="required unless --cameras_only")
+    ap.add_argument("--glove", action="store_true",
+                    help="electronics-free glove session: no robot, no "
+                         "skeleton. Cameras record continuously while you "
+                         "mark episode boundaries interactively; writes "
+                         "data/raw/<dataset>_glove_episodes.json for "
+                         "build_dataset --episode-marks.")
+    ap.add_argument("--cameras_only", action="store_true",
+                    help="rehearsal mode: all camera recorders + previews, "
+                         "no host/skeleton; Enter stops and finalizes")
+    ap.add_argument("--num_episodes", type=int, default=30)
+    ap.add_argument("--episode_time", type=int, default=60)
+    ap.add_argument("--fps", type=int, default=30)
+    ap.add_argument("--task", default="YAM teleop demonstration")
+    ap.add_argument("--zmq_obs_port", type=int, default=5602)
+    ap.add_argument("--skip_cameras", action="store_true",
+                    help="skeleton only (debug)")
+    ap.add_argument("--no_preview", action="store_true",
+                    help="disable the live preview windows")
+    ap.add_argument("--cameras", default="b0587,b0587b,fish",
+                    help="comma list of camera suffixes to record "
+                         "(e.g. b0587,b0587b when the wrist cam is removed)")
+    ap.add_argument("--forward_rotate", default="none",
+                    choices=["cw", "ccw", "180", "none"],
+                    help="rotate the forward-cam PREVIEW (for a portrait "
+                         "mount; default none = landscape). Recording is "
+                         "unaffected")
+    args, extra = ap.parse_known_args()
+
+    # the teleop recorder puts the tty in raw/no-echo mode for its
+    # single-key controls; every abnormal exit (Ctrl-C races included) must
+    # still restore the EXACT original terminal state. Direct termios (no
+    # killable subprocess) + atexit backstop.
+    tty_state = termios.tcgetattr(0) if sys.stdin.isatty() else None
+
+    def _restore_tty():
+        if tty_state is not None:
+            try:
+                termios.tcsetattr(0, termios.TCSAFLUSH, tty_state)
+            except Exception:
+                pass
+    atexit.register(_restore_tty)
+
+    if args.glove:
+        args.cameras_only = True   # no robot/skeleton; we mark episodes below
+    if not args.dataset:
+        if not args.cameras_only:
+            raise SystemExit("--dataset is required (or use --cameras_only)")
+        args.dataset = "rehearsal"
+
+    # dataset-dir state must match the resume flag BEFORE cameras spin up:
+    # a shell dir from a crashed run breaks both create (FileExists) and
+    # resume (Hub-lookup 404)
+    droot = Path.home() / ".cache/huggingface/lerobot" / args.dataset
+    has_eps = (droot / "meta/tasks.parquet").exists()
+    if args.cameras_only:
+        droot = Path("/nonexistent")  # no skeleton in rehearsal mode
+    if "--resume" in extra and not has_eps:
+        raise SystemExit(
+            f"--resume passed but {args.dataset} has no saved episodes — "
+            f"if a shell dir exists, delete {droot} and run WITHOUT --resume")
+    if "--resume" not in extra and droot.exists():
+        raise SystemExit(
+            f"{droot} already exists "
+            + ("with saved episodes — add --resume to continue it, or pick "
+               "a new --dataset name" if has_eps else
+               "but holds no episodes (crashed run) — delete it: "
+               f"rm -rf {droot}"))
+
+    # ---- disk: ~1 GB/min continuous (4K25 + fisheye), 2x peak during remux --
+    import shutil
+    free_gb = shutil.disk_usage(PILOT / "data/raw").free / 1e9
+    est_gb = args.num_episodes * (args.episode_time + 30) / 60 * 1.0 * 2
+    if free_gb < max(est_gb, 30):
+        raise SystemExit(
+            f"only {free_gb:.0f} GB free — session needs ~{est_gb:.0f} GB "
+            "(cameras record CONTINUOUSLY, ~1 GB/min, and remux doubles the "
+            "peak). Free space or shorten the session.")
+    print(f"disk: {free_gb:.0f} GB free (~1 GB/min while cameras roll; a "
+          "janitor prunes idle footage >5 min old that belongs to no episode)")
+
+    # ---- host reachable? -----------------------------------------------------
+    if not args.cameras_only:
+        s = socket.socket()
+        s.settimeout(1.0)
+        try:
+            s.connect(("127.0.0.1", args.zmq_obs_port))
+            s.close()
+        except OSError:
+            raise SystemExit(
+                f"no host listening on port {args.zmq_obs_port} — start "
+                "yam_zmq_host first (see this script's docstring)")
+
+    # ---- camera recorders ----------------------------------------------------
+    recs = []   # (stem, Popen, logfile)
+    wanted = {c.strip() for c in args.cameras.split(",") if c.strip()}
+    unknown = wanted - {c[0] for c in CAMERAS}
+    if unknown:
+        raise SystemExit(f"unknown camera suffix(es) {sorted(unknown)} — "
+                         f"known: {[c[0] for c in CAMERAS]}")
+    if not args.skip_cameras:
+        for suffix, bypath, frag, res, fps in CAMERAS:
+            if suffix not in wanted:
+                continue
+            dev = bypath if os.path.exists(bypath) else \
+                (find_dev(frag) if frag else None)
+            if dev is None and suffix == "b0587b":
+                # glasses cam: its port changes with the cable route
+                dev = find_other_b0587({c[1] for c in CAMERAS
+                                        if c[0] != suffix})
+                if dev:
+                    print(f"  b0587b resolved by exclusion at {dev} "
+                          "(pin it in CAMERAS if this route sticks)")
+            if dev is None:
+                raise SystemExit(
+                    f"camera '{suffix}' not found at {bypath} — replugged to "
+                    "a different port? Update CAMERAS in this script.")
+            stem = f"{args.dataset}_{suffix}"
+            # NEVER overwrite a previous recording with the same stem (a
+            # --resume session reuses the dataset name): archive it aside
+            # first. Lost ep0-4 raws to this on 2026-09-09.
+            if (PILOT / "data/raw" / f"{stem}.mkv").exists():
+                k = 1
+                while (PILOT / "data/raw" / f"{stem}.take{k}.mkv").exists():
+                    k += 1
+                for ext in (".mkv", "_ts.json", "_meta.json",
+                            "_recorder.log"):
+                    src = PILOT / "data/raw" / f"{stem}{ext}"
+                    if src.exists():
+                        src.rename(PILOT / "data/raw"
+                                   / f"{stem}.take{k}{ext}")
+                # cached detections must follow their take, or the next
+                # session's detections would collide with the stale ones
+                for ext in ("_dodeca_detections.npz",
+                            "_dodeca_detections.csv",
+                            "_tips16h5_detections.npz"):
+                    src = PILOT / "calib" / f"{stem}{ext}"
+                    if src.exists():
+                        src.rename(PILOT / "calib"
+                                   / f"{stem}.take{k}{ext}")
+                print(f"  (existing {stem} recording archived as "
+                      f"{stem}.take{k}.*)")
+            log = open(PILOT / "data/raw" / f"{stem}_recorder.log", "w")
+            # previews only where they guide teleop: the forward primary
+            # (main + EEF zoom). Twin/wrist record headless — less CPU,
+            # fewer windows.
+            primary = suffix == "b0587"
+            env = dict(os.environ,
+                       PREVIEW="1" if primary and not args.no_preview
+                       else "0")
+            if primary and args.forward_rotate != "none":
+                env["ROTATE"] = args.forward_rotate
+            if primary:
+                env["ZOOM"] = "1"    # EEF-tracking zoom window for teleop
+                env["SQUARE"] = "1"  # policy-obs square + out-of-range shade
+            p = subprocess.Popen(
+                [sys.executable, str(PILOT / "scripts/uvc_record.py"),
+                 stem, dev, res, fps],
+                cwd=PILOT, stdout=log, stderr=subprocess.STDOUT, env=env,
+                start_new_session=True)  # keep tty Ctrl-C away from recorders
+            recs.append((stem, p, log))
+            print(f"recording {stem}: {dev} @ {res}x{fps} (log: {log.name})")
+        time.sleep(4.0)  # streams up + rituals latched
+        for stem, p, _ in recs:
+            if p.poll() is not None:
+                for _, q, _ in recs:
+                    if q.poll() is None:
+                        q.send_signal(signal.SIGTERM)
+                raise SystemExit(f"{stem} recorder died at startup — see its log")
+        # behavioral exposure pre-flight: control READBACK LIES (latch race —
+        # the 2026-09-11 fish session read back e=2 yet recorded mean 236/255
+        # blown-white for 27 episodes). Decode a real frame from each
+        # camera's first segment and refuse to run on a blown/black stream.
+        # Known-good scene means run 94-156; blown ~236.
+        time.sleep(5.0)  # streams up AND ritual latched (~1.5s in)
+
+        def _health(stem):
+            for _ in range(10):
+                img = _tail_frame(stem)
+                if img is not None:
+                    return _frame_health(stem, img)
+                time.sleep(1.0)
+            return None, None
+
+        devs = {f"{args.dataset}_{s}": d for s, d, *_ in CAMERAS}
+        for stem, _, _ in recs:
+            mean, nmk = _health(stem)
+            if mean is not None and (not 25 <= mean <= 210 or nmk == 0) \
+                    and stem in devs:
+                # self-heal: the mid-stream latch race is transient — apply
+                # the ritual again on the live stream and re-check before
+                # aborting (2026-09-13: b0587 latched only on 2nd apply)
+                print(f"{stem}: startup frame mean {mean:.0f}/255, "
+                      f"{nmk} markers — re-applying ritual and re-checking…")
+                from uvc_ritual import apply as _ritual
+                try:
+                    _ritual(devs[stem])
+                except Exception as e:
+                    print(f"  (ritual re-apply failed: {e})")
+                time.sleep(3.0)
+                mean, nmk = _health(stem)
+            if mean is None:
+                print(f"*** {stem}: no startup frame for the health check — "
+                      "verify its preview by eye before recording ***")
+                continue
+            # markers are the abort criterion (functional truth: exposure,
+            # focus, smudge, framing all gate them); brightness only
+            # diagnoses WHY — the tone-mapping fisheye runs legitimately
+            # bright (healthy scenes near mean 200), so mean alone must
+            # never abort a stream that still decodes fiducials
+            fail = None
+            if nmk == 0:
+                why = ("blown white" if mean > 210 else
+                       "near black" if mean < 25 else
+                       "exposure OK — suspect lens smudge/focus/framing")
+                fail = (f"{stem} HEALTH CHECK FAILED: ZERO fiducials decode "
+                        f"(frame mean {mean:.0f}/255, {why}). Wipe/replug "
+                        "and rerun; markers are always in view on this rig.")
+            elif not 25 <= mean <= 210:
+                print(f"*** {stem}: brightness unusual (mean {mean:.0f}/255)"
+                      f" but {nmk} markers decode — proceeding; check the "
+                      "preview ***")
+            if fail:
+                for _, q, _ in recs:
+                    if q.poll() is None:
+                        q.send_signal(signal.SIGTERM)
+                raise SystemExit(fail)
+            print(f"{stem}: health OK (mean {mean:.0f}/255, "
+                  f"{nmk} markers decoded)")
+        print("all cameras rolling; rituals applied mid-stream\n")
+
+    stop_ev = threading.Event()
+    if recs and not args.cameras_only:
+        # no janitor in rehearsal mode: with no episodes saved, it would
+        # prune ALL footage older than 5 min
+        threading.Thread(target=_janitor,
+                         args=(args.dataset, [s for s, _, _ in recs], stop_ev),
+                         daemon=True).start()
+
+    # ---- skeleton recorder (foreground, interactive) -------------------------
+    code = 0
+    try:
+        if args.glove:
+            # No robot, so nothing supplies episode boundaries: mark them by
+            # hand here and build_dataset --episode-marks slices the cameras'
+            # wall clocks with them. Same clock (time.time()) as the *_ts.json
+            # the recorders write, so the two align directly.
+            marks, ep = [], 0
+            out = PILOT / "data/raw" / f"{args.dataset}_glove_episodes.json"
+            # width calibration: no actuator on a glove, so caliper holds
+            # stand in. Each 'm <gap_mm>' logs e8_meas events every 0.5 s
+            # for as long as the hold lasts (dense during holds, NOTHING
+            # between them — the fit must only use frames near a
+            # measurement). Gap mm -> robot actuator units via the bench fit
+            # in calib/gap_to_actuator.json so glove labels share Bj's units.
+            meas, log_out = [], PILOT / "data/raw" / f"{args.dataset}_glove_log.json"
+            g2a = None
+            try:
+                g2a = json.load(open(PILOT / "calib/gap_to_actuator.json"))
+            except OSError:
+                print("!! calib/gap_to_actuator.json missing — caliper values "
+                      "will be logged as RAW mm (run scripts/gap_bench.py on "
+                      "the robot first)")
+            print(f"\nGLOVE SESSION — {args.num_episodes} episodes planned.\n"
+                  "  ENTER starts an episode, ENTER ends it.\n"
+                  "  'd' + ENTER after an episode discards it, "
+                  "'q' + ENTER finishes the session.\n"
+                  "  'm <gap_mm>' + ENTER logs a caliper width hold (keep the "
+                  "jaws still and in view until you press ENTER again).\n")
+            while ep < args.num_episodes:
+                cmd = input(f"[{ep + 1}/{args.num_episodes}] ENTER to START "
+                            "(q / m <mm>): ").strip().lower()
+                if cmd == "q":
+                    break
+                if cmd.startswith("m"):
+                    try:
+                        mm = float(cmd[1:].strip())
+                    except ValueError:
+                        print("    usage: m 42.5")
+                        continue
+                    val = g2a["a"] * mm + g2a["b"] if g2a else mm
+                    import select as _sel
+                    print(f"    holding {mm:.1f} mm -> {val:.3f} "
+                          f"{'actuator' if g2a else 'RAW mm'} … ENTER to end")
+                    t_hold = time.time()
+                    while True:
+                        meas.append({"event": "e8_meas", "t_wall": time.time(),
+                                     "gripper_pos": val, "gap_mm": mm})
+                        if _sel.select([sys.stdin], [], [], 0.5)[0]:
+                            sys.stdin.readline()
+                            break
+                    log_out.write_text(json.dumps({"dataset": args.dataset,
+                                                   "units": "actuator" if g2a
+                                                   else "mm", "events": meas},
+                                                  indent=1))
+                    print(f"    logged {time.time() - t_hold:.1f}s hold "
+                          f"({len(meas)} events total) -> {log_out.name}")
+                    continue
+                t0 = time.time()
+                resp = input(f"    recording… ENTER to END "
+                             f"(then d to discard): ").strip().lower()
+                t1 = time.time()
+                if resp == "d":
+                    print(f"    discarded ({t1 - t0:.1f}s)")
+                    continue
+                marks.append({"episode_index": ep, "t_start": t0,
+                              "t_end": t1, "duration_s": round(t1 - t0, 2)})
+                out.write_text(json.dumps({"dataset": args.dataset,
+                                           "episodes": marks}, indent=1))
+                print(f"    saved ep{ep} ({t1 - t0:.1f}s) -> {out.name}")
+                ep += 1
+            print(f"\n{len(marks)} episodes marked in {out}")
+        elif args.cameras_only:
+            input("REHEARSAL — previews live, everything recording. "
+                  "Enter (or Ctrl-C) to stop + finalize… ")
+        else:
+            code = subprocess.call(
+                [sys.executable, str(TELEOP), "--dataset", args.dataset,
+                 "--no_cameras", "--fps", str(args.fps),
+                 "--num_episodes", str(args.num_episodes),
+                 "--episode_time", str(args.episode_time),
+                 "--task_description", args.task, *extra],
+                cwd=TELEOP.parent)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        stop_ev.set()
+        # from here on, further Ctrl-C must not abort cleanup (tty restore,
+        # remux waits) — this also ENFORCES "do not Ctrl-C during remux"
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        _restore_tty()
+        if recs:
+            print("\nstopping camera recorders — remux in progress, "
+                  "do NOT Ctrl-C…", flush=True)
+            for _, p, _ in recs:
+                if p.poll() is None:
+                    p.send_signal(signal.SIGTERM)
+            for stem, p, log in recs:
+                try:
+                    p.wait(timeout=1800)
+                    print(f"  {stem}: done")
+                except subprocess.TimeoutExpired:
+                    print(f"  {stem}: STILL REMUXING after 30 min — leave it; "
+                          f"check {log.name}")
+                log.close()
+
+    print(f"\nsession complete (teleop exit {code}).")
+    if recs:
+        stems = "  ".join(s for s, _, _ in recs)
+        print(f"camera stems: {stems}")
+        print("next: detect_dodeca on both stems, then build_dataset.py "
+              "(COLLECTION_RUNBOOK.md)")
+
+
+if __name__ == "__main__":
+    main()

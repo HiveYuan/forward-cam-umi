@@ -1,0 +1,9 @@
+{
+  "unit": "yuan",
+  "note": "Workspace tags for head-cam (glasses) pose: AprilTag 36h11, printed from apriltag_36h11_60mm_marker_75mm_tile_final.pdf, caliper 60.16 mm outer black edge. Tag 0 is EXCLUDED: in isolation it decodes as phantom 4x4-37 under the pipeline's ecr=1.0 4x4 detector at every rotation/scale, and 37 is the glove tails-BACK-B marker. Tags 1-5 are clean under both detectors. Placement rule: outside the forward camera's policy crop (central square, ~cols 840-3000 of 3840) but inside its full frame, and on peripheral vertical surfaces; leave in place permanently once a session has seen them. Tag poses in the fixed-camera frame get solved per take from the forward camera (tag map); the glasses then PnP against that map. Measured 2026-09-29.",
+  "dict": "36h11",
+  "ids": [1, 2, 3, 4, 5],
+  "excluded": {"0": "phantom 4x4-37 (glove tail marker) under ecr=1.0"},
+  "edge_mm": 60.16,
+  "tile_mm": 75
+}
