@@ -1,0 +1,9 @@
+{
+  "unit": "yosub",
+  "note": "Workspace tags for head-cam (glasses) pose, Yosub's print of apriltag_36h11_60mm_marker_75mm_tile_final.pdf: caliper 60.14 mm outer black edge (2026-10-05). Tag 0 EXCLUDED (decodes as phantom 4x4-37, a glove tail marker, under the pipeline's ecr=1.0 4x4 detector). Tags 1-5 clean. Placement: outside the forward camera's policy crop (central square, ~cols 840-3000 of 3840) but inside its full frame, plus peripheral vertical surfaces; leave in place permanently once a session has seen them.",
+  "dict": "36h11",
+  "ids": [1, 2, 3, 4, 5],
+  "excluded": {"0": "phantom 4x4-37 (glove tail marker) under ecr=1.0"},
+  "edge_mm": 60.14,
+  "tile_mm": 75
+}
