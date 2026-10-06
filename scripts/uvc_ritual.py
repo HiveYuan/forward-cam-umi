@@ -38,6 +38,27 @@ RITUALS = {
 }
 DEFAULT = "auto_exposure=1,exposure_time_absolute=20,gain=50,sharpness=0"
 
+# Per-UNIT additions keyed by USB serial (udev ID_SERIAL_SHORT): same model,
+# different piece of hardware. Yosub's glove wrist cam (UC684) runs ~10%
+# brighter than the robot's wrist cam at the identical ritual (median luma
+# 202 vs 184, clipped highlights in every frame vs 42%; measured 2026-10-06).
+# Its exposure is already at the ISP floor (e=1 == e=2), so match the robot's
+# distribution with the ISP brightness offset instead: ~1.1 luma per step,
+# -16 -> -18 luma on both the mean and the highlights.
+SERIAL_EXTRA = {
+    "UC684": "brightness=-16",
+}
+
+
+def _serial(dev):
+    try:
+        out = subprocess.run(["udevadm", "info", "-q", "property", "-n", dev],
+                             capture_output=True, text=True, timeout=5).stdout
+        return next((l.split("=", 1)[1] for l in out.splitlines()
+                     if l.startswith("ID_SERIAL_SHORT=")), "")
+    except Exception:
+        return ""
+
 
 def _name(dev):
     try:
@@ -54,6 +75,10 @@ def apply(dev):
     if not ritual:
         ritual = next((r for key, r in RITUALS.items() if key in name), DEFAULT)
         src = f"auto ({name or 'unknown camera'})"
+        extra = SERIAL_EXTRA.get(_serial(dev))
+        if extra:
+            ritual += "," + extra
+            src += f" + unit {_serial(dev)}: {extra}"
     keys = []
     for kv in ritual.split(","):
         kv = kv.strip()
