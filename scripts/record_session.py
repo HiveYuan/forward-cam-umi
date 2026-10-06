@@ -374,6 +374,9 @@ def main():
                 [sys.executable, str(PILOT / "scripts/uvc_record.py"),
                  stem, dev, res, fps],
                 cwd=PILOT, stdout=log, stderr=subprocess.STDOUT, env=env,
+                stdin=subprocess.DEVNULL,  # NEVER the terminal: ffmpeg would
+                                           # read keys from it and switch the
+                                           # tty to raw mode, killing input()
                 start_new_session=True)  # keep tty Ctrl-C away from recorders
             recs.append((stem, p, log))
             print(f"recording {stem}: {dev} @ {res}x{fps} (log: {log.name})")
@@ -503,6 +506,24 @@ def main():
             # hand here and build_dataset --episode-marks slices the cameras'
             # wall clocks with them. Same clock (time.time()) as the *_ts.json
             # the recorders write, so the two align directly.
+            # FORCE a cooked terminal before the first prompt. Restoring the
+            # saved state is not enough: a previous process in this same
+            # terminal (a Ctrl-C'd focus_tune, a crashed run) can leave the
+            # tty in raw/no-echo mode — bash still works (readline manages
+            # its own echo) but every input() here looks dead (2026-10-06).
+            # In raw mode Enter sends '\r' (ICRNL off), so input() never
+            # returns while Ctrl-C still works — exactly the observed
+            # symptom. `stty sane` resets every relevant flag at once.
+            if sys.stdin.isatty():
+                def _flags():
+                    a = termios.tcgetattr(0)
+                    return (f"ICANON={bool(a[3] & termios.ICANON):d} "
+                            f"ECHO={bool(a[3] & termios.ECHO):d} "
+                            f"ICRNL={bool(a[0] & termios.ICRNL):d}")
+                before = _flags()
+                subprocess.run(["stty", "sane"], stdin=sys.stdin,
+                               check=False)
+                print(f"  terminal: {before} -> {_flags()} (after stty sane)")
             marks, ep = [], 0
             out = PILOT / "data/raw" / f"{args.dataset}_glove_episodes.json"
             # width calibration: no actuator on a glove, so caliper holds
