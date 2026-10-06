@@ -124,8 +124,14 @@ try:
         if overlay:
             # fast preview-res detection (no APRILTAG refinement) — a visual
             # aid only; offline stats come from the full-res pipeline
+            # the wrist fisheye sees the AprilTag 16h5 tip markers, every
+            # other stream the ArUco 4x4 ball/tail/base set — count the
+            # family that stream is supposed to see, or the overlay reads
+            # "0 markers" on a perfectly healthy wrist stream
+            _dic = (cv2.aruco.DICT_APRILTAG_16h5 if "fish" in name
+                    else cv2.aruco.DICT_4X4_50)
             adet = cv2.aruco.ArucoDetector(
-                cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50),
+                cv2.aruco.getPredefinedDictionary(_dic),
                 cv2.aruco.DetectorParameters())
         # ROTATE=cw|ccw|180 rotates the PREVIEW only (portrait-mounted
         # camera); the recording stays in sensor orientation, which the
