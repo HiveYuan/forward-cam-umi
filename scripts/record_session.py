@@ -217,6 +217,10 @@ def main():
                          "mark episode boundaries interactively; writes "
                          "data/raw/<dataset>_glove_episodes.json for "
                          "build_dataset --episode-marks.")
+    ap.add_argument("--preview_all", action="store_true",
+                    help="open a live preview for EVERY camera, not just the "
+                         "forward primary (implied by --glove; --no_preview "
+                         "still wins)")
     ap.add_argument("--cameras_only", action="store_true",
                     help="rehearsal mode: all camera recorders + previews, "
                          "no host/skeleton; Enter stops and finalizes")
@@ -255,6 +259,8 @@ def main():
 
     if args.glove:
         args.cameras_only = True   # no robot/skeleton; we mark episodes below
+        args.preview_all = True    # validate every stream by eye (no teleop
+                                   # CPU load to protect in glove mode)
     if not args.dataset:
         if not args.cameras_only:
             raise SystemExit("--dataset is required (or use --cameras_only)")
@@ -357,9 +363,8 @@ def main():
             # (main + EEF zoom). Twin/wrist record headless — less CPU,
             # fewer windows.
             primary = suffix == "b0587"
-            env = dict(os.environ,
-                       PREVIEW="1" if primary and not args.no_preview
-                       else "0")
+            show = (primary or args.preview_all) and not args.no_preview
+            env = dict(os.environ, PREVIEW="1" if show else "0")
             if primary and args.forward_rotate != "none":
                 env["ROTATE"] = args.forward_rotate
             if primary:
@@ -395,7 +400,51 @@ def main():
             return None, None
 
         devs = {f"{args.dataset}_{s}": d for s, d, *_ in CAMERAS}
-        for stem, _, _ in recs:
+
+        def _abort(msg):
+            for _, q, _ in recs:
+                if q.poll() is None:
+                    q.send_signal(signal.SIGTERM)
+            raise SystemExit(msg)
+
+        if args.glove:
+            # On the robot rig the markers are always in view, so one decode
+            # a few seconds in is a valid health check. On a glove session
+            # NOTHING is in view until the operator holds the glove up, so
+            # wait for every stream instead of aborting on the first frame.
+            from uvc_ritual import apply as _ritual
+            print("\nGLOVE PRE-FLIGHT — hold the glove where ALL cameras see "
+                  "it (fixed forward, glasses, wrist); waiting up to 120 s "
+                  "for markers on every stream…", flush=True)
+            pending = {stem for stem, _, _ in recs}
+            healed = set()
+            t_end = time.time() + 120
+            while pending and time.time() < t_end:
+                for stem in sorted(pending):
+                    mean, nmk = _health(stem)
+                    if nmk:
+                        print(f"  {stem}: {nmk} markers decoded "
+                              f"(mean {mean:.0f}/255) OK", flush=True)
+                        pending.discard(stem)
+                    elif (mean is not None and not 25 <= mean <= 210
+                          and stem not in healed and stem in devs):
+                        # exposure anomaly: the mid-stream latch race is
+                        # transient — re-apply the ritual once
+                        healed.add(stem)
+                        print(f"  {stem}: mean {mean:.0f}/255, no markers — "
+                              "re-applying ritual", flush=True)
+                        try:
+                            _ritual(devs[stem])
+                        except Exception as e:
+                            print(f"  (ritual re-apply failed: {e})")
+                if pending:
+                    time.sleep(2.0)
+            if pending:
+                _abort(f"{sorted(pending)}: no fiducials decoded within 120 s "
+                       "— is the glove in that camera's view? lens smudge? "
+                       "wrong device? (check its preview window)")
+
+        for stem, _, _ in ([] if args.glove else recs):
             mean, nmk = _health(stem)
             if mean is not None and (not 25 <= mean <= 210 or nmk == 0) \
                     and stem in devs:
@@ -433,10 +482,7 @@ def main():
                       f" but {nmk} markers decode — proceeding; check the "
                       "preview ***")
             if fail:
-                for _, q, _ in recs:
-                    if q.poll() is None:
-                        q.send_signal(signal.SIGTERM)
-                raise SystemExit(fail)
+                _abort(fail)
             print(f"{stem}: health OK (mean {mean:.0f}/255, "
                   f"{nmk} markers decoded)")
         print("all cameras rolling; rituals applied mid-stream\n")
