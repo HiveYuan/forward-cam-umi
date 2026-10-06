@@ -56,6 +56,8 @@ for a in sys.argv[1:]:
         v = a.split("=")[1]
         BALL_IDS = (set(range(int(v.split("-")[0]), int(v.split("-")[1]) + 1))
                     if "-" in v else {int(x) for x in v.split(",")})
+    elif a.startswith("--max-vel="):       # px/s stillness gate (see below)
+        MAX_VEL_ARG = float(a.split("=")[1])
 MARKER_M = MARKER_MM / 1000.0
 
 intr = json.load(open(INTR))
@@ -93,7 +95,12 @@ def pnp_both(corners):
             for i in range(n)]
 
 # ---------- velocity filter ----------
-MAX_VEL = 150.0  # px/s
+# Stillness gate. 150 px/s was tuned for a 1/60 s-shutter camera (motion
+# blur smears corners). The B0587 runs a 0.2 ms shutter — no blur even at
+# full rotation speed — so a glove calibration take, which is MOSTLY motion,
+# should use --max-vel=600 or more; at 150 the rarely-shown faces lose every
+# co-visible frame and drop out of the bundle (2026-10-06: faces 27/34).
+MAX_VEL = globals().get("MAX_VEL_ARG", 150.0)  # px/s
 vel = {}
 prev = None
 for k in idxs:

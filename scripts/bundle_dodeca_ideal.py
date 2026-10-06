@@ -37,6 +37,7 @@ INTR = "calib/C0754_intrinsics.json"
 INIT_BUNDLES = ["calib/tmp_bundle_755only.json", "calib/tmp_bundle_756only.json"]
 OUT = "calib/dodeca_bundle_ideal.json"
 MARKER_MM_ARG = None
+MAX_VEL = 150.0   # px/s stillness gate; 0.2 ms-shutter footage: --max-vel=600
 for a in sys.argv[1:]:
     if a.startswith("--npz="):
         NPZS = a.split("=")[1].split(",")
@@ -48,6 +49,8 @@ for a in sys.argv[1:]:
         INIT_BUNDLES = a.split("=")[1].split(",")
     elif a.startswith("--marker-mm="):     # caliper edge of THIS ball's print
         MARKER_MM_ARG = float(a.split("=")[1])
+    elif a.startswith("--max-vel="):
+        MAX_VEL = float(a.split("=")[1])
 MARKER_MM = 14.54 if MARKER_MM_ARG is None else MARKER_MM_ARG   # robot ball default
 MARKER_M = MARKER_MM / 1000.0
 SIGMA_O = 0.0005   # 0.5mm prior sd on in-plane offsets
@@ -81,7 +84,7 @@ for k in idxs:
             disp = np.mean([np.linalg.norm(cent[i] - prev[1][i]) for i in common])
             vel[k] = disp / ((k - prev[0]) / 29.97)
     prev = (k, cent)
-still = [k for k in idxs if vel.get(k, np.inf) < 150.0 and len(frames[k][0]) >= 2]
+still = [k for k in idxs if vel.get(k, np.inf) < MAX_VEL and len(frames[k][0]) >= 2]
 sel = []
 for k in still:
     if not sel or k - sel[-1] >= 6:

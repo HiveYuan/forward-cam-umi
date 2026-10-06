@@ -120,15 +120,20 @@ Face-to-ID layout on the ball is not prescribed; it is recovered from the
 calibration take. Three passes, outputs are specific to the physical unit:
 ```
 python scripts/bundle_dodeca.py --npz=calib/glove_cal_b0587_dodeca_detections.npz \
-    --intr=calib/B0587_intrinsics.json --marker-mm=<ball caliper> --ball-ids=25-35 --out=calib/tmp_bundle_<unit>.json
+    --intr=calib/B0587_intrinsics.json --marker-mm=<ball caliper> --ball-ids=25-35 --max-vel=600 --out=calib/tmp_bundle_<unit>.json
 python scripts/bundle_dodeca_ideal.py --npz=calib/glove_cal_b0587_dodeca_detections.npz \
     --intr=calib/B0587_intrinsics.json --init=calib/tmp_bundle_<unit>.json --marker-mm=<ball caliper> \
-    --out=calib/glove_<unit>_dodeca_bundle.json
+    --max-vel=600 --out=calib/glove_<unit>_dodeca_bundle.json
 python scripts/calibrate_gripper_bundle.py glove_cal_b0587 --bundle=calib/glove_<unit>_dodeca_bundle.json \
     --marker-map=calib/marker_map_glove_<unit>.json --out=calib/glove_<unit>_gripper_bundle.json
 ```
-The robot's solves are included as format examples
-(`calib/*_robot.example.json`, 0.71 px RMS on 465 frames).
+`--max-vel=600` admits moving frames: the default 150 px/s stillness gate
+was tuned for a slow-shutter camera, and on a rotation take at the 0.2 ms
+shutter it discards most frames and drops the rarely-shown faces from the
+bundle entirely (a first solve at the default kept 9/11 faces). Expect all
+11 faces at ~0.5 px RMS — a built glove unit solved at 0.52 px over 597
+frames; the robot's ball, included as a format example
+(`calib/*_robot.example.json`), sits at 0.71 px on 465 frames.
 
 ## What to send back for dataset building
 
