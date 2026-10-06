@@ -59,6 +59,7 @@ def work(args):
         d16 = cv2.aruco.ArucoDetector(
             cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_16h5),
             p16)
+    _clahe = cv2.createCLAHE(3.0, (8, 8))   # 16h5 low-contrast retry
     cap = cv2.VideoCapture(seg)
     s4, s16 = {}, {}
     idx = -1
@@ -84,6 +85,16 @@ def work(args):
             if det is None:
                 continue
             corners, ids, _ = det.detectMarkers(gray)
+            if det is d16 and (ids is None or len(ids) < 2):
+                # the two tips are the width instrument; a veiled lens
+                # (lifted blacks) drops one of them below the decoder's
+                # contrast margin. Local contrast normalisation recovered
+                # 40% of such frames on 2026-10-06 glove footage. Only run
+                # when a tip is missing, and keep the plain result if the
+                # retry finds nothing better.
+                c2, i2, _ = det.detectMarkers(_clahe.apply(gray))
+                if i2 is not None and len(i2) > (0 if ids is None else len(ids)):
+                    corners, ids = c2, i2
             if ids is None or not len(ids):
                 continue
             keep = [(int(i), c.reshape(4, 2)) for i, c in
