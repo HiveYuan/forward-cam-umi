@@ -520,6 +520,9 @@ def main():
                       "will be logged as RAW mm (run scripts/gap_bench.py on "
                       "the robot first)")
             print(f"\nGLOVE SESSION — {args.num_episodes} episodes planned.\n"
+                  "  >>> CLICK THIS TERMINAL FIRST: the preview windows that just "
+                  "opened take keyboard focus, so keystrokes go to them until "
+                  "you click back here. <<<\n"
                   "  ENTER starts an episode, ENTER ends it.\n"
                   "  'd' + ENTER after an episode discards it, "
                   "'q' + ENTER finishes the session.\n"
