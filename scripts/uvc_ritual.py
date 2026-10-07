@@ -39,15 +39,15 @@ RITUALS = {
 DEFAULT = "auto_exposure=1,exposure_time_absolute=20,gain=50,sharpness=0"
 
 # Per-UNIT additions keyed by USB serial (udev ID_SERIAL_SHORT): same model,
-# different piece of hardware. Yosub's glove wrist cam (UC684) runs ~10%
-# brighter than the robot's wrist cam at the identical ritual (median luma
-# 202 vs 184, clipped highlights in every frame vs 42%; measured 2026-10-06).
-# Its exposure is already at the ISP floor (e=1 == e=2), so match the robot's
-# distribution with the ISP brightness offset instead: ~1.1 luma per step,
-# -16 -> -18 luma on both the mean and the highlights.
-SERIAL_EXTRA = {
-    "UC684": "brightness=-16",
-}
+# different piece of hardware. Empty on purpose. A "brightness=-16" entry for
+# Yosub's glove wrist cam (UC684) lived here for one day (2026-10-06): it was
+# measured against footage from a camera whose ISP had latched into a
+# washed-out state (tag blacks ~180 instead of ~25) — a fault that only a
+# USB replug clears, which a brightness offset cannot fix and would only mask.
+# After the replug the unit matched the robot's wrist cam at the shared
+# ritual. Add a unit entry only from a measurement taken on a camera that
+# passes the record_session pre-flight contrast check.
+SERIAL_EXTRA = {}
 
 
 def _serial(dev):
