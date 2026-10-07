@@ -672,6 +672,13 @@ def main():
                             f"{prompt_opts}: ").strip().lower()
                 if cmd == "q":
                     break
+                # a bare number at this prompt can only be a caliper value
+                # (2026-10-07: "37" started a 27-s episode instead of a hold)
+                try:
+                    float(cmd)
+                    cmd = "m " + cmd
+                except ValueError:
+                    pass
                 if cmd.startswith("m") and not args.width_holds:
                     print("    width holds are off for this session — restart "
                           "with --width_holds if the markers changed")
