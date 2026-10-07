@@ -165,8 +165,13 @@ WASHED_BLACK, WASHED_CONTRAST = 140.0, 75.0
 
 
 def _washed(black, contrast):
+    # The fault signature is LIFTED blacks. Low contrast alone is not it: a
+    # marker sitting in shadow on the forward cam reads black 24 / white 98
+    # (glove3 2026-10-06) and decodes fine, so contrast only counts when the
+    # blacks are already well above a healthy level.
     return (black is not None and contrast is not None
-            and (black > WASHED_BLACK or contrast < WASHED_CONTRAST))
+            and (black > WASHED_BLACK
+                 or (contrast < WASHED_CONTRAST and black > 100)))
 
 
 def _janitor(dataset, stems, stop_ev, seg_secs=60, keep_recent=300, margin=30):
