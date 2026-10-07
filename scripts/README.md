@@ -56,7 +56,17 @@ lock the barrel with the live sharpness meter, mark it, and only then
 calibrate.
 ```
 python scripts/focus_tune.py /dev/v4l/by-path/<forward>
+python scripts/focus_tune.py /dev/v4l/by-path/<head> --ref /dev/v4l/by-path/<forward>
 ```
+It opens a window: the whole frame on top (click to move the crop box) and a
+1:1 crop of actual sensor pixels below, so you see the blur you are turning
+out. Aim at a marker (a workspace tile at ~1 m is ideal) and minimise
+**edge px**, the black/white transition width on the marker's edges —
+2–3 px is a sharp B0587 at 4K; the "sharp" number is a scene-dependent
+Laplacian meter with peak-hold, useful only against itself while you turn.
+`--ref` puts a known-good camera beside yours on the same target, which is
+the only honest "as sharp as the forward cam" check. The meter captures at
+the recording size (4K): a 1080p preview hides half the blur.
 The exposure/gain ritual (`scripts/uvc_ritual.py`) is applied automatically
 by the recorder and the calibrator: manual exposure, `exposure_time_absolute=2`
 (0.2 ms), gain 0. Verify behaviourally — a hand waved in front of the lens
@@ -155,7 +165,7 @@ repository root.
 
 | command | does | step |
 |---|---|---|
-| `focus_tune.py <dev>` | live sharpness meter to lock a barrel-focused lens | 2 |
+| `focus_tune.py <dev> [--ref <dev>]` | live window + marker edge-width meter to lock a barrel-focused lens; `--ref` shows a known-good camera beside it | 2 |
 | `calibrate_uvc.py <dev> [--name] [--model rational] --square-mm --marker-mm` | live ChArUco intrinsics → `calib/<name>_intrinsics.json` | 3 |
 | `record_session.py --glove --dataset D --num_episodes N` | multi-camera session: pre-flight, ritual, episode marks, width holds | 4 |
 | `uvc_record.py <name> [dev] [WxH] [fps]` | one camera's raw MJPEG + wall clocks (launched by record_session) | 4 |
