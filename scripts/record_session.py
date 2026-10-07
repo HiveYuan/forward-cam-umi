@@ -135,8 +135,38 @@ def _frame_health(stem, img):
         _DETS[kind] = cv2.aruco.ArucoDetector(
             cv2.aruco.getPredefinedDictionary(dic), p)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    _, ids, _ = _DETS[kind].detectMarkers(gray)
-    return float(gray.mean()), 0 if ids is None else len(ids)
+    corners, ids, _ = _DETS[kind].detectMarkers(gray)
+    if ids is None or not len(ids):
+        return float(gray.mean()), 0, None, None
+    # contrast at the decoded markers: a stuck ISP (seen on the wrist
+    # fisheye, fixed only by replugging) lifts the black cells to ~180 while
+    # the frame mean looks normal and a tag or two still decodes — the
+    # decoder then loses the rest. Healthy: blacks <= ~60, contrast >= ~150.
+    import numpy as _np
+    blacks, contrasts = [], []
+    for c in corners:
+        q = c.reshape(4, 2).astype(int)
+        m = _np.zeros(gray.shape, _np.uint8)
+        cv2.fillPoly(m, [q], 255)
+        v = gray[m > 0]
+        if v.size:
+            b, w = _np.percentile(v, 5), _np.percentile(v, 95)
+            blacks.append(b)
+            contrasts.append(w - b)
+    return (float(gray.mean()), len(ids),
+            float(max(blacks)) if blacks else None,
+            float(min(contrasts)) if contrasts else None)
+
+
+# Fail thresholds. Measured 2026-10-06 on real frames: stuck-ISP wrist cam
+# blacks 186 / contrast 60; healthy robot wrist 98 / 107; healthy glove wrist
+# after replug 77 / 126. Thresholds sit between the clusters with margin.
+WASHED_BLACK, WASHED_CONTRAST = 140.0, 75.0
+
+
+def _washed(black, contrast):
+    return (black is not None and contrast is not None
+            and (black > WASHED_BLACK or contrast < WASHED_CONTRAST))
 
 
 def _janitor(dataset, stems, stop_ev, seg_secs=60, keep_recent=300, margin=30):
@@ -422,7 +452,7 @@ def main():
                 if img is not None:
                     return _frame_health(stem, img)
                 time.sleep(1.0)
-            return None, None
+            return None, None, None, None
 
         devs = {f"{args.dataset}_{s}": d for s, d, *_ in CAMERAS}
 
@@ -446,10 +476,20 @@ def main():
             t_end = time.time() + 120
             while pending and time.time() < t_end:
                 for stem in sorted(pending):
-                    mean, nmk = _health(stem)
-                    if nmk:
+                    mean, nmk, black, contrast = _health(stem)
+                    if nmk and _washed(black, contrast):
+                        # decodes, but the ISP is in its stuck state: keep
+                        # waiting so a replug mid-pre-flight can fix it
+                        print(f"\a  {stem}: {nmk} markers but WASHED OUT "
+                              f"(tag blacks {black:.0f}/255, contrast "
+                              f"{contrast:.0f}; healthy <= {WASHED_BLACK:.0f}"
+                              f" / >= {WASHED_CONTRAST:.0f}) — REPLUG this "
+                              "camera; a brightness/exposure tweak will not "
+                              "fix it", flush=True)
+                    elif nmk:
                         print(f"  {stem}: {nmk} markers decoded "
-                              f"(mean {mean:.0f}/255) OK", flush=True)
+                              f"(mean {mean:.0f}/255, tag blacks {black:.0f},"
+                              f" contrast {contrast:.0f}) OK", flush=True)
                         pending.discard(stem)
                     elif (mean is not None and not 25 <= mean <= 210
                           and stem not in healed and stem in devs):
@@ -470,7 +510,7 @@ def main():
                        "wrong device? (check its preview window)")
 
         for stem, _, _ in ([] if args.glove else recs):
-            mean, nmk = _health(stem)
+            mean, nmk, black, contrast = _health(stem)
             if mean is not None and (not 25 <= mean <= 210 or nmk == 0) \
                     and stem in devs:
                 # self-heal: the mid-stream latch race is transient — apply
@@ -484,7 +524,7 @@ def main():
                 except Exception as e:
                     print(f"  (ritual re-apply failed: {e})")
                 time.sleep(3.0)
-                mean, nmk = _health(stem)
+                mean, nmk, black, contrast = _health(stem)
             if mean is None:
                 print(f"*** {stem}: no startup frame for the health check — "
                       "verify its preview by eye before recording ***")
@@ -502,6 +542,12 @@ def main():
                 fail = (f"{stem} HEALTH CHECK FAILED: ZERO fiducials decode "
                         f"(frame mean {mean:.0f}/255, {why}). Wipe/replug "
                         "and rerun; markers are always in view on this rig.")
+            elif _washed(black, contrast):
+                fail = (f"{stem} HEALTH CHECK FAILED: markers decode but the "
+                        f"image is WASHED OUT (tag blacks {black:.0f}/255, "
+                        f"contrast {contrast:.0f}) — the camera's ISP is in "
+                        "its stuck state; REPLUG it and rerun (controls read "
+                        "back fine and do nothing in this state)")
             elif not 25 <= mean <= 210:
                 print(f"*** {stem}: brightness unusual (mean {mean:.0f}/255)"
                       f" but {nmk} markers decode — proceeding; check the "
@@ -679,6 +725,15 @@ def main():
                           f"check {log.name}")
                 log.close()
 
+    # recorders must be GONE now, or the next run will read their segments
+    # as its own (2026-10-06: three runs shared one survivor)
+    left = [stem for stem, q, _ in recs if q.poll() is None]
+    for stem, q, _ in recs:
+        if q.poll() is None:
+            q.kill()
+    if left:
+        print(f"\n!! recorder(s) still alive at exit, killed: {left} — their "
+              "last segments were NOT remuxed; check data/raw/.<stem>_seg*")
     print(f"\nsession complete (teleop exit {code}).")
     if recs:
         stems = "  ".join(s for s, _, _ in recs)
