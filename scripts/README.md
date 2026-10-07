@@ -65,7 +65,10 @@ out. Aim at a marker (a workspace tile at ~1 m is ideal) and minimise
 2–3 px is a sharp B0587 at 4K; the "sharp" number is a scene-dependent
 Laplacian meter with peak-hold, useful only against itself while you turn.
 `--ref` puts a known-good camera beside yours on the same target, which is
-the only honest "as sharp as the forward cam" check. The meter captures at
+the only honest "as sharp as the forward cam" check. It matters more than it
+looks: a head-worn B0587 at 7 px edges decoded a second ball face in 5% of
+frames (no pose); the same unit at 4 px decoded two faces in 92% and fused a
+pose in 99% — a calibration RMS of 0.6 px had said nothing about it. The meter captures at
 the recording size (4K): a 1080p preview hides half the blur.
 The exposure/gain ritual (`scripts/uvc_ritual.py`) is applied automatically
 by the recorder and the calibrator: manual exposure, `exposure_time_absolute=2`

@@ -17,8 +17,10 @@ Two numbers, both measured at the camera's RECORDING resolution (4K):
   edge px   width of the black/white transition on decoded marker edges
             (36h11 tiles, 4x4 ball/tail faces). Resolution-independent and
             comparable across cameras: a sharp B0587 reads 2-3 px on a tile
-            at 1 m; 6-7 px is the soft unit we chased on 2026-10-06. This is
-            the number to minimise; it needs a marker in view.
+            at 1 m. A head-worn unit at 7 px decoded a second ball face in 5%
+            of frames; refocused to 4 px (2026-10-07) it decoded two faces in
+            92% and fused the ball pose in 99% of frames — focus, not
+            geometry, was the limit. Minimise this number; needs a marker.
   sharp     centre-crop Laplacian variance, with a session peak-hold. Scene-
             dependent (texture, light), so only compare against itself while
             you turn — dial past the peak and come back to it.
