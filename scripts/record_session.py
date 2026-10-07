@@ -273,7 +273,7 @@ def main():
     has_eps = (droot / "meta/tasks.parquet").exists()
     if args.cameras_only:
         droot = Path("/nonexistent")  # no skeleton in rehearsal mode
-    if "--resume" in extra and not has_eps:
+    if "--resume" in extra and not has_eps and not args.glove:
         raise SystemExit(
             f"--resume passed but {args.dataset} has no saved episodes — "
             f"if a shell dir exists, delete {droot} and run WITHOUT --resume")
@@ -524,8 +524,22 @@ def main():
                 subprocess.run(["stty", "sane"], stdin=sys.stdin,
                                check=False)
                 print(f"  terminal: {before} -> {_flags()} (after stty sane)")
-            marks, ep = [], 0
             out = PILOT / "data/raw" / f"{args.dataset}_glove_episodes.json"
+            # CUMULATIVE across runs of the same dataset name: a second run
+            # must never overwrite the first run's marks (2026-10-06: 30
+            # episodes' boundaries lost that way). Episodes keep counting
+            # up; wall clocks tie each one to whichever take recorded it.
+            marks = []
+            if out.exists():
+                try:
+                    marks = json.load(open(out)).get("episodes", [])
+                except Exception:
+                    marks = []
+                if marks:
+                    print(f"  resuming {out.name}: {len(marks)} episodes "
+                          "already marked — new ones continue the numbering")
+            ep = len(marks)
+            args.num_episodes += ep        # plan N MORE, not N total
             # width calibration: no actuator on a glove, so caliper holds
             # stand in. Each 'm <gap_mm>' logs e8_meas events every 0.5 s
             # for as long as the hold lasts (dense during holds, NOTHING
