@@ -4,9 +4,14 @@ mechanically only — the UVC focus_absolute control is accepted but INERT).
 
 Opens a window with the live image so you see what the barrel does:
   top     the whole frame, downscaled, with the 1:1 crop box and any decoded
-          marker outlined (click anywhere to move the crop box there)
+          marker outlined
   bottom  the crop at 1:1 — ACTUAL sensor pixels, no scaling — so blur is
-          visible as blur, next to the numbers
+          visible as blur, next to the numbers. The crop follows the largest
+          decoded marker on its own (a tile, ideally); 'n' in the terminal
+          steps it to the next marker, 'c' parks it on the frame centre.
+The window is an mpv/ffplay sink fed raw frames (the env's cv2 is GUI-less,
+like the recorder's previews); keys are read from the TERMINAL, not the
+window, so keep the terminal focused.
 
 Two numbers, both measured at the camera's RECORDING resolution (4K):
   edge px   width of the black/white transition on decoded marker edges
@@ -25,7 +30,7 @@ Pass --ref <dev> to open a second (known-good) camera: its 1:1 crop and edge
 px are shown beside yours, so "as sharp as the forward cam" is a comparison
 you make by eye and by number, on the same target, at the same moment.
 
-Keys: q / Esc quit, r reset peak, click = move crop.  Ctrl-C also quits.
+Keys (terminal): q quit, r reset peak, n next marker, c centre.  Ctrl-C quits.
 
 Usage:
   python scripts/focus_tune.py /dev/v4l/by-path/<head>
@@ -188,6 +193,7 @@ class Tuner:
         self.dev, self.label = dev, label
         self.cap = open_cam(dev)
         self.crop_xy = [W // 2, H // 2]
+        self.follow = 0            # index into the size-sorted marker list; -1 = centre
         self.peak = 0.0
 
     def tick(self, crop_wh):
@@ -196,43 +202,73 @@ class Tuner:
             ok, img = self.cap.read()
         if not ok:
             return None
-        g, sharp, edge, markers = self.measure_at(img, crop_wh)
+        g, sharp, edge, markers = measure(img, self.crop_xy, crop_wh)
+        # crop follows a decoded marker: tiles first (big, static), then by size
+        order = sorted(markers, key=lambda m: -np.linalg.norm(m[0][0] - m[0][2]))
+        if self.follow >= 0 and order:
+            q = order[self.follow % len(order)][0]
+            self.crop_xy = [int(q[:, 0].mean()), int(q[:, 1].mean())]
+        elif self.follow < 0:
+            self.crop_xy = [W // 2, H // 2]
         self.peak = max(self.peak, sharp)
         return img, g, sharp, edge, markers
 
-    def measure_at(self, img, crop_wh):
-        return measure(img, self.crop_xy, crop_wh)
+
+def open_sink(title, w, h):
+    """mpv first (XVideo, survives the broken-GLX state after NVIDIA driver
+    updates), ffplay second — same choice as uvc_record's previews."""
+    cmds = [
+        ["mpv", "--no-config", "--really-quiet", f"--title={title}",
+         "--profile=low-latency", "--no-cache", "--untimed",
+         "--demuxer-readahead-secs=0", "--demuxer=rawvideo",
+         "--demuxer-rawvideo-mp-format=bgr24", f"--demuxer-rawvideo-w={w}",
+         f"--demuxer-rawvideo-h={h}", "--demuxer-rawvideo-fps=60", "-"],
+        ["ffplay", "-loglevel", "error", "-window_title", title,
+         "-fflags", "nobuffer", "-flags", "low_delay", "-f", "rawvideo",
+         "-pixel_format", "bgr24", "-video_size", f"{w}x{h}",
+         "-framerate", "60", "-i", "pipe:0"],
+    ]
+    for cmd in cmds:
+        try:
+            return subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL)
+        except OSError:
+            continue
+    print("(no mpv/ffplay — numbers only, no window)", flush=True)
+    return None
 
 
 VIEW_W = 960 if args.ref else 1280           # per-camera column width
 CROP = (VIEW_W, 360)                           # 1:1 crop size (w, h)
+PANEL_H = int(H * VIEW_W / W) + CROP[1]
 main = Tuner(args.dev, "THIS")
 ref = Tuner(args.ref, "REF") if args.ref else None
-win = "focus_tune  (q quit, r reset peak, click = move crop)"
-cv2.namedWindow(win, cv2.WINDOW_AUTOSIZE)
+ncol = 2 if ref else 1
+sink = open_sink("focus_tune", VIEW_W * ncol, PANEL_H)
 
-
-def on_mouse(ev, x, y, flags, _):
-    if ev != cv2.EVENT_LBUTTONDOWN:
-        return
-    col = x // VIEW_W                          # which camera column
-    t = ref if (ref and col == 1) else main
-    s = W / VIEW_W
-    if y < H / s:                              # click in the full view
-        t.crop_xy = [int((x - col * VIEW_W) * s), int(y * s)]
-
-
-cv2.setMouseCallback(win, on_mouse)
 print(f"{args.dev}: turn the focus barrel by hand. Minimise 'edge px' on a "
       "marker (2-3 px = sharp B0587 at 1 m); 'sharp' peaks at best focus.\n"
-      "Ctrl-C / q when parked on the peak.\n")
+      "keys here in the terminal: q quit, r reset peak, n next marker, "
+      "c centre crop.\n")
+import select
+import termios
+import tty
+fd = sys.stdin.fileno()
+old_tty = None
+try:
+    old_tty = termios.tcgetattr(fd)
+    tty.setcbreak(fd)
+except (termios.error, OSError):
+    pass
 try:
     while True:
-        cols = []
-        line = []
+        cols, line = [], []
         for t in (main, ref) if ref else (main,):
             r = t.tick(CROP)
             if r is None:
+                cols.append(np.zeros((PANEL_H, VIEW_W, 3), np.uint8))
+                line.append(f"{t.label} no frame")
                 continue
             img, g, sharp, edge, markers = r
             cols.append(panel(img, g, markers, t.crop_xy, CROP, t.label,
@@ -240,23 +276,42 @@ try:
             etxt = "  n/a" if np.isnan(edge) else f"{edge:5.1f}"
             line.append(f"{t.label} edge {etxt}px sharp {sharp:7.1f} "
                         f"(peak {t.peak:7.1f})")
-        if cols:
-            cv2.imshow(win, np.hstack(cols))
-            print("\r  " + " | ".join(line) + " " * 8, end="", flush=True)
-        k = cv2.waitKey(30) & 0xFF
-        if k in (ord("q"), 27):
-            break
-        if k == ord("r"):
-            main.peak = 0.0
-            if ref:
-                ref.peak = 0.0
+        frame = np.hstack(cols)
+        if sink is not None and sink.poll() is None:
+            try:
+                sink.stdin.write(frame.tobytes())
+                sink.stdin.flush()
+            except (BrokenPipeError, OSError):
+                sink = None
+        print("\r  " + " | ".join(line) + " " * 8, end="", flush=True)
+        if select.select([sys.stdin], [], [], 0)[0]:
+            k = sys.stdin.read(1)
+            if k == "q":
+                break
+            if k == "r":
+                main.peak = 0.0
+                if ref:
+                    ref.peak = 0.0
+            if k == "n":
+                for t in (main, ref) if ref else (main,):
+                    t.follow = max(0, t.follow) + 1
+            if k == "c":
+                for t in (main, ref) if ref else (main,):
+                    t.follow = -1
 except KeyboardInterrupt:
     pass
 finally:
+    if old_tty is not None:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_tty)
     main.cap.release()
     if ref:
         ref.cap.release()
-    cv2.destroyAllWindows()
+    if sink is not None and sink.poll() is None:
+        try:
+            sink.stdin.close()
+        except OSError:
+            pass
+        sink.terminate()
 print(f"\n\npeak sharp {main.peak:.1f} — park the barrel there, add a witness "
       "mark, then calibrate:")
 print(f"  python scripts/calibrate_uvc.py {args.dev} --name <camera>")
