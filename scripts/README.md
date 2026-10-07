@@ -170,3 +170,33 @@ measured unit configs in `calib/`. The private experiment tree (`pilot`)
 links to them with relative symlinks rather than keeping copies, so a change
 committed here is immediately what the robot-side pipeline runs. Robot-only
 tooling (hand-eye, gap bench, dataset construction, training) is not here.
+
+## Troubleshooting (things that actually happened)
+
+- **Wrist fisheye washed out / saturated, tags not decoding, controls look
+  fine.** The Arducam 1080P Low Light module's ISP can get stuck in a state
+  where exposure/brightness writes are accepted, read back correctly, and
+  make no difference to the image (blacks lifted to ~180 while the scene
+  still has real blacks). **Replug the camera.** Seen repeatedly on two
+  units; nothing in software reaches it. `scripts/tag_contrast.py <dev>`
+  shows per-tag black/white levels live: healthy tags read blacks ≲40,
+  contrast ≳150 under lab light.
+- **A recorder from an earlier run is still alive.** If a session is killed
+  rather than finished, its `uvc_record` processes can outlive it, keep the
+  cameras, and keep writing `data/raw/.<stem>_seg*.mkv`; the next run with
+  the same dataset name then reads *those* segments as if they were its own
+  (pre-flights pass, deliverables are stitched from the wrong process).
+  `record_session.py` now refuses to start while a recorder for the stem is
+  alive (`kill -TERM <pid>` first — it finishes its remux). Check with
+  `pgrep -af uvc_record.py` if anything looks odd.
+- **A camera dropped mid-session.** In glove mode a watchdog now beeps if a
+  stream stops producing segments for 90 s. Episodes recorded after the drop
+  have no stream from that camera; the build gates them per stream.
+- **Episode marks across runs.** `<dataset>_glove_episodes.json` is
+  cumulative: a second run with the same name continues the numbering and
+  never overwrites. (Before 2026-10-06 it overwrote — 30 episodes' marks
+  were lost and had to be reconstructed from marker visibility.)
+- **`input()` never responds at the prompt.** The terminal is in raw mode
+  from an earlier process; the glove loop runs `stty sane` first and prints
+  the tty flags it found. Also: the preview windows take keyboard focus —
+  click the terminal.

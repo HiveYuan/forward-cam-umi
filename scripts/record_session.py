@@ -334,6 +334,18 @@ def main():
                     f"camera '{suffix}' not found at {bypath} — replugged to "
                     "a different port? Update CAMERAS in this script.")
             stem = f"{args.dataset}_{suffix}"
+            # A recorder for this stem must not already be running: a
+            # leftover from an earlier run keeps the camera, and this run
+            # would then silently read ITS segments while believing they are
+            # its own (2026-10-06: three runs shared one zombie recorder).
+            alive = subprocess.run(["pgrep", "-f", f"uvc_record.py {stem} "],
+                                   capture_output=True, text=True).stdout.split()
+            if alive:
+                raise SystemExit(
+                    f"a recorder for {stem} is already running (pid "
+                    f"{', '.join(alive)}) — stop it first: kill -TERM "
+                    f"{' '.join(alive)}  (it will finish its remux), then "
+                    "rerun")
             # NEVER overwrite a previous recording with the same stem (a
             # --resume session reuses the dataset name): archive it aside
             # first. Lost ep0-4 raws to this on 2026-09-09.
@@ -497,6 +509,23 @@ def main():
         threading.Thread(target=_janitor,
                          args=(args.dataset, [s for s, _, _ in recs], stop_ev),
                          daemon=True).start()
+    elif recs and args.glove:
+        # glove mode: no pruning (no skeleton to define episode windows), but
+        # the dead-stream alarm is essential — a wrist camera that drops out
+        # mid-session must not go unnoticed for 7 minutes (2026-10-06)
+        def _glove_watchdog():
+            stems = [s for s, _, _ in recs]
+            while not stop_ev.wait(30.0):
+                now = time.time()
+                for stem in stems:
+                    segs = sorted(glob.glob(str(PILOT / "data/raw" / f".{stem}_seg*.mkv")))
+                    if segs and now - os.path.getmtime(segs[-1]) > 90:
+                        print(f"\a\n{'!'*70}\n!! {stem}: NO NEW FRAMES for "
+                              f"{now - os.path.getmtime(segs[-1]):.0f}s — the "
+                              "camera dropped (replug it); episodes since "
+                              f"then have no {stem.split('_')[-1]} stream\n"
+                              f"{'!'*70}", flush=True)
+        threading.Thread(target=_glove_watchdog, daemon=True).start()
 
     # ---- skeleton recorder (foreground, interactive) -------------------------
     code = 0
