@@ -147,8 +147,28 @@ print(f"calibrating on {len(obj_all)} views (holdout {len(hold)})…")
 flags = cv2.CALIB_RATIONAL_MODEL if args.model == "rational" else 0
 rms, K, dist, rvecs, tvecs = cv2.calibrateCamera(
     obj_all, img_all, (W, H), None, None, flags=flags)
-print(f"calibration RMS {rms:.3f}px  fx {K[0,0]:.1f} fy {K[1,1]:.1f} "
-      f"ppx {K[0,2]:.1f} ppy {K[1,2]:.1f}")
+# A view grabbed while the board was still moving carries corners that are
+# smeared or mis-refined by several px; a handful of them pull fx by percent
+# (B0587b 2026-10-06: 7 of 35 views at 4-5 px dragged fx 2497 -> 2607 and
+# RMS 1.0 -> 1.9). Drop views whose mean residual is far above the pack and
+# refit once; the dropped count is printed so a sloppy capture is visible.
+per_view = []
+for op, ip, rv, tv in zip(obj_all, img_all, rvecs, tvecs):
+    proj, _ = cv2.projectPoints(op, rv, tv, K, dist)
+    per_view.append(float(np.linalg.norm((proj - ip).reshape(-1, 2), axis=1).mean()))
+per_view = np.array(per_view)
+cut = max(2.0, 3.0 * np.median(per_view))
+keep = per_view <= cut
+if (~keep).any() and keep.sum() >= 10:
+    print(f"  dropping {(~keep).sum()} view(s) with mean residual > {cut:.2f}px "
+          f"(board moving during capture): "
+          f"{np.round(per_view[~keep], 1).tolist()}")
+    obj_all = [o for o, k in zip(obj_all, keep) if k]
+    img_all = [i for i, k in zip(img_all, keep) if k]
+    rms, K, dist, rvecs, tvecs = cv2.calibrateCamera(
+        obj_all, img_all, (W, H), None, None, flags=flags)
+print(f"calibration RMS {rms:.3f}px on {len(obj_all)} views  fx {K[0,0]:.1f} "
+      f"fy {K[1,1]:.1f} ppx {K[0,2]:.1f} ppy {K[1,2]:.1f}")
 
 errs = []
 for i in sorted(hold):
@@ -162,6 +182,11 @@ for i in sorted(hold):
 if errs:
     print(f"held-out reprojection: mean {np.mean(errs):.3f}px  "
           f"worst {np.max(errs):.3f}px  ({len(errs)} frames)")
+    clean = [e for e in errs if e <= cut]
+    if len(clean) < len(errs):
+        print(f"  ({len(errs) - len(clean)} held-out view(s) above the "
+              f"{cut:.2f}px moving-board cut; clean held-out mean "
+              f"{np.mean(clean):.3f}px)")
 
 out = f"calib/{name}_intrinsics.json"
 if os.path.exists(out):
