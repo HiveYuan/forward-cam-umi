@@ -90,15 +90,20 @@ exposure not latched, wrong device).
 ```
 python scripts/record_session.py --glove --dataset glove_yuan_01 --num_episodes 30 --task "<task>"
 ```
-At the first prompt do the **width holds**: type `m <gap_mm>` with the jaws
-at a caliper-measured opening (closed, mid, open), keep them still and in
-the forward camera's view until ENTER. Then `ENTER` starts an episode,
-`ENTER` ends it, `d` discards the one you just did, `q` finishes. Outputs in
-`data/raw/`: `<dataset>_<cam>.mkv` + `_ts.json` per camera,
-`<dataset>_glove_episodes.json` (boundaries), `<dataset>_glove_log.json`
-(width holds). Caliper values are logged as raw mm unless
-`calib/gap_to_actuator.json` exists (that file comes from a robot bench
-measurement and maps mm to the robot's gripper units — we supply it).
+`ENTER` starts an episode, `ENTER` ends it, `d` discards the one you just
+did, `q` finishes. Outputs in `data/raw/`: `<dataset>_<cam>.mkv` + `_ts.json`
+per camera and `<dataset>_glove_episodes.json` (boundaries).
+
+**Width holds — once per unit, not per session.** The first session on a new
+glove unit (and any session after you move or reprint the tip/back markers)
+runs with `--width_holds`: at the first prompt type `m <gap_mm>` with the
+jaws at a caliper-measured opening (closed, mid, open), keep them still and
+in the forward camera's view until ENTER. They land in
+`<dataset>_glove_log.json`, which every later build of that unit reuses via
+`--log`. Without the flag the prompt never asks. Caliper values are logged
+as raw mm unless `calib/gap_to_actuator.json` exists (that file comes from a
+robot bench measurement and maps mm to the robot's gripper units — we
+supply it).
 
 Also record one **calibration take** per unit (`--num_episodes 1`): a single
 long episode slowly rotating the ball through every orientation at working

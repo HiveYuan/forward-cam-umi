@@ -247,6 +247,13 @@ def main():
                          "mark episode boundaries interactively; writes "
                          "data/raw/<dataset>_glove_episodes.json for "
                          "build_dataset --episode-marks.")
+    ap.add_argument("--width_holds", action="store_true",
+                    help="glove: enable the 'm <gap_mm>' caliper width holds "
+                         "at the episode prompt. Holds characterise the glove "
+                         "UNIT's tip/back markers, not the session, so they "
+                         "are only needed once per unit and again after any "
+                         "marker change; builds reuse an earlier session's "
+                         "<dataset>_glove_log.json via --log")
     ap.add_argument("--preview_all", action="store_true",
                     help="open a live preview for EVERY camera, not just the "
                          "forward primary (implied by --glove; --no_preview "
@@ -631,28 +638,39 @@ def main():
             # between them — the fit must only use frames near a
             # measurement). Gap mm -> robot actuator units via the bench fit
             # in calib/gap_to_actuator.json so glove labels share Bj's units.
+            # Holds are OPT-IN (--width_holds): they characterise the glove
+            # unit, not the session, so the usual session never asks.
             meas, log_out = [], PILOT / "data/raw" / f"{args.dataset}_glove_log.json"
             g2a = None
-            try:
-                g2a = json.load(open(PILOT / "calib/gap_to_actuator.json"))
-            except OSError:
-                print("!! calib/gap_to_actuator.json missing — caliper values "
-                      "will be logged as RAW mm (run scripts/gap_bench.py on "
-                      "the robot first)")
+            if args.width_holds:
+                try:
+                    g2a = json.load(open(PILOT / "calib/gap_to_actuator.json"))
+                except OSError:
+                    print("!! calib/gap_to_actuator.json missing — caliper "
+                          "values will be logged as RAW mm (run "
+                          "scripts/gap_bench.py on the robot first)")
+            hold_help = ("  'm <gap_mm>' + ENTER logs a caliper width hold "
+                         "(keep the jaws still and in view until you press "
+                         "ENTER again).\n" if args.width_holds else
+                         "  (width holds off — pass --width_holds after a "
+                         "marker change)\n")
+            prompt_opts = "(q / m <mm>)" if args.width_holds else "(q)"
             print(f"\nGLOVE SESSION — {args.num_episodes} episodes planned.\n"
                   "  >>> CLICK THIS TERMINAL FIRST: the preview windows that just "
                   "opened take keyboard focus, so keystrokes go to them until "
                   "you click back here. <<<\n"
                   "  ENTER starts an episode, ENTER ends it.\n"
                   "  'd' + ENTER after an episode discards it, "
-                  "'q' + ENTER finishes the session.\n"
-                  "  'm <gap_mm>' + ENTER logs a caliper width hold (keep the "
-                  "jaws still and in view until you press ENTER again).\n")
+                  "'q' + ENTER finishes the session.\n" + hold_help)
             while ep < args.num_episodes:
                 cmd = input(f"[{ep + 1}/{args.num_episodes}] ENTER to START "
-                            "(q / m <mm>): ").strip().lower()
+                            f"{prompt_opts}: ").strip().lower()
                 if cmd == "q":
                     break
+                if cmd.startswith("m") and not args.width_holds:
+                    print("    width holds are off for this session — restart "
+                          "with --width_holds if the markers changed")
+                    continue
                 if cmd.startswith("m"):
                     try:
                         mm = float(cmd[1:].strip())
