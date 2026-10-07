@@ -114,6 +114,23 @@ def body_frames(det, ts, K, dist, T_body, dobj, markers, rms_max=5.0,
                                               flags=cv2.SOLVEPNP_ITERATIVE)
             if not ok:
                 continue
+            if last_rvec is not None and not single:
+                # The warm start is a guess, not a prior: once ITERATIVE
+                # settles in a wrong local minimum the gate below rejects
+                # the frame, last_rvec never updates, and every following
+                # frame starts from the same bad guess — glove3 2026-10-07
+                # lost a whole episode (0/206 frames) that fuses at 1.6 px
+                # from a cold start. Always also solve globally (SQPNP, no
+                # guess) and keep whichever reprojects better.
+                ok2, rv2, tv2 = cv2.solvePnP(op_all, ip_all, K, dist,
+                                             flags=cv2.SOLVEPNP_SQPNP)
+                if ok2:
+                    p1, _ = cv2.projectPoints(op_all, rvec, tvec, K, dist)
+                    p2, _ = cv2.projectPoints(op_all, rv2, tv2, K, dist)
+                    e1 = ((p1.reshape(-1, 2) - ip_all) ** 2).sum(1).mean()
+                    e2 = ((p2.reshape(-1, 2) - ip_all) ** 2).sum(1).mean()
+                    if e2 < e1:
+                        rvec, tvec = rv2, tv2
             if single:
                 # ONE calibrated base marker (design intent 2026-09-14:
                 # gripper-back keeps tracking the EEF when the dodeca is
