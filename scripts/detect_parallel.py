@@ -16,10 +16,14 @@ Usage: detect_parallel.py VIDEO [--workers 48] [--stride 1] [--no-16h5]
 """
 import argparse
 import csv
+import glob
 import os
+import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -27,6 +31,26 @@ from pathlib import Path
 import numpy as np
 
 ALIAS_4X4 = {27}   # 16h5-id1 decodes as 4x4-27 under 1-bit correction
+
+
+def scratch_dir():
+    """Where the pre-split pieces go. A 4K MJPEG stream is copied in full
+    (13 GB for a 20-min take), so prefer the big data disk over /tmp on
+    root. Stale pieces from a killed run are swept here too: a SIGKILLed
+    run leaves its TemporaryDirectory behind, and three of those filled the
+    root disk on 2026-10-07 (62 GB)."""
+    base = next((d for d in ("/mnt/nvme/pilot/tmp", "/tmp")
+                 if os.path.isdir(os.path.dirname(d))), "/tmp")
+    os.makedirs(base, exist_ok=True)
+    for d in glob.glob(os.path.join(base, "detseg_*")) + glob.glob("/tmp/detseg_*"):
+        try:
+            if time.time() - os.stat(d).st_mtime < 6 * 3600:
+                continue                # may belong to a run still going
+            shutil.rmtree(d)
+            print(f"swept stale pre-split {d}")
+        except OSError:
+            pass
+    return base
 
 
 def probe_frames(path):
@@ -138,7 +162,9 @@ def main():
     n = probe_frames(a.video)
     print(f"{a.video}: {n} frames, {a.workers} workers, stride {a.stride}",
           flush=True)
-    with tempfile.TemporaryDirectory(prefix="detseg_") as td:
+    # SIGTERM (a killed queue) becomes SystemExit so the pre-split is removed
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    with tempfile.TemporaryDirectory(prefix="detseg_", dir=scratch_dir()) as td:
         bounds = ",".join(str(i * n // a.workers)
                           for i in range(1, a.workers))
         subprocess.run(
