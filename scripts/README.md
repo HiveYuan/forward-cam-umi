@@ -7,8 +7,9 @@ The Python side of the forward-camera rig. Everything runs from the
 Status: the robot-side path (same code, robot-mounted markers) is validated
 against robot forward kinematics — 7.7 mm / 1.7° median, see
 [yam-umi/pos-tracking/dynamic-accuracy.md](https://github.com/YosubShin/yam-umi/blob/main/pos-tracking/dynamic-accuracy.md).
-The glove-session path (steps 4–6) is implemented but has not yet been
-exercised on a real glove session; expect to report rough edges.
+The glove-session path (steps 4–6) has been run end to end on four glove
+sessions (Oct 2026, ~70 episodes): recorded, solved, built into training
+datasets and trained. The gotchas below are the ones it surfaced.
 
 ## 0. Install
 
@@ -58,9 +59,9 @@ calibrate.
 python scripts/focus_tune.py /dev/v4l/by-path/<forward>
 python scripts/focus_tune.py /dev/v4l/by-path/<head> --ref /dev/v4l/by-path/<forward>
 ```
-It opens a window: the whole frame on top (click to move the crop box) and a
-1:1 crop of actual sensor pixels below, so you see the blur you are turning
-out. Aim at a marker (a workspace tile at ~1 m is ideal) and minimise
+It opens a window: the whole frame on top and a 1:1 crop of actual sensor
+pixels below (the crop follows the largest decoded marker; `n` in the
+terminal steps to the next one), so you see the blur you are turning out. Aim at a marker (a workspace tile at ~1 m is ideal) and minimise
 **edge px**, the black/white transition width on the marker's edges —
 2–3 px is a sharp B0587 at 4K; the "sharp" number is a scene-dependent
 Laplacian meter with peak-hold, useful only against itself while you turn.
@@ -109,9 +110,17 @@ per camera and `<dataset>_glove_episodes.json` (boundaries).
 
 **Width holds — once per unit, not per session.** The first session on a new
 glove unit (and any session after you move or reprint the tip/back markers)
-runs with `--width_holds`: at the first prompt type `m <gap_mm>` with the
-jaws at a caliper-measured opening (closed, mid, open), keep them still and
-in the forward camera's view until ENTER. They land in
+runs with `--width_holds`. At the first prompt, clamp the jaws on a rigid
+**spacer** of caliper-measured width (the gap must not change during the
+hold; fingers can't hold an exact opening while you move, a spacer can),
+type the value (`37.2`, or `m 37.2`) and ENTER; the recorder logs that gap
+until you press ENTER again. During the ~15–20 s hold rotate the whole glove
+slowly so the forward camera sees **both jaws'** tail cubes and the base
+markers from a few angles — every marker face only gets a width estimator if
+it was seen at two or more holds, and a one-sided hold leaves the other jaw
+blind. Five apertures (closed, ~20, ~40, ~60, ~80 mm) beat three: the open
+end extrapolates badly otherwise. The wrist camera must decode **both** tip
+markers at every hold (check with `tag_contrast.py` first). Holds land in
 `<dataset>_glove_log.json`, which every later build of that unit reuses via
 `--log`. Without the flag the prompt never asks. Caliper values are logged
 as raw mm unless `calib/gap_to_actuator.json` exists (that file comes from a
