@@ -240,10 +240,18 @@ def fit_estimators(rows, mt, mv, tails=None, bases=None, singles=None,
         A = np.vstack([gs[tr], np.ones_like(gs[tr])]).T
         (sl, ic), *_ = np.linalg.lstsq(A, dts[tr], rcond=None)
         res = dts[te] - (sl * gs[te] + ic)
-        ok = abs(sl) > min_swing and res.std() < max_rms_frac * abs(sl)
+        # the fit must SPAN the stroke: samples from one caliper hold fit a
+        # line through a point with a meaningless slope and a flattering
+        # holdout (glove1 2026-10-07: pair 2-3 seen only at the closed hold
+        # scored 0.1 mm and drove every width label to ~0)
+        span = float(gs.max() - gs.min())
+        ok = (abs(sl) > min_swing and res.std() < max_rms_frac * abs(sl)
+              and span >= 0.4)
         if verbose:
+            why = "" if ok else (" (single-hold fit)" if span < 0.4 else "")
             print(f"  {key}: n={len(ser)}  swing {sl:+.1f}mm/stroke  "
-                  f"holdout RMS {res.std():.1f}mm  {'GOOD' if ok else 'rejected'}")
+                  f"holdout RMS {res.std():.1f}mm  "
+                  f"{'GOOD' if ok else 'rejected' + why}")
         if ok:
             ests[key] = {"ctr": ctr, "axis": vt[0], "slope": sl, "icpt": ic,
                          "rms_mm": float(res.std()),
