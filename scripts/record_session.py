@@ -405,6 +405,16 @@ def main():
         # camera's first segment and refuse to run on a blown/black stream.
         # Known-good scene means run 94-156; blown ~236.
         time.sleep(5.0)  # streams up AND ritual latched (~1.5s in)
+        dead = [(stem, q.returncode) for stem, q, _ in recs if q.poll() is not None]
+        if dead:
+            for _, q, _ in recs:
+                if q.poll() is None:
+                    q.send_signal(signal.SIGTERM)
+            raise SystemExit(
+                f"recorder(s) died at startup: {dead} — device busy (a "
+                "recorder from an earlier run still alive? `pgrep -af "
+                "uvc_record.py`) or wrong device node; see the stem's "
+                "_recorder.log")
 
         def _health(stem):
             for _ in range(10):

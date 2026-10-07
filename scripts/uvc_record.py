@@ -89,6 +89,18 @@ print(f"{dev} -> {out} (MJPEG stream copy)   Ctrl-C to stop", flush=True)
 p = subprocess.Popen(cmd, stderr=subprocess.PIPE,
                      stdout=subprocess.PIPE if PREVIEW else None, text=False)
 
+# A busy device (a recorder from an earlier run still holds it) makes ffmpeg
+# exit within a second. That MUST be fatal here: otherwise this wrapper
+# carries on, the pre-flight reads the other process's segments, and at
+# stop time we remux footage we never captured (2026-10-06).
+import time as _t0
+_t0.sleep(2.0)
+if p.poll() is not None:
+    err = p.stderr.read().decode(errors="replace")[-600:] if p.stderr else ""
+    print(f"!! ffmpeg exited immediately (code {p.returncode}) on {dev} — "
+          f"device busy or wrong node?\n{err}", flush=True)
+    sys.exit(3)
+
 def _late_ritual():
     import time as _t
     _t.sleep(1.5)  # stream must be running before controls stick (ISP latch)
