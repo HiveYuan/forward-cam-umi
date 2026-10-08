@@ -31,24 +31,35 @@ Reference frames from our rig (match these by eye):
 ## Scope: the wrist-camera arm
 
 Your sessions feed the **wrist-camera policy** (observations = your glove's
-fisheye; actions = robot joints). For that arm the forward camera is only
-the *label* camera (it measures the ball's pose), and where it stands does
-not matter: we place a virtual robot base for your rig by solving for the
-pose that makes your trajectories reachable with a natural posture
-(`free_base.py`, our side), the same way UMI data is converted to joint
-targets elsewhere. So: any height and angle the mount allows, as long as the
-forward camera sees the ball throughout the episodes and the wrist camera
-sees both tip markers.
+fisheye; actions = robot joints). The forward camera is the *label* camera
+(it measures the ball's pose) and may stand wherever your mount puts it, as
+long as it sees the ball throughout the episodes.
 
-The workspace **tiles** (36h11, ids 2–5) are optional for you. They only
-matter for the fixed-forward-camera policy, which your data will not be used
-for. If you do tape them in roughly our layout (below), it keeps that door
-open at no cost; if not, skip step 7. Never use tile 0 (it aliases a glove
-marker). Put the bin and the block start zone roughly where they are in the
-reference frames above.
+## The tiles: tape four down, roughly like ours
+
+Joint-space actions need the ball pose in the robot's frame. On our rig a
+hand-eye calibration gives camera→robot; your rig has no robot, so the
+**workspace tiles** (36h11, ids 2–5, 75 mm) carry that frame instead: your
+camera→tiles is solved from your footage, ours→tiles from ours, tiles→robot
+from our hand-eye. (We tested the alternative — solving a virtual base from
+reachability alone, as some UMI-to-joint conversions do — and it leaves the
+base yaw undetermined by 20–40°, so tiles it is.)
+
+What this actually requires — less than it sounds:
+
+- Four tiles **taped flat** to the table, in roughly the arrangement below:
+  tile-to-tile distances within a centimetre or two, placed around where you
+  pick and where the bin usually sits, all inside the forward camera's full
+  frame. A centimetre of placement error is about a degree of yaw, inside
+  the label error we already live with. Never use tile 0.
+- They should not wander. A bumped tile is detected (it disagrees with the
+  other three in the solve and is dropped), and three tiles still solve, so
+  a knock is not a disaster — but tape them so it is rare.
+- The bin and the block move freely between episodes; that is the task, not
+  the frame.
 
 ```
-TILE LAYOUT (optional) — centre-to-centre distances, mm (calib/workspace_tiles_pilot.json)
+TILE LAYOUT — centre-to-centre distances, mm (calib/workspace_tiles_pilot.json)
 world frame: origin = tile 5, +x toward tile 4, z up; all tiles flat on the table
 
            tile 2 (575, 283)            tile 4 (750, 0)
@@ -60,7 +71,7 @@ world frame: origin = tile 5, +x toward tile 4, z up; all tiles flat on the tabl
    5-4: 750    5-2: 641    5-3: 377    4-2: 333    4-3: 647    2-3: 720
 ```
 For reference, our forward camera sits about 0.57 m above the table with its
-optical axis 34° from vertical. The head camera is optional too: record it if
+optical axis 34° from vertical. The head camera is optional: record it if
 you have one mounted, we will use it for a viewpoint study.
 
 ## Steps
@@ -102,14 +113,15 @@ you have one mounted, we will use it for a viewpoint study.
    prints per-episode pose and width coverage, the hold sanity and which tiles
    the forward camera sees, and ends with "OK — ship it" or a list of problems.
    Fix and re-record rather than ship a session that fails.
-7. **Camera → tiles (optional, only if you taped the tiles)** — `python scripts/tiles_pose.py solve glove_yuan_01_b0587 --intr calib/B0587_intrinsics.json --tags calib/tags36h11_yuan.json --layout calib/workspace_tiles_pilot.json`
-   (expect ≤ 1 px RMS and a few mm spread). Once per camera position.
+7. **Camera → tiles** — `python scripts/tiles_pose.py solve glove_yuan_01_b0587 --intr calib/B0587_intrinsics.json --tags calib/tags36h11_yuan.json --layout calib/workspace_tiles_pilot.json`
+   (expect ≤ 2 px RMS and a few mm spread; a dropped tile is reported). Once
+   per session is simplest; it is what places your labels in our frame.
 8. **Ship** — `python scripts/pack_session.py glove_yuan_01 --unit yuan --dest <where we tell you>`
    lists the files (sessions are 7–14 GB each) and prints the rsync line.
 
 ## What happens on our side
 
-The virtual-base solve for your rig, the glove's tool-frame transform,
-dataset builds, training and rollouts. We never need your raw video re-encoded or trimmed:
+The tiles→robot mapping, the glove's tool-frame transform, dataset builds,
+training and rollouts. We never need your raw video re-encoded or trimmed:
 the episode boundaries live in `_glove_episodes.json`, and the holds in
 `_glove_log.json`.

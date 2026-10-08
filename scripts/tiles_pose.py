@@ -176,17 +176,35 @@ def solve_frame(corners_by_id, layout, K, dist):
         I.append(c.reshape(4, 2).astype(float))
     if not O:
         return None
-    O, I = np.concatenate(O), np.concatenate(I)
-    flags = cv2.SOLVEPNP_IPPE_SQUARE if len(O) == 4 else cv2.SOLVEPNP_SQPNP
-    ok, rv, tv = cv2.solvePnP(O, I, K, dist, flags=flags)
-    if not ok:
+
+    def fit(Os, Is):
+        Oc, Ic = np.concatenate(Os), np.concatenate(Is)
+        flags = cv2.SOLVEPNP_IPPE_SQUARE if len(Oc) == 4 else cv2.SOLVEPNP_SQPNP
+        ok, rv, tv = cv2.solvePnP(Oc, Ic, K, dist, flags=flags)
+        if not ok:
+            return None
+        if len(Oc) > 4:
+            ok, rv, tv = cv2.solvePnP(Oc, Ic, K, dist, rvec=rv, tvec=tv, useExtrinsicGuess=True,
+                                      flags=cv2.SOLVEPNP_ITERATIVE)
+        proj, _ = cv2.projectPoints(Oc, rv, tv, K, dist)
+        per_tile = np.sqrt(((proj.reshape(-1, 2) - Ic) ** 2).sum(1)).reshape(-1, 4).mean(1)
+        return rv, tv, per_tile
+
+    r = fit(O, I)
+    if r is None:
         return None
-    if len(O) > 4:
-        ok, rv, tv = cv2.solvePnP(O, I, K, dist, rvec=rv, tvec=tv, useExtrinsicGuess=True,
-                                  flags=cv2.SOLVEPNP_ITERATIVE)
-    proj, _ = cv2.projectPoints(O, rv, tv, K, dist)
-    rms = float(np.sqrt(((proj.reshape(-1, 2) - I) ** 2).sum(1).mean()))
-    return to_T(rv, tv), rms, len(O) // 4
+    rv, tv, per_tile = r
+    # a tile that was bumped after the layout was taken disagrees with the
+    # others by many px: drop the worst and refit while >= 3 tiles remain and
+    # it reprojects far worse than the rest (taped tiles never trip this)
+    while len(O) >= 4 and per_tile.max() > max(8.0, 4 * np.median(per_tile)):
+        j = int(np.argmax(per_tile))
+        O.pop(j); I.pop(j)
+        r = fit(O, I)
+        if r is None:
+            return None
+        rv, tv, per_tile = r
+    return to_T(rv, tv), float(np.sqrt((per_tile ** 2).mean())), len(O)
 
 
 def cmd_solve(a):
