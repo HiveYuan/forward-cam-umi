@@ -59,16 +59,16 @@ What this actually requires — less than it sounds:
   the frame.
 
 ```
-TILE LAYOUT — centre-to-centre distances, mm (calib/workspace_tiles_pilot.json)
+TILE LAYOUT — centre-to-centre distances, mm (calib/workspace_tiles_pilot_v2.json)
 world frame: origin = tile 5, +x toward tile 4, z up; all tiles flat on the table
 
-           tile 2 (575, 283)            tile 4 (750, 0)
+           tile 2 (553, 313)            tile 4 (728, 0)
                  .                           .
 
-   tile 5 (0, 0)                 tile 3 (190, -325)
+   tile 5 (0, 0)                 tile 3 (199, -330)
          .                             .
 
-   5-4: 750    5-2: 641    5-3: 377    4-2: 333    4-3: 647    2-3: 720
+   5-4: 728    5-2: 635    5-3: 385    4-2: 359    4-3: 623    2-3: 733
 ```
 For reference, our forward camera sits about 0.57 m above the table with its
 optical axis 34° from vertical. The head camera is optional: record it if
@@ -113,7 +113,7 @@ you have one mounted, we will use it for a viewpoint study.
    prints per-episode pose and width coverage, the hold sanity and which tiles
    the forward camera sees, and ends with "OK — ship it" or a list of problems.
    Fix and re-record rather than ship a session that fails.
-7. **Camera → tiles** — `python scripts/tiles_pose.py solve glove_yuan_01_b0587 --intr calib/B0587_intrinsics.json --tags calib/tags36h11_yuan.json --layout calib/workspace_tiles_pilot.json`
+7. **Camera → tiles** — `python scripts/tiles_pose.py solve glove_yuan_01_b0587 --intr calib/B0587_intrinsics.json --tags calib/tags36h11_yuan.json --layout calib/workspace_tiles_pilot_v2.json`
    (expect ≤ 2 px RMS and a few mm spread; a dropped tile is reported). Once
    per session is simplest; it is what places your labels in our frame.
 8. **Ship** — `python scripts/pack_session.py glove_yuan_01 --unit yuan --dest <where we tell you>`
