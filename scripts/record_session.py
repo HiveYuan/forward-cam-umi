@@ -359,6 +359,27 @@ def main():
         raise SystemExit(f"unknown camera suffix(es) {sorted(unknown)} — "
                          f"known: {[c[0] for c in CAMERAS]}")
     if not args.skip_cameras:
+        def _bail(msg):
+            # abort DURING the launch loop: recorders already started for
+            # earlier cameras must die with us, or they keep the devices and
+            # the next run trips over them (2026-10-08: two attempts in a row)
+            for _, q, _ in recs:
+                if q.poll() is None:
+                    q.send_signal(signal.SIGTERM)
+            raise SystemExit(msg)
+
+        # zombie check for EVERY wanted stem before launching any of them
+        for suffix, *_ in CAMERAS:
+            if suffix not in wanted:
+                continue
+            stem0 = f"{args.dataset}_{suffix}"
+            alive = subprocess.run(["pgrep", "-f", f"uvc_record.py {stem0} "],
+                                   capture_output=True, text=True).stdout.split()
+            if alive:
+                raise SystemExit(
+                    f"a recorder for {stem0} is already running (pid "
+                    f"{', '.join(alive)}) — stop it first: kill -TERM "
+                    f"{' '.join(alive)}  (it will finish its remux), then rerun")
         for suffix, bypath, frag, res, fps in CAMERAS:
             if suffix not in wanted:
                 continue
@@ -372,9 +393,8 @@ def main():
                     print(f"  b0587b resolved by exclusion at {dev} "
                           "(pin it in CAMERAS if this route sticks)")
             if dev is None:
-                raise SystemExit(
-                    f"camera '{suffix}' not found at {bypath} — replugged to "
-                    "a different port? Update CAMERAS in this script.")
+                _bail(f"camera '{suffix}' not found at {bypath} — replugged to "
+                      "a different port? Update CAMERAS in this script.")
             stem = f"{args.dataset}_{suffix}"
             # A recorder for this stem must not already be running: a
             # leftover from an earlier run keeps the camera, and this run
@@ -383,11 +403,10 @@ def main():
             alive = subprocess.run(["pgrep", "-f", f"uvc_record.py {stem} "],
                                    capture_output=True, text=True).stdout.split()
             if alive:
-                raise SystemExit(
-                    f"a recorder for {stem} is already running (pid "
-                    f"{', '.join(alive)}) — stop it first: kill -TERM "
-                    f"{' '.join(alive)}  (it will finish its remux), then "
-                    "rerun")
+                _bail(f"a recorder for {stem} is already running (pid "
+                      f"{', '.join(alive)}) — stop it first: kill -TERM "
+                      f"{' '.join(alive)}  (it will finish its remux), then "
+                      "rerun")
             # NEVER overwrite a previous recording with the same stem (a
             # --resume session reuses the dataset name): archive it aside
             # first. Lost ep0-4 raws to this on 2026-09-09.
