@@ -132,6 +132,14 @@ long episode slowly rotating the ball through every orientation at working
 distance, with the gripper-back markers visible part of the time. Step 6
 solves the ball's geometry from it.
 
+## 4b. Collecting for the pilot on another machine
+
+The hand-off sequence — camera mapping, calibration, geometry, holds,
+recording, detection, a one-command session check, camera→tiles, and what
+to ship — is in [`docs/pilot-task.md`](../docs/pilot-task.md), with the task
+definition, reference frames and the tile layout that puts your labels in
+the same frame as ours.
+
 ## 5. Detection
 
 ```
@@ -177,6 +185,7 @@ repository root.
 
 | command | does | step |
 |---|---|---|
+| `cameras_setup.py [--list]` | preview every camera, assign forward / head / wrist roles, write `calib/cameras.json` | 2 |
 | `focus_tune.py <dev> [--ref <dev>]` | live window + marker edge-width meter to lock a barrel-focused lens; `--ref` shows a known-good camera beside it | 2 |
 | `calibrate_uvc.py <dev> [--name] [--model rational] --square-mm --marker-mm` | live ChArUco intrinsics → `calib/<name>_intrinsics.json` | 3 |
 | `record_session.py --glove --dataset D --num_episodes N` | multi-camera session: pre-flight, ritual, episode marks, width holds | 4 |
@@ -185,6 +194,9 @@ repository root.
 | `bundle_dodeca.py --npz= --intr= --marker-mm= --ball-ids=` | pass 2: free bundle of the ball's faces | 6 |
 | `bundle_dodeca_ideal.py --npz= --init= --intr= --marker-mm= --out=` | pass 3: dodecahedron-prior refinement → the bundle the pipeline uses | 6 |
 | `calibrate_gripper_bundle.py <stem> --bundle= --marker-map= --out=` | gripper-back markers in the ball's body frame | 6 |
+| `session_check.py <dataset> --unit <unit>` | per-episode pose/width coverage, hold sanity, tile visibility → OK / problems | 4b |
+| `tiles_pose.py layout\|solve …` | export the workspace-tile layout from a static camera; camera→world pose from the tiles | 4b |
+| `pack_session.py <dataset> … --unit <unit> [--dest]` | hand-off manifest + rsync line (sessions are 7–14 GB) | 4b |
 
 Libraries (not commands): `labels_lib.py` — the label stack (fused ball
 pose, body-frame aperture estimators); `uvc_ritual.py` — per-camera
