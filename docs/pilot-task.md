@@ -9,7 +9,8 @@ Watch first (shared Drive folder "yam-umi media"):
 <https://drive.google.com/drive/folders/1A3SBs7IUfbYdoRoXje2VuOOWQ2xeptib>
 — `glove-collection-demo.mov` (a session as recorded: the rig, the pace,
 the episode rhythm), `demo-pick-place.mp4` (the task), and
-`glove parts : measurements.zip` (the caliper sheet behind your marker map).
+`glove parts : measurements.zip` (the parts tally and assembly photos).
+Your unit's marker calipers are already in `calib/marker_map_glove_yuan.json`.
 
 ## The task
 
@@ -29,14 +30,18 @@ Reference frames from our rig (match these by eye):
 
 ## Workspace layout: the tiles define the shared frame
 
-Your camera does not need to be where ours is. What must match is where the
-**workspace tiles** (36h11, ids 1–5, 75 mm tiles) sit relative to the task,
-because the tiles are the frame both rigs' labels are expressed in. Place
-them flat on the table, outside the central working area but well inside
-the forward camera's full frame, at the tile-to-tile distances in
-`calib/workspace_tiles_pilot.json` (tape-measure between tile centres;
-±5 mm is fine). Put the bin and the start zone where they are relative to
-the tiles in the reference frame above. Never use tile 0.
+On our own rig the tiles were a backup. For a session recorded on **another
+rig they are load-bearing**: your pose labels come out in your camera's
+frame, and the only way to express them in our robot's frame — where the
+training actions live — is through something both rigs can see at known
+places. That is the tiles. So your camera does not need to be where ours
+is (any height or angle the mount allows), but the **workspace tiles**
+(36h11, ids 2–5, 75 mm tiles) must sit at the same places relative to the
+task as ours. Place them flat on the table, outside the central working
+area but well inside the forward camera's full frame, at the tile-to-tile
+distances below (tape-measure between tile centres; ±5 mm is fine — well
+inside the label error budget). Put the bin and the start zone where they
+are relative to the tiles in the reference frame above. Never use tile 0.
 
 ```
 TILE LAYOUT — centre-to-centre distances, mm (calib/workspace_tiles_pilot.json)
@@ -72,8 +77,11 @@ exact height and angle are free.
    python scripts/calibrate_uvc.py /dev/v4l/by-path/<head> --name B0587b --square-mm <board> --marker-mm <board>
    python scripts/calibrate_uvc.py /dev/v4l/by-path/<wrist> --name fisheye_glove_yuan --model rational --square-mm <board> --marker-mm <board>
    ```
-   Caliper your ChArUco board's square and marker. Aim for edge px ≈ 2–3 on a
-   tile at 1 m on both 4K cameras; our head camera at 7 px decoded a second
+   Caliper your ChArUco board's square and one marker (black edge). You have
+   our earlier print of the same board; we never calipered that one (nominal
+   25.0 / 18.0 mm), and a different print of ours measured 25.07 / 18.06 —
+   a 0.3 % size error is 2 mm of range at 0.7 m, so measure yours. Aim for
+   edge px ≈ 2–3 on a tile at 1 m on both 4K cameras; our head camera at 7 px decoded a second
    ball face in 5 % of frames, at 4 px in 92 %.
 2. **Ball and gripper geometry, once** — README §6: one calibration take
    (`--num_episodes 1`, slowly rotate the ball through every orientation at
