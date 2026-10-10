@@ -19,6 +19,95 @@ sudo apt install ffmpeg v4l-utils            # ffmpeg/ffprobe + v4l2-ctl
 ```
 Linux with the cameras on USB (UVC). Tested with Python 3.12.
 
+### macOS: device setup and preview (experimental)
+
+The macOS path currently supports **device discovery, explicit role binding,
+and normalized preview only**. The recording, focus, contrast, and live
+calibration commands below still use Linux interfaces. Do not use this preview
+as a substitute for collecting a calibrated session. Exposure controls,
+recording codecs, per-frame wall timestamps, and simultaneous multi-camera
+recording remain to be implemented and validated.
+
+Use Python 3.12 in a virtual environment and install the native bindings and
+Qt window toolkit (PySide6 Essentials):
+
+```sh
+python -m pip install -r scripts/requirements-macos.txt
+python scripts/cameras_setup.py --list --formats
+python scripts/cameras_setup.py --require-head
+```
+
+Close other camera apps before previewing. macOS may request camera access for
+the terminal/application launching Python. Device enumeration does not open a
+capture session. If access is denied, check System Settings → Privacy &
+Security → Camera, then rerun from the permitted application.
+
+The default wizard shows a device list on the left and the highlighted
+camera's preview on the right. Every entry shows the name and exact device
+ID, so identically named cameras remain distinguishable. **Up/Down** changes
+the preview, **Enter** confirms, and **Esc** goes back; mouse selection also
+works. Switching closes the previous camera before opening the next. Rapid
+arrow presses only open the last highlighted device after a brief pause.
+Closing the window stops capture and cancels any pending switch.
+
+Unavailable devices stay in the list. Use **Retry selected camera** or select
+another entry. The wizard never confirms an unavailable preview or displays
+the previous camera's frame under the new device's name. If an Arducam still
+gets no frames with this single-camera preview, check other camera apps, its
+connection, and the requested mode; a no-frame timeout alone does not identify
+the cause. This wizard does not test simultaneous multi-camera capture.
+
+First bind Forward, Head, and Wrist by covering each intended lens to verify
+the selected preview, then choose its upright rotation (0° or 180°).
+An already-assigned device cannot be assigned again. Identity previews use
+an advertised mode chosen independently of the role (preferably up to
+640×480); these temporary settings are never saved as capture settings.
+After all identities are confirmed, choose each camera's capture resolution
+from the option list and its FPS using the spin control. The wizard releases
+the identity preview before validating each full-resolution mode, waits for
+live frames for `--seconds` (default 8), then asks for confirmation. These
+previews are not a simultaneous full-resolution recording test.
+The pilot guide's 4K/25 fps for forward/head and 1080p/30 fps for wrist are
+suggestions, not identity constraints. If a suggestion is unsupported, setup
+requires an explicit alternative instead of silently substituting one.
+Changing the capture resolution or image direction later requires updating
+the corresponding calibration. The config is saved only after both stages
+finish; cancelling does not save partial bindings or temporary preview modes.
+
+The saved binding uses AVFoundation's unique ID. There is **no name or index
+fallback** when the saved ID is missing. USB-port changes or reconnects may
+change IDs; recheck the physical camera after changing connections. Identical
+models require separate bindings and separate intrinsics.
+
+For each role, choose `rotation_degrees` of `0` (default) or `180`. This is
+image-coordinate normalization, not a display hint: the capture adapter rotates
+pixels before returning them. Future calibration and recording consumers must
+use these same normalized images. Never reuse intrinsics/detections created
+in the opposite image direction or rotate normalized video a second time.
+AVFoundation preview sample timestamps are presentation times in its native
+clock, **not Unix wall-clock times or proof of camera synchronization**.
+
+Bindings go to ignored `calib/cameras.macos.local.json`, separate from the
+legacy Linux `calib/cameras.json`. Existing bindings are never overwritten;
+archive them or pass a new `--config` path to repeat setup. The tracked
+`calib/cameras.macos.example.json` contains placeholders, not physical IDs.
+Keep actual device IDs, port assignments, and mounting-specific rotation in
+local configuration. Put further machine-specific JSON in `calib/*.local.json`.
+
+```sh
+python scripts/cameras_setup.py --check-config --require-head
+python scripts/cameras_setup.py --preview b0587b --seconds 15
+python scripts/cameras_setup.py --text --require-head  # optional terminal fallback
+python -m unittest discover -s tests -v
+```
+
+`--check-config` checks device IDs, names, and advertised mode support without
+opening cameras. Preview requests the configured mode without silently
+falling back to another resolution and displays a smaller copy for inspection.
+Its one-frame queue deliberately drops superseded frames to avoid preview lag;
+**it is not a recording queue or a frame-rate benchmark**. Linux setup continues
+to use its existing V4L2 path and has no PyObjC dependency.
+
 ## 1. Measurements — one caliper reading per printed group
 
 Printers rescale by a few percent and the error does not announce itself:

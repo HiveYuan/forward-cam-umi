@@ -12,3 +12,9 @@ calib/*_detections.*
 calib/*.npz
 calib/tmp_*
 __pycache__/
+
+# Local Python environment and physical-device bindings (examples are tracked).
+.venv/
+calib/cameras.json
+calib/cameras.json.bak-*
+calib/*.local.json
