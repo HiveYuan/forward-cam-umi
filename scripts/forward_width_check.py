@@ -162,6 +162,7 @@ def train_models(frames, holds, tails, extras, K, dist):
             item["rejected"] = str(error)
             continue
         item["accepted"] = True
+        model.holdout_p95_mm = quality["absolute_error_p95_mm"]
         models.append(model)
         print(f"{model.key}: accepted; blocked holdout p95 "
               f"{quality['absolute_error_p95_mm']:.2f} mm", flush=True)
@@ -258,8 +259,16 @@ def main():
     train_times, train_frames = load_frames(args.training_dataset + "_" + args.camera,
                                           K, dist, body, obj, extras)
     models, candidates = train_models(train_frames, training_holds, tails, extras, K, dist)
+    solver = {"version": W.SOLVER_VERSION,
+              "fusion_policy": W.FUSION_POLICY,
+              "cold_start_trigger_rms_px": W.HUBER_SCALE_PX,
+              "cold_start_normalized_strokes": list(W.COLD_START_STROKES),
+              "selection": "Lowest Huber cost among converged positive-depth solutions"}
+    implementation = {name: digest(ROOT / "scripts" / name) for name in
+                      ("forward_width.py", "forward_width_check.py", "labels_lib.py", "marker_config.py")}
     frozen = {"schema_version": 1, "units": "mm", "training_dataset": args.training_dataset,
               "method": "Joint tail/base corner reprojection with linear tail travel",
+              "inference_solver": solver, "implementation_sha256": implementation,
               "fixed_inputs_sha256": fixed, "source_sha256": {
                   p: h for p, h in source.items() if args.training_dataset + "_" in p},
               "models": [m.to_dict() for m in models], "candidates": candidates}
@@ -295,6 +304,7 @@ def main():
               "model": str(model_path), "frozen_model_sha256": frozen_hash,
               "fixed_inputs_sha256": fixed, "source_sha256": source,
               "fixed_inputs_unchanged": True, "candidates": candidates,
+              "inference_solver": solver, "implementation_sha256": implementation,
               "training_holds": training_summary, "verification_holds": verification_summary,
               "passed": all(h["passed"] for h in verification_summary),
               "acceptance_gates": {"coverage_min": .70, "absolute_median_error_mm_max": 1,

@@ -1,8 +1,10 @@
 """Metric scale, perspective/depth, missing-frame and hold-leak regressions."""
 import json
+from dataclasses import replace
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 import cv2
 import numpy as np
@@ -37,6 +39,89 @@ def observation(gap, rng=None, n=0):
 
 
 class ForwardWidthTests(unittest.TestCase):
+    def test_training_ranked_fusion_does_not_double_vote_for_one_reference(self):
+        o = observation(50)
+        f = W.Frame(0, 10, o.rvec, o.tvec,
+                    {44: o.tail_corners, 48: o.tail_corners, 45: o.tail_corners,
+                     46: o.base_corners, 47: o.base_corners})
+        models = [replace(model(), holdout_p95_mm=3),
+                  replace(model(), tail=48, holdout_p95_mm=1),
+                  replace(model(), tail=45, base=47, holdout_p95_mm=2)]
+        with patch.object(W, "predict_pair", side_effect=[
+                W.PairPrediction(80, .2, 1), W.PairPrediction(60, .2, 1),
+                W.PairPrediction(40, .2, 1)]):
+            width, available = W.predict_width(f, models, {46: np.eye(4), 47: np.eye(4)}, K, DIST)
+        self.assertEqual(width, 50)
+        self.assertEqual(len(available), 3)  # discarded votes remain inspectable
+
+    def test_legacy_unranked_model_retains_its_frozen_fusion(self):
+        o = observation(50)
+        f = W.Frame(0, 10, o.rvec, o.tvec,
+                    {44: o.tail_corners, 48: o.tail_corners, 45: o.tail_corners,
+                     46: o.base_corners, 47: o.base_corners})
+        models = [model(), replace(model(), tail=48), replace(model(), tail=45, base=47)]
+        with patch.object(W, "predict_pair", side_effect=[
+                W.PairPrediction(80, .2, 1), W.PairPrediction(60, .2, 1),
+                W.PairPrediction(40, .2, 1)]):
+            width, _ = W.predict_width(f, models, {46: np.eye(4), 47: np.eye(4)}, K, DIST)
+        self.assertEqual(width, 60)
+        historical = model().to_dict()
+        historical.pop("holdout_p95_mm")
+        self.assertIsNone(W.PairModel.from_dict(historical).holdout_p95_mm)
+
+    def test_ranked_fusion_falls_back_when_best_face_is_missing(self):
+        o = observation(50)
+        f = W.Frame(0, 10, o.rvec, o.tvec,
+                    {44: o.tail_corners, 45: o.tail_corners,
+                     46: o.base_corners, 47: o.base_corners})
+        models = [replace(model(), holdout_p95_mm=3),
+                  replace(model(), tail=48, holdout_p95_mm=1),
+                  replace(model(), tail=45, base=47, holdout_p95_mm=2)]
+        with patch.object(W, "predict_pair", side_effect=[
+                W.PairPrediction(80, .2, 1), W.PairPrediction(40, .2, 1)]):
+            width, available = W.predict_width(f, models, {46: np.eye(4), 47: np.eye(4)}, K, DIST)
+        self.assertEqual(width, 60)
+        self.assertEqual(set(available), {"pair:44-46", "pair:45-47"})
+
+    def test_degenerate_cold_seed_does_not_prevent_other_seed_recovery(self):
+        m = model()
+        true = observation(67.9, n=3)
+        _, rotations, translations, *_ = cv2.solvePnPGeneric(
+            marker_obj(m.base_edge_mm), true.base_corners, K, DIST,
+            flags=cv2.SOLVEPNP_IPPE_SQUARE)
+        wrong = W.Observation(rotations[1].ravel(), translations[1].ravel(),
+                              true.base_corners, true.tail_corners)
+        original = cv2.solvePnP
+        calls = 0
+
+        def fail_first_seed(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise cv2.error("degenerate SQPnP seed")
+            return original(*args, **kwargs)
+
+        with patch.object(cv2, "solvePnP", side_effect=fail_first_seed):
+            prediction = W.predict_pair(wrong, m, K, DIST)
+        self.assertIsNotNone(prediction)
+        self.assertGreater(calls, 1)
+        self.assertAlmostEqual(prediction.gap_mm, 67.9, places=4)
+
+    def test_cold_start_recovers_from_wrong_planar_pose_branch(self):
+        m = model()
+        true = observation(67.9, n=3)
+        _, rotations, translations, *_ = cv2.solvePnPGeneric(
+            marker_obj(m.base_edge_mm), true.base_corners, K, DIST,
+            flags=cv2.SOLVEPNP_IPPE_SQUARE)
+        wrong = W.Observation(rotations[1].ravel(), translations[1].ravel(),
+                              true.base_corners, true.tail_corners)
+        prediction = W.predict_pair(wrong, m, K, DIST)
+        self.assertIsNotNone(prediction)
+        self.assertTrue(prediction.used_cold_start)
+        self.assertGreater(prediction.initial_rms_px, 1)
+        self.assertAlmostEqual(prediction.gap_mm, 67.9, places=4)
+        self.assertLess(prediction.rms_px, 1e-5)
+
     def test_joint_image_constraint_preserves_mm_across_perspectives_without_clipping(self):
         # Known widths only construct synthetic images, never enter inference.
         for gap in (-5., 10., 42.3, 67.9, 90.):

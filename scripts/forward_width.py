@@ -20,6 +20,11 @@ from scipy.spatial.transform import Rotation
 
 from labels_lib import marker_obj
 
+SOLVER_VERSION = 3
+HUBER_SCALE_PX = 1.0
+COLD_START_STROKES = (0.0, 0.5, 1.0)
+FUSION_POLICY = "Best training-blocked p95 candidate per fixed reference"
+
 
 @dataclass
 class Frame:
@@ -49,6 +54,7 @@ class PairModel:
     origin_m: np.ndarray
     travel_m: np.ndarray
     rotation: np.ndarray
+    holdout_p95_mm: float | None = None
 
     @property
     def key(self):
@@ -77,6 +83,8 @@ class PairPrediction:
     rms_px: float
     # Local linearized sensitivity, not a certified accuracy bound.
     std_mm_per_pixel: float
+    used_cold_start: bool = False
+    initial_rms_px: float = 0.0
 
 
 def unique_corners(ids, corners):
@@ -216,14 +224,40 @@ def predict_pair(observation, model, K, dist, max_rms_px=5.0):
                                       value[3:6], K, dist)[0].reshape(-1, 2)
         return (projected - images).ravel()
 
-    result = least_squares(residual, x, loss="huber", f_scale=1,
-                           x_scale="jac", max_nfev=80)
-    if not result.success or not np.isfinite(result.x).all():
+    def solve(seed):
+        candidate = least_squares(residual, seed, loss="huber", f_scale=HUBER_SCALE_PX,
+                                  x_scale="jac", max_nfev=80)
+        if not candidate.success or not np.isfinite(candidate.x).all():
+            return None
+        camera_points = ((objects + move * candidate.x[6])
+                         @ cv2.Rodrigues(candidate.x[:3])[0].T + candidate.x[3:6])
+        return candidate if np.all(camera_points[:, 2] > 0) else None
+
+    warm = solve(x)
+    initial_rms = (float(np.sqrt(np.mean(residual(warm.x) ** 2)))
+                   if warm is not None else float("inf"))
+    result = warm
+    # A body-pose warm start is only an initialization. Planar pose ambiguity
+    # can strand a converged joint solve in a poor local minimum. At residuals
+    # above the 1 px Huber scale, also initialize globally at three positions
+    # of the TRAINED stroke. These are seeds, not bounds or known hold values;
+    # the final width remains free to leave the measured range.
+    if initial_rms > HUBER_SCALE_PX:
+        for stroke in COLD_START_STROKES:
+            try:
+                ok, rv, tv = cv2.solvePnP(objects + move * stroke, images, K, dist,
+                                         flags=cv2.SOLVEPNP_SQPNP)
+            except cv2.error:
+                continue  # a degenerate seed must not kill another valid solve
+            if not ok:
+                continue
+            candidate = solve(np.r_[rv.ravel(), tv.ravel(), stroke])
+            if candidate is not None and (result is None or candidate.cost < result.cost):
+                result = candidate
+    if result is None:
         return None
     rms = float(np.sqrt(np.mean(residual(result.x) ** 2)))
-    camera_points = ((objects + move * result.x[6])
-                     @ cv2.Rodrigues(result.x[:3])[0].T + result.x[3:6])
-    if rms > max_rms_px or np.any(camera_points[:, 2] <= 0):
+    if rms > max_rms_px:
         return None
     _, singular, vt = np.linalg.svd(result.jac, full_matrices=False)
     if singular[-1] <= singular[0] * 1e-10:
@@ -232,6 +266,8 @@ def predict_pair(observation, model, K, dist, max_rms_px=5.0):
     return PairPrediction(
         model.minimum_gap_mm + result.x[6] * model.span_mm, rms,
         float(np.sqrt(max(covariance[6, 6], 0)) * model.span_mm),
+        used_cold_start=result is not warm,
+        initial_rms_px=initial_rms,
     )
 
 
@@ -246,9 +282,20 @@ def predict_width(frame, models, base_transforms, K, dist):
                 available[model.key] = result
     if not available:
         return None, available
-    # Equal median avoids interpreting correlated same-jaw observations as
-    # independent confidence measurements. Report per-pair sensitivities too.
-    return float(np.median([p.gap_mm for p in available.values()])), available
+    if any(m.holdout_p95_mm is None for m in models):
+        # Preserve old frozen models' fusion until a complete training-only
+        # ranking exists; do not invent scores from verification outcomes.
+        return float(np.median([p.gap_mm for p in available.values()])), available
+    by_reference = {}
+    for model in models:
+        if model.key in available:
+            by_reference.setdefault(model.base, []).append(model)
+    selected = [min(group, key=lambda m: (m.holdout_p95_mm, m.tail))
+                for group in by_reference.values()]
+    # Faces sharing one fixed tag have correlated pose errors. Select their
+    # best TRAINING-ranked available face before fusing distinct references;
+    # a second face remains a fallback instead of getting a duplicate vote.
+    return float(np.median([available[m.key].gap_mm for m in selected])), available
 
 
 def error_summary(predictions, actual_mm):

@@ -225,7 +225,7 @@ settings remain unchanged. For the Yuan recordings:
 ```bash
 .venv/bin/python scripts/forward_width_check.py \
   glove_yuan_width_02 glove_yuan_width_verify_01 --unit yuan \
-  --out tmp/forward_width_yuan_v2.local.json
+  --out tmp/forward_width_yuan_v4.local.json
 ```
 
 The learned model jointly fits moving/fixed tag corners rather than subtracting
@@ -239,6 +239,16 @@ report and frozen model still saved under `tmp/`. Predictions are not clipped or
 smoothed. Static-hold success does not verify moving-width accuracy. This is a
 physical-mm offline path; it does not replace `labels_lib.py`'s normalized robot
 actuator mapping or install a model into the robot pipeline.
+
+Joint solves above the 1 px Huber residual scale retry SQPnP initializations at
+three positions along the trained stroke, choosing the lowest-cost converged
+positive-depth solution. These are starting points, not width bounds. New models
+store per-pair training-blocked p95 scores: the best visible candidate per fixed
+reference contributes one vote before taking a median across references. Missing
+faces use the next ranked candidate; historical models without scores retain
+their flat-median fusion. Reports record solver policy and implementation hashes.
+The current 57.9 mm replay reaches p95 2.084 mm against the unchanged 2 mm gate;
+it remains a failed review. See [progress](../docs/forward-width-progress.md).
 
 Also record one **calibration take** per unit (`--num_episodes 1`): a single
 long episode slowly rotating the ball through every orientation at working

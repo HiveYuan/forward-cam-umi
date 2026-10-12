@@ -46,6 +46,74 @@ Regression checks:
 All nine regressions pass, including metric scale, perspective changes, unseen
 apertures, missing/ambiguous IDs, repeated hold boundaries, and coverage accounting.
 
-Next: examine the high-error frames and per-pair disagreement, then test any
-change using training-only selection with the same independent recording and
-unchanged 70% / 1 mm / 2 mm final gates.
+## P95 investigation after the checkpoint
+
+The initial checkpoint was committed and pushed as `4a11c3b` before this review.
+Per-frame analysis found two error modes. Some converged joint solves remain in
+a poor local pose minimum despite a large image residual. Other frames have
+only 0.3–0.4 px image residual but 2–3 mm width error, so a residual threshold
+alone cannot certify metric accuracy.
+
+The solver now retries SQPnP initializations at normalized trained-stroke
+positions 0, 0.5, and 1 if the warm solve fails or exceeds the 1 px Huber scale.
+It selects the lowest Huber cost among converged positive-depth solutions.
+The width is still free to leave the training range. At frame 512, this changes
+the fused estimate from 61.99 to 58.65 mm for the 57.9 mm hold; frame 711 changes
+from 54.37 to 56.21 mm. The frozen motion parameters need no change for recovery.
+
+New model artifacts rank candidate faces by training time-blocked p95. Faces
+sharing a fixed tag have correlated pose errors, so only the best available face
+per reference votes in the fused median; another face remains a fallback. The
+training ranking favors 44 over 48 for reference 46 and 49 over 45 for reference
+47. Scores are frozen before the verification replay. Old unranked artifacts
+retain flat-median fusion.
+
+| 57.9 mm replay | Checkpoint | Solver recovery | Recovery + reference ranking | Gate |
+| --- | ---: | ---: | ---: | ---: |
+| P95 absolute error | 2.3602 mm | 2.2016 mm | 2.0836 mm | <=2 mm |
+| Signed median error | +0.0824 mm | -0.1613 mm | -0.2039 mm | absolute value <=1 mm |
+| Error RMS | 1.3896 mm | 1.3362 mm | 1.2587 mm | diagnostic |
+| Coverage | 689/821 (83.9%) | 691/821 (84.2%) | 691/821 (84.2%) | >=70% |
+
+P95 remains 0.0836 mm above the gate. No extra frame rejection, clipping,
+temporal smoothing, or changed calibration/capture settings explain the gain.
+The 64.6 mm training-hold replay also has p95 2.1949 mm, indicating a remaining
+tail-error problem beyond the one verification aperture.
+
+Other diagnostic attempts were not adopted:
+
+- Body-pose rotation priors at 1, 3, and 5 degrees, chosen by training-blocked
+  RMS: the selected 1-degree prior yields verification p95 2.2155 mm.
+- Taking a median within each reference before fusing references: p95 2.2029 mm.
+- First-order image-row motion timing correction, fitted on training data:
+  verification p95 worsens from 2.2019 to 2.2356 mm on the same 670 frames with
+  neighboring observations. The fitted coefficient is not a camera readout-time
+  measurement.
+
+Reference ranking is an engineering candidate, not a new blind qualification.
+A cached training-block comparison had p95 2.8414 mm for flat fusion versus
+2.8841 mm for the ranked-reference policy, so the validation improvement is not
+uniform across datasets. Although model parameters and ranking scores use only
+training data, the 57.9 mm recording has now been inspected repeatedly while
+developing inference policies. Fresh unseen holds are required for qualification.
+
+Reproduce the latest review:
+
+```bash
+.venv/bin/python scripts/forward_width_check.py \
+  glove_yuan_width_02 glove_yuan_width_verify_01 --unit yuan \
+  --out tmp/forward_width_yuan_v4.local.json
+```
+
+Reports include solver policy and implementation hashes in addition to frozen
+model and input hashes. All 14 width regressions pass, including wrong planar
+pose recovery, a degenerate cold seed, correlated-reference fusion, missing-face
+fallback, and historical model compatibility. Existing marker-map regressions
+also pass (7 tests), for 21 passing local regressions in total.
+
+Next useful experiments are corner localization/pose-conditioning diagnostics
+and testing the straight-travel/constant-marker-orientation assumption at more
+intermediate apertures and viewing angles. Three measured apertures provide
+limited evidence for that motion model. Changes should preserve coverage and
+the 70% / 1 mm / 2 mm gates, then be assessed on fresh unseen holds; this review
+does not justify treating the remaining tail error as solved.
