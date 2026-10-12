@@ -216,6 +216,30 @@ as raw mm unless `calib/gap_to_actuator.json` exists (that file comes from a
 robot bench measurement and maps mm to the robot's gripper units — we
 supply it).
 
+**Offline metric forward-width review.** `forward_width_check.py` uses existing
+forward detection caches and raw-mm width holds. It trains only on the first
+recording, freezes a separate model, then replays a different aperture from the
+second recording. Intrinsics, ball/base geometry, marker maps and capture
+settings remain unchanged. For the Yuan recordings:
+
+```bash
+.venv/bin/python scripts/forward_width_check.py \
+  glove_yuan_width_02 glove_yuan_width_verify_01 --unit yuan \
+  --out tmp/forward_width_yuan_v2.local.json
+```
+
+The learned model jointly fits moving/fixed tag corners rather than subtracting
+two independently estimated tag depths. Candidate references must be within
+50 mm at the closed hold and observed at three widths; a time-blocked training
+holdout applies physical-mm error gates. The final independent gates remain
+coverage >=70%, absolute median error <=1 mm, and p95 absolute error <=2 mm.
+Missing detections, rejected solves and missing body poses remain in the
+coverage denominator. Exit status 2 means this accuracy review failed, with the
+report and frozen model still saved under `tmp/`. Predictions are not clipped or
+smoothed. Static-hold success does not verify moving-width accuracy. This is a
+physical-mm offline path; it does not replace `labels_lib.py`'s normalized robot
+actuator mapping or install a model into the robot pipeline.
+
 Also record one **calibration take** per unit (`--num_episodes 1`): a single
 long episode slowly rotating the ball through every orientation at working
 distance, with the gripper-back markers visible part of the time. Step 6
@@ -288,7 +312,8 @@ repository root.
 | `pack_session.py <dataset> … --unit <unit> [--dest]` | hand-off manifest + rsync line (sessions are 7–14 GB) | 4b |
 
 Libraries (not commands): `labels_lib.py` — the label stack (fused ball
-pose, body-frame aperture estimators); `uvc_ritual.py` — per-camera
+pose, body-frame aperture estimators); `forward_width.py` — physical-mm
+tail/base image constraints for the offline width review; `uvc_ritual.py` — per-camera
 exposure/gain/focus controls, selected by device name.
 
 ## Where to edit
