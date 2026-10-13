@@ -1,4 +1,4 @@
-"""AVFoundation identity and bounded, latest-frame preview capture.
+"""AVFoundation identity, native capture, and latest-frame preview delivery.
 
 Native imports live here so Linux tools do not acquire macOS dependencies.
 PreviewCapture intentionally drops superseded frames: it is NOT a recorder.
@@ -16,6 +16,7 @@ import Quartz as CV
 import libdispatch
 import numpy as np
 import objc
+import cv2
 
 from camera_config import normalize_image, supported_frame_rate
 
@@ -68,7 +69,7 @@ class _FrameSink(Foundation.NSObject,
                  protocols=[objc.protocolNamed("AVCaptureVideoDataOutputSampleBufferDelegate")]):
     def captureOutput_didOutputSampleBuffer_fromConnection_(self, output, sample, connection):
         owner = self.owner
-        if owner is None or owner.closed:
+        if owner is None or owner.closed or owner.error is not None:
             return
         try:
             with objc.autorelease_pool():
@@ -89,10 +90,13 @@ class _FrameSink(Foundation.NSObject,
                     base = CV.CVPixelBufferGetBaseAddress(pixel)
                     raw = np.frombuffer(base.as_buffer(stride * height), dtype=np.uint8)
                     # Honor row padding; copy before unlocking the native buffer.
-                    bgr = raw.reshape(height, stride)[:, :width * 4].reshape(height, width, 4)[:, :, :3].copy()
+                    bgra = raw.reshape(height, stride)[:, :width * 4].reshape(height, width, 4)
+                    # OpenCV's SIMD conversion makes an owned BGR buffer;
+                    # NumPy's strided channel-copy is too slow for 4K25.
+                    bgr = cv2.cvtColor(bgra, cv2.COLOR_BGRA2BGR)
                 finally:
                     CV.CVPixelBufferUnlockBaseAddress(pixel, CV.kCVPixelBufferLock_ReadOnly)
-                pts = CM.CMTimeGetSeconds(CM.CMSampleBufferGetPresentationTimeStamp(sample))
+                pts = CM.CMTimeGetSeconds(owner._timestamp(sample))
                 if not math.isfinite(pts):
                     raise RuntimeError("invalid sample presentation timestamp")
                 frame = PreviewFrame(normalize_image(bgr, owner.spec.rotation_degrees), pts)
@@ -100,16 +104,21 @@ class _FrameSink(Foundation.NSObject,
         except Exception as exc:
             owner.error = exc  # Report on the consumer thread, never escape ObjC callback.
 
+    def captureOutput_didDropSampleBuffer_fromConnection_(self, output, sample, connection):
+        if self.owner is not None and not self.owner.closed:
+            self.owner.native_drops += 1
 
-class PreviewCapture:
-    """Select exact device and mode; emit canonical BGR images for inspection.
+
+class NativeCapture:
+    """Exact device/mode and owned, canonical BGR buffers; subclass owns delivery.
 
 Native pixel buffers live only inside the delegate. Delivered arrays own their
-memory. UI runs on the main thread; callbacks use one serial native queue.
+memory. Capture callbacks use one serial native queue; consumers own encoding
+or preview independently.
     """
     def __init__(self, spec):
         self.spec = spec
-        self.frames = queue.Queue(maxsize=1)
+        self.native_drops = 0
         self.error = None
         self.closed = False
         self.session = None
@@ -118,12 +127,11 @@ memory. UI runs on the main thread; callbacks use one serial native queue.
         self.callback_queue = None
         self.negotiated_fps = None
 
+    def _timestamp(self, sample):
+        return CM.CMSampleBufferGetPresentationTimeStamp(sample)
+
     def _publish(self, frame):
-        try:
-            self.frames.get_nowait()
-        except queue.Empty:
-            pass
-        self.frames.put_nowait(frame)
+        raise NotImplementedError
 
     def __enter__(self):
         try:
@@ -177,7 +185,7 @@ memory. UI runs on the main thread; callbacks use one serial native queue.
             self.output.setAlwaysDiscardsLateVideoFrames_(True)
             self.sink = _FrameSink.alloc().init()
             self.sink.owner = self
-            self.callback_queue = libdispatch.dispatch_queue_create(b"umi.camera.preview", None)
+            self.callback_queue = libdispatch.dispatch_queue_create(b"umi.camera.capture", None)
             self.output.setSampleBufferDelegate_queue_(self.sink, self.callback_queue)
             if not self.session.canAddOutput_(self.output):
                 raise RuntimeError("cannot add video output")
@@ -236,9 +244,45 @@ memory. UI runs on the main thread; callbacks use one serial native queue.
             self.output.setSampleBufferDelegate_queue_(None, None)
         if self.session is not None:
             self.session.stopRunning()
+        if self.callback_queue is not None:
+            # close() runs on the consumer thread, never in the delegate.
+            # Drain an in-flight callback before releasing it or its owner.
+            libdispatch.dispatch_sync(self.callback_queue, lambda: None)
         if self.sink is not None:
             self.sink.owner = None
         self.sink = self.output = self.session = self.callback_queue = None
 
     def __exit__(self, *exc):
         self.close()
+
+
+class PreviewCapture(NativeCapture):
+    """Inspection only: discard superseded frames instead of building latency."""
+    def __init__(self, spec):
+        super().__init__(spec)
+        self.frames = queue.Queue(maxsize=1)
+
+    def _publish(self, frame):
+        try:
+            self.frames.get_nowait()
+        except queue.Empty:
+            pass
+        self.frames.put_nowait(frame)
+
+
+class OpenCVPreview:
+    """Small read/release adapter for the shared Linux-style diagnostic loop.
+
+    Frames are already normalized by PreviewCapture. Its latest-frame queue
+    supports previews and still calibration views, not continuous recording
+    or timestamped dataset collection.
+    """
+    def __init__(self, spec):
+        self.capture = PreviewCapture(spec)
+        self.capture.__enter__()
+
+    def read(self):
+        return True, self.capture.read().image
+
+    def release(self):
+        self.capture.close()

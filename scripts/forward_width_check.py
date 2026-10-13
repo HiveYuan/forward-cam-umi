@@ -15,6 +15,14 @@ import forward_width as W
 from marker_config import load_marker_map, resolve_marker_map
 
 ROOT = Path(__file__).resolve().parents[1]
+MIN_PAIR_FRAMES_PER_APERTURE = 40
+
+
+class TrainingSelectionError(ValueError):
+    """Keep candidate diagnostics when no model is eligible for verification."""
+    def __init__(self, candidates):
+        super().__init__("No forward-width candidate passed training checks")
+        self.candidates = candidates
 
 
 def read_json(path):
@@ -23,6 +31,30 @@ def read_json(path):
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def review_marker_maps(root, datasets, unit, measurement_map=None):
+    """Resolve an explicit physical-size revision without rewriting recordings.
+
+    Capture snapshots remain immutable. Offline reprocessing can replace only
+    declared dimensions and the corrected physical-unit name, never identities.
+    """
+    recorded = {ds: resolve_marker_map(root, ds, unit=None if measurement_map else unit)
+                for ds in datasets}
+    if measurement_map is None:
+        return recorded, recorded
+    revised = (root / measurement_map).resolve()
+    data = load_marker_map(revised)
+    if data.get("unit") != unit or not data.get("measurement_revision"):
+        raise ValueError("Measurement revision must identify the requested physical unit and provenance")
+    for path in recorded.values():
+        original = load_marker_map(path)
+        if (original["ball_faces"] != data["ball_faces"]
+                or original["tips_dict"] != data["tips_dict"]
+                or any(set(original[group]) != set(data[group])
+                       for group in ("tails", "bases", "tips"))):
+            raise ValueError("Measurement revision may change dimensions, not recorded marker identities")
+    return {ds: revised for ds in datasets}, recorded
 
 
 def measurement_holds(log):
@@ -73,6 +105,7 @@ def load_frames(stem, K, dist, body, obj, extras):
 
 def nearest_candidates(frames, labels, tails, extras, K, dist):
     minimum = min(labels)
+    gaps = sorted(set(labels))
     candidates = []
     for tail, edge in sorted(tails.items()):
         points = []
@@ -90,11 +123,24 @@ def nearest_candidates(frames, labels, tails, extras, K, dist):
         center = np.median(points, axis=0)
         distances = {b: float(np.linalg.norm(center - T[:3, 3]) * 1000)
                      for b, (T, _) in extras.items()}
-        base = min(distances, key=distances.get)
-        item = {"tail": tail, "base": base, "closed_distance_mm": distances[base]}
+        counts = {b: {g: sum(tail in f.corners and b in f.corners
+                              for f, value in zip(frames, labels) if value == g)
+                      for g in gaps} for b in extras}
+        # A nearby reference with no paired training views cannot calibrate a
+        # model. Apply the existing evidence gate BEFORE choosing a reference,
+        # so an unsupported closest tag cannot mask a supported local tag.
+        eligible = [b for b in extras
+                    if min(counts[b].values()) >= MIN_PAIR_FRAMES_PER_APERTURE]
+        base = min(eligible or distances, key=distances.get)
+        item = {"tail": tail, "base": base, "closed_distance_mm": distances[base],
+                "reference_evidence": {str(b): {"closed_distance_mm": distances[b],
+                                                "paired_frames_per_gap": counts[b]}
+                                       for b in extras}}
         # A local reference cancels global pose errors; do not fit arbitrary
         # cross-jaw pairs simply because they co-occur in many frames.
-        if distances[base] > 50:
+        if not eligible:
+            item["rejected"] = "no base has enough paired observations across all apertures"
+        elif distances[base] > 50:
             item["rejected"] = "nearest base farther than 50 mm"
         candidates.append(item)
     return candidates
@@ -125,7 +171,7 @@ def train_models(frames, holds, tails, extras, K, dist):
             groups.append([o for o in obs if o is not None])
         counts = [len(group) for group in groups]
         item["training_frames_per_gap"] = dict(zip(map(str, gaps), counts))
-        if min(counts) < 40 or sum(counts) < 80:
+        if min(counts) < MIN_PAIR_FRAMES_PER_APERTURE or sum(counts) < 80:
             item["rejected"] = "too few paired observations across all apertures"
             continue
         train_obs, train_g, test_obs, test_g = [], [], [], []
@@ -167,7 +213,7 @@ def train_models(frames, holds, tails, extras, K, dist):
         print(f"{model.key}: accepted; blocked holdout p95 "
               f"{quality['absolute_error_p95_mm']:.2f} mm", flush=True)
     if not models:
-        raise ValueError("No forward-width candidate passed training checks")
+        raise TrainingSelectionError(candidates)
     return models, candidates
 
 
@@ -215,6 +261,8 @@ def main():
     parser.add_argument("--intr", type=Path, default=ROOT / "calib/B0587_intrinsics.json")
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--gripper-bundle", type=Path)
+    parser.add_argument("--measurement-map", type=Path,
+                        help="Explicit measured-size revision for offline replay; preserves recorded snapshots")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     if args.training_dataset == args.verification_dataset:
@@ -228,8 +276,8 @@ def main():
         parser.error("--out must be inside this checkout's tmp directory")
     output.parent.mkdir(parents=True, exist_ok=True)
     model_path = output.with_suffix(".model.json")
-    maps = {ds: resolve_marker_map(ROOT, ds, unit=args.unit)
-            for ds in (args.training_dataset, args.verification_dataset)}
+    maps, recorded_maps = review_marker_maps(
+        ROOT, (args.training_dataset, args.verification_dataset), args.unit, args.measurement_map)
     marker_map = load_marker_map(maps[args.training_dataset])
     verification_map = load_marker_map(maps[args.verification_dataset])
     for field in ("tails", "bases", "ball_faces", "ball_edge_mm"):
@@ -238,6 +286,7 @@ def main():
     fixed = {str(p.relative_to(ROOT)): digest(p)
              for p in sorted((ROOT / "calib").glob("*.json"))}
     fixed.update({str(p.relative_to(ROOT)): digest(p) for p in maps.values()})
+    fixed.update({str(p.relative_to(ROOT)): digest(p) for p in recorded_maps.values()})
     for path in (args.intr, args.bundle, args.gripper_bundle):
         fixed[str(path.resolve())] = digest(path)
     source = {}
@@ -248,6 +297,8 @@ def main():
             source[str(path.relative_to(ROOT))] = digest(path)
     K, dist = L.load_intrinsics(args.intr)
     body, obj = L.load_bundle(args.bundle)
+    if read_json(args.bundle)["marker_edge_mm"] != marker_map["ball_edge_mm"]:
+        raise ValueError("Ball bundle marker size disagrees with the analysis marker map")
     extras = L.load_gripper_bundle(args.gripper_bundle)
     tails = {int(i): edge for i, edge in marker_map["tails"].items()}
     if not extras:
@@ -258,7 +309,26 @@ def main():
     training_holds = measurement_holds(read_json(ROOT / f"data/raw/{args.training_dataset}_glove_log.json"))
     train_times, train_frames = load_frames(args.training_dataset + "_" + args.camera,
                                           K, dist, body, obj, extras)
-    models, candidates = train_models(train_frames, training_holds, tails, extras, K, dist)
+    try:
+        models, candidates = train_models(train_frames, training_holds, tails, extras, K, dist)
+    except TrainingSelectionError as error:
+        for path, expected in (fixed | source).items():
+            if digest(ROOT / path) != expected:
+                raise RuntimeError(f"Input changed during analysis: {path}")
+        report = {"reviewed_at": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
+                  "physical_unit": args.unit, "stage": "training_selection",
+                  "training_dataset": args.training_dataset,
+                  "verification_dataset": args.verification_dataset,
+                  "analysis_marker_maps": {ds: str(p) for ds, p in maps.items()},
+                  "recorded_marker_maps": {ds: str(p) for ds, p in recorded_maps.items()},
+                  "fixed_inputs_sha256": fixed, "source_sha256": source,
+                  "fixed_inputs_unchanged": True, "candidates": error.candidates,
+                  "passed": False, "verification_run": False,
+                  "reason": str(error)}
+        output.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False)+"\n")
+        print(json.dumps({"passed": False, "verification_run": False,
+                          "reason": str(error), "report": str(output)}, ensure_ascii=False), flush=True)
+        return 2
     solver = {"version": W.SOLVER_VERSION,
               "fusion_policy": W.FUSION_POLICY,
               "cold_start_trigger_rms_px": W.HUBER_SCALE_PX,
@@ -267,6 +337,9 @@ def main():
     implementation = {name: digest(ROOT / "scripts" / name) for name in
                       ("forward_width.py", "forward_width_check.py", "labels_lib.py", "marker_config.py")}
     frozen = {"schema_version": 1, "units": "mm", "training_dataset": args.training_dataset,
+              "physical_unit": args.unit,
+              "analysis_marker_maps": {ds: str(p) for ds, p in maps.items()},
+              "recorded_marker_maps": {ds: str(p) for ds, p in recorded_maps.items()},
               "method": "Joint tail/base corner reprojection with linear tail travel",
               "inference_solver": solver, "implementation_sha256": implementation,
               "fixed_inputs_sha256": fixed, "source_sha256": {
@@ -299,6 +372,9 @@ def main():
                             t_wall=times, gap_mm=values, pair_count=counts,
                             local_sensitivity_mm=std)
     report = {"reviewed_at": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
+              "physical_unit": args.unit,
+              "analysis_marker_maps": {ds: str(p) for ds, p in maps.items()},
+              "recorded_marker_maps": {ds: str(p) for ds, p in recorded_maps.items()},
               "training_dataset": args.training_dataset,
               "verification_dataset": args.verification_dataset,
               "model": str(model_path), "frozen_model_sha256": frozen_hash,
@@ -316,7 +392,7 @@ def main():
                                   "blocked_holdout_absolute_median_error_mm_max": 1,
                                   "blocked_holdout_error_rms_mm_max": 2,
                                   "blocked_holdout_p95_absolute_error_mm_max": 4},
-              "scope": "Static width holds; missing/rejected frames remain in coverage denominators. No prediction clipping, temporal smoothing, independent-label refit, or existing calibration/capture changes. Moving-width accuracy is untested. New models remain derived offline artifacts; legacy robot actuator path is unchanged."}
+              "scope": "Static width holds; missing/rejected frames remain in coverage denominators. No prediction clipping, temporal smoothing, independent-label refit, or input/capture changes during review. Explicit measured-size revisions, if supplied, are recorded separately from immutable capture snapshots. Moving-width accuracy is untested. New models remain derived offline artifacts; legacy robot actuator path is unchanged."}
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
     print(json.dumps({"verification_holds": verification_summary,
                       "passed": report["passed"], "report": str(output)}, ensure_ascii=False), flush=True)

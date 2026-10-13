@@ -18,6 +18,21 @@ if sys.platform == "darwin":
 
 @unittest.skipUnless(sys.platform == "darwin", "AVFoundation requires macOS")
 class NativeCameraTests(unittest.TestCase):
+    def test_opencv_adapter_returns_normalized_pixels_without_rotating_again(self):
+        canonical = np.arange(3 * 5 * 3, dtype=np.uint8).reshape(3, 5, 3)
+        spec = CameraSpec("b0587b", "head-id", "Twin", 5, 3, 25, 180)
+        with patch.object(native, "PreviewCapture") as factory:
+            capture = factory.return_value
+            capture.read.return_value = SimpleNamespace(image=canonical)
+            adapter = native.OpenCVPreview(spec)
+            ok, pixels = adapter.read()
+            adapter.release()
+        factory.assert_called_once_with(spec)
+        capture.__enter__.assert_called_once()
+        self.assertTrue(ok)
+        self.assertIs(pixels, canonical)
+        capture.close.assert_called_once()
+
     def test_start_configures_device_without_setting_input_priority_preset(self):
         device = Mock()
         device.localizedName.return_value = "test camera"

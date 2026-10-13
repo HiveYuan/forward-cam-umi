@@ -3,6 +3,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -39,6 +40,66 @@ def observation(gap, rng=None, n=0):
 
 
 class ForwardWidthTests(unittest.TestCase):
+    def test_nearest_reference_requires_evidence_at_every_training_aperture(self):
+        corners = observation(50).tail_corners
+        frames, labels = [], []
+        for gap in (0, 32.3, 64.6):
+            for k in range(40):
+                seen = {44: corners, 46: corners}
+                if gap == 0 and k == 0:
+                    seen[41] = corners
+                frames.append(W.Frame(len(frames), len(frames), np.zeros(3), np.zeros(3), seen))
+                labels.append(gap)
+        nearer, supported = np.eye(4), np.eye(4)
+        nearer[2, 3] = .01; supported[2, 3] = .02
+        extra = {41: (nearer, 11.5), 46: (supported, 11.5)}
+        with patch.object(cv2, "solvePnP", return_value=(True, np.zeros(3), np.zeros(3))):
+            candidates = C.nearest_candidates(frames, labels, {44: 12.18}, extra, K, DIST)
+        self.assertEqual(candidates[0]["base"], 46)
+        self.assertNotIn("rejected", candidates[0])
+        self.assertEqual(candidates[0]["reference_evidence"]["41"]["paired_frames_per_gap"][32.3], 0)
+        # Preserve the failure reasons if no candidate can be trained.
+        rejected = [{"tail": 44, "rejected": "insufficient reference coverage"}]
+        with patch.object(C, "nearest_candidates", return_value=rejected):
+            with self.assertRaises(C.TrainingSelectionError) as error:
+                C.train_models(frames, [(0, 0, 39), (32.3, 40, 79), (64.6, 80, 119)],
+                               {44: 12.18}, extra, K, DIST)
+        self.assertEqual(error.exception.candidates, rejected)
+
+    def test_measured_size_revision_keeps_recorded_snapshot_immutable(self):
+        original = {"unit": "yuan", "tails": {"38": 5.6, "39": 5.7, "44": 12.18},
+                    "bases": {"46": 12.14}, "tips": {"38": 5.6, "39": 5.7},
+                    "tips_dict": "4x4", "ball_faces": {"25": "f0"}, "ball_edge_mm": 15.18}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root / "data/raw").mkdir(parents=True)
+            snapshot = root / "data/raw/take_marker_map.json"
+            snapshot.write_text(json.dumps(original)); before = snapshot.read_bytes()
+            revised = {**original, "unit": "yosub", "ball_edge_mm": 14.6167,
+                       "bases": {"46": 11.5}, "measurement_revision": {"source": "caliper"}}
+            path = root / "measured.json"; path.write_text(json.dumps(revised))
+            analysis, recorded = C.review_marker_maps(root, ["take"], "yosub", path)
+            self.assertEqual(analysis["take"], path.resolve())
+            self.assertEqual(recorded["take"], snapshot)
+            self.assertEqual(snapshot.read_bytes(), before)
+            # Physical-unit correction requires an explicit revision.
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                C.review_marker_maps(root, ["take"], "yosub")
+            revised["tails"] = {"38": 5.6, "39": 5.7, "45": 12.18}
+            path.write_text(json.dumps(revised))
+            with self.assertRaisesRegex(ValueError, "identities"):
+                C.review_marker_maps(root, ["take"], "yosub", path)
+
+    def test_uniform_metric_scale_preserves_projected_ball_geometry(self):
+        rv = np.array([.2, -.4, .1]); tv = np.array([.03, -.02, .6])
+        R = Rotation.from_rotvec([.4, .2, -.1]).as_matrix()
+        origin = np.array([.01, .02, -.03])
+        points = marker_obj(15.18) @ R.T + origin
+        scale = (sum([14.4, 14.9, 14.9, 14.7, 14.4, 14.4])/6)/15.18
+        corrected = marker_obj(15.18*scale) @ R.T + origin*scale
+        before = cv2.projectPoints(points, rv, tv, K, DIST)[0]
+        after = cv2.projectPoints(corrected, rv, tv*scale, K, DIST)[0]
+        np.testing.assert_allclose(before, after, atol=1e-9, rtol=0)
+
     def test_training_ranked_fusion_does_not_double_vote_for_one_reference(self):
         o = observation(50)
         f = W.Frame(0, 10, o.rvec, o.tvec,

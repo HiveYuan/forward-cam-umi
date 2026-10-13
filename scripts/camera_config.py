@@ -1,16 +1,16 @@
 """Local camera identity and image-coordinate contract for native capture.
 
-Kept separate from the legacy Linux cameras.json until the session recorder
-accepts this schema. Device IDs are opaque; names are never used as fallback.
+Kept separate from the legacy Linux cameras.json because AVFoundation IDs
+are platform-specific. Names are never used as identity fallback.
 """
 from dataclasses import asdict, dataclass
 import json
 import math
 from pathlib import Path
 
-import numpy as np
-
 ROLES = ("b0587", "b0587b", "fish")
+ROLE_ALIASES = {"forward": "b0587", "head": "b0587b", "wrist": "fish"}
+DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "calib/cameras.macos.local.json"
 
 
 def supported_frame_rate(requested, minimum, maximum):
@@ -29,38 +29,6 @@ frame duration instead of requesting an interval just outside the range.
 
 
 @dataclass(frozen=True)
-class CameraBinding:
-    """Confirmed physical identity and mounting direction, independent of mode."""
-    role: str
-    device_id: str
-    name: str
-    rotation_degrees: int = 0
-
-    def __post_init__(self):
-        if self.role not in ROLES:
-            raise ValueError(f"unknown camera role: {self.role}")
-        if not isinstance(self.device_id, str) or not self.device_id.strip():
-            raise ValueError("device_id must be a nonempty string")
-        if not isinstance(self.name, str) or not self.name.strip():
-            raise ValueError("camera name must be a nonempty string")
-        if type(self.rotation_degrees) is not int or self.rotation_degrees not in (0, 180):
-            raise ValueError("rotation_degrees must be 0 or 180")
-
-
-@dataclass(frozen=True)
-class CaptureMode:
-    width: int
-    height: int
-    fps: float
-
-    def __post_init__(self):
-        if any(type(v) is not int or v <= 0 for v in (self.width, self.height)):
-            raise ValueError("width and height must be positive integers")
-        if type(self.fps) not in (int, float) or not math.isfinite(self.fps) or self.fps <= 0:
-            raise ValueError("fps must be positive and finite")
-
-
-@dataclass(frozen=True)
 class CaptureSource:
     """Physical capture request, usable before any semantic role is assigned."""
     device_id: str
@@ -75,7 +43,10 @@ class CaptureSource:
             raise ValueError("device_id must be a nonempty string")
         if not isinstance(self.name, str) or not self.name.strip():
             raise ValueError("camera name must be a nonempty string")
-        CaptureMode(self.width, self.height, self.fps)
+        if any(type(v) is not int or v <= 0 for v in (self.width, self.height)):
+            raise ValueError("width and height must be positive integers")
+        if type(self.fps) not in (int, float) or not math.isfinite(self.fps) or self.fps <= 0:
+            raise ValueError("fps must be positive and finite")
         if type(self.rotation_degrees) is not int or self.rotation_degrees not in (0, 180):
             raise ValueError("rotation_degrees must be 0 or 180")
 
@@ -92,13 +63,9 @@ class CameraSpec:
     rotation_degrees: int = 0
 
     def __post_init__(self):
-        CameraBinding(self.role, self.device_id, self.name, self.rotation_degrees)
-        CaptureMode(self.width, self.height, self.fps)
-
-    @classmethod
-    def from_binding(cls, binding, mode):
-        return cls(binding.role, binding.device_id, binding.name,
-                   mode.width, mode.height, mode.fps, binding.rotation_degrees)
+        if self.role not in ROLES:
+            raise ValueError(f"unknown camera role: {self.role}")
+        self.source()
 
     def source(self):
         return CaptureSource(self.device_id, self.name, self.width, self.height,
@@ -140,6 +107,16 @@ def save_config(path, specs):
         f.write("\n")
 
 
+def resolve_spec(selector, path=DEFAULT_CONFIG):
+    """Resolve a saved role or exact ID; never guess from names/list positions."""
+    role = ROLE_ALIASES.get(selector, selector)
+    specs = load_config(path)
+    matches = [s for s in specs if s.role == role or s.device_id == selector]
+    if len(matches) != 1:
+        raise ValueError(f"camera {selector!r} is not uniquely configured; run cameras_setup.py")
+    return matches[0]
+
+
 def normalize_image(image, rotation_degrees):
     """Rotate pixels once, before any image-coordinate consumer sees them.
 
@@ -149,5 +126,6 @@ and needs no interpolation. Capture timestamps are independent of this step.
     if rotation_degrees == 0:
         return image
     if rotation_degrees == 180:
-        return np.ascontiguousarray(image[::-1, ::-1])
+        import cv2
+        return cv2.rotate(image, cv2.ROTATE_180)
     raise ValueError("rotation_degrees must be 0 or 180")
