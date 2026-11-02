@@ -64,8 +64,55 @@ class RecordingContractTests(unittest.TestCase):
         self.assertGreater(budget(cameras), 20)  # selecting only the pair matters
         self.assertGreater(budget(pair, duration=60), 30)
         self.assertLess(budget(cameras[2:]), budget(cameras[:1]))
-        self.assertEqual(budget(pair, duration=None), 30)  # interactive recording keeps its floor
+        # Untimed macOS: the encoder rate over the planned episodes, never the
+        # Linux per-minute policy (8x too small for the re-encode), floor 30 GB.
+        untimed = record_session._disk_budget_gb(pair, is_macos=True, duration=None,
+                                                 num_episodes=1, episode_time=60)[0]
+        self.assertAlmostEqual(untimed, budget(pair, duration=60))  # 1 x (60 s + 30 s) == 60 s + 30 s startup
+        self.assertGreater(untimed, 30)
+        self.assertEqual(record_session._disk_budget_gb(cameras[2:], is_macos=True, duration=None,
+                                                        num_episodes=1, episode_time=1)[0], 30)
         self.assertEqual(budget(pair, is_macos=False), 30)  # Linux policy unchanged
+        self.assertEqual(budget(pair, is_macos=False, duration=None), 30)
+
+    def test_failed_take_is_archived_so_the_dataset_name_can_be_reused(self):
+        with tempfile.TemporaryDirectory() as d:
+            raw = Path(d)
+            self.assertIsNone(record_session._archive_take(raw, "g1_b0587", leftovers=True))
+            # a failed macOS take: journal + segments + meta/log, no .mkv
+            for name in (".g1_b0587_timestamps.jsonl", ".g1_b0587_seg00000.mkv",
+                         ".g1_b0587_seg00001.mkv", "g1_b0587_meta.json", "g1_b0587_recorder.log"):
+                (raw / name).write_text("x")
+            self.assertEqual(record_session._archive_take(raw, "g1_b0587", leftovers=True), 1)
+            self.assertEqual(sorted(p.name for p in raw.iterdir()),
+                             [".g1_b0587.take1_seg00000.mkv", ".g1_b0587.take1_seg00001.mkv",
+                              ".g1_b0587.take1_timestamps.jsonl", "g1_b0587.take1_meta.json",
+                              "g1_b0587.take1_recorder.log"])
+            MJPEGWriter(raw, "g1_b0587", 160, 96, 25).close()  # the stem is free again
+            (raw / ".g1_b0587_timestamps.jsonl").unlink()   # the probe writer's empty journal
+            (raw / "g1_b0587.mkv").write_text("x")
+            self.assertEqual(record_session._archive_take(raw, "g1_b0587", leftovers=True), 2)
+            self.assertTrue((raw / "g1_b0587.take2.mkv").exists())
+            # Linux never archives dot-files (its recorder owns them)
+            (raw / ".g1_b0587_seg00000.mkv").write_text("x")
+            self.assertIsNone(record_session._archive_take(raw, "g1_b0587", leftovers=False))
+
+    def test_dead_muxer_reports_its_exit_code_not_broken_pipe(self):
+        with tempfile.TemporaryDirectory() as d:
+            writer = MJPEGWriter(d, "dead", 160, 96, 25)
+            writer.process = Mock()
+            writer.process.poll.side_effect = [None, 1]
+            writer.process.wait.return_value = 1
+            try:
+                with patch("recording_io.select.select", return_value=([], [writer.process.stdin], [])), \
+                     patch("recording_io.os.write", side_effect=BrokenPipeError):
+                    with self.assertRaisesRegex(RuntimeError, "ffmpeg exited with code 1"):
+                        writer.write(b"ab", 1)
+                self.assertEqual(writer.walls, [])
+            finally:
+                writer.process.poll.side_effect = None
+                writer.process.poll.return_value = 1
+                writer.close()
 
     def test_zero_frames_never_starts_muxer_or_creates_fake_recording(self):
         with tempfile.TemporaryDirectory() as d, patch("recording_io.subprocess.Popen") as spawn:
@@ -130,6 +177,25 @@ class RecordingContractTests(unittest.TestCase):
             self.assertEqual(report["after_first_2s"]["gap_count"], 0)
             self.assertAlmostEqual(report["after_first_2s"]["measured_fps"], 25)
             self.assertTrue(any("timestamp gaps 1" in p for p in report["problems"]))
+
+    def test_cadence_gate_accepts_the_b0587_26fps_and_rejects_a_wrong_mode(self):
+        def problems(dt):
+            with tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                (root / "cam.mkv").touch()
+                write_json(root / "cam_meta.json", {"capture": {"fps": 25, "width": 160, "height": 96},
+                                                   "status": "finalized", "native_drops": 0})
+                walls = [100]
+                for i in range(400):
+                    walls.append(walls[-1] + dt[i % len(dt)])
+                write_json(root / "cam_ts.json", [{"wall": t} for t in walls])
+                with patch("recording_check.probe_video", return_value={
+                        "nb_read_packets": len(walls), "width": 160, "height": 96, "codec_name": "mjpeg"}):
+                    return check_stream(root, "cam")["problems"]
+        # 40/40/40/30 ms is what the B0587 delivers in its 25 fps mode (26.3 fps)
+        self.assertEqual(problems([0.04, 0.04, 0.04, 0.03]), [])
+        self.assertTrue(any("frame rate" in p for p in problems([1 / 30])))   # 30 fps mode
+        self.assertTrue(any("frame rate" in p for p in problems([1 / 15])))   # 15 fps mode
 
     def test_missing_camera_has_no_all_camera_overlap(self):
         import recording_check
@@ -451,10 +517,17 @@ class NativeRecordingTests(unittest.TestCase):
         with patch.object(CM, "CMSampleBufferGetPresentationTimeStamp", return_value=pts):
             host_pts = cap._timestamp(object())
         self.assertAlmostEqual(CM.CMTimeGetSeconds(host_pts), CM.CMTimeGetSeconds(pts), places=6)
-        cap.clock.check()
-        with patch.object(native.time, "time", return_value=cap.clock.host_seconds() + cap.clock.offset + 1):
-            with self.assertRaisesRegex(RuntimeError, "wall clock changed"):
-                cap.clock.check()
+        self.assertLess(abs(cap.clock.check()), 0.020)
+        self.assertFalse(cap.clock.warned)
+        # A wall-clock step (NTP, sleep/wake) is recorded and reported, not
+        # fatal: the Linux recorder has no such check, and the frames keep
+        # their anchored times either way.
+        with patch.object(native.time, "time", return_value=cap.clock.host_seconds() + cap.clock.offset + 1), \
+             patch("builtins.print") as told:
+            self.assertAlmostEqual(cap.clock.check(), 1, places=2)
+        self.assertTrue(cap.clock.warned)
+        self.assertAlmostEqual(cap.clock.max_drift, 1, places=2)
+        self.assertIn("wall clock moved", told.call_args[0][0])
 
 
 if __name__ == "__main__":

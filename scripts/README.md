@@ -123,8 +123,11 @@ macOS has the following explicit differences:
 - The native session PTS is converted to the CoreMedia host clock and anchored
   to Unix time, matching the episode marks' `time.time()` clock. The video
   container uses nominal fps; **`_ts.json` is the capture time source of truth**,
-  including gaps. No frames are synthesized to fill gaps. An observed system
-  clock jump aborts the take instead of silently misaligning episode marks.
+  including gaps. No frames are synthesized to fill gaps. A system clock
+  step during capture (NTP, sleep/wake) is printed and recorded in the
+  metadata (`clock.max_wall_drift_s`) and the take continues, as on Linux,
+  where no such check exists; episode marks after a step may be offset by
+  that amount.
 - Recording has a bounded FIFO separate from preview's latest-frame queue.
   Its capacity absorbs up to one second of burst delivery, capped at 512 MiB
   of queued BGR pixels per camera (21 frames at 4K, 31 at the saved 1080p
@@ -145,13 +148,23 @@ macOS has the following explicit differences:
   unfinished takes are preserved and cannot be silently reused. The session
   stops if a recorder exits or remaining disk space cannot accommodate the
   final remux copy plus a 2 GB reserve.
-- On macOS, timed rehearsals (`--duration`) budget disk space from the selected
-  cameras' resolution and fps: 0.5 compressed bytes/pixel, the requested
-  duration plus 30 seconds for startup, two video copies for remux, and a
-  2 GB reserve. This is an estimate; MJPEG size varies with the scene and the
-  runtime space check still applies. Untimed sessions retain the 30 GB floor.
+- On macOS, disk space is budgeted from the selected cameras' resolution and
+  fps at 0.5 compressed bytes/pixel (the quality-95 re-encode is about 8x the
+  Linux camera-JPEG copy, 0.06 bytes/pixel measured on yam_glove5-8): the
+  requested `--duration` plus 30 seconds for startup, or for an untimed
+  session the planned `--num_episodes` x (`--episode_time` + 30 s), two video
+  copies for remux, a 2 GB reserve, and a 30 GB floor. This is an estimate;
+  MJPEG size varies with the scene and the runtime space check still applies.
+  Three cameras at 4K25 + 1080p30 come to roughly 14 GB per minute.
+- A failed or unfinished take (no `.mkv`, segments and timestamp journal
+  kept) is archived as `<stem>.take<k>.*` by the next run of the same
+  dataset name, like a finished one, so the name can be reused; a rehearsal
+  never freezes a marker-map snapshot (it takes the map it is given).
 - `recording_check.py` checks raw transport, dimensions, frame/timestamp
-  counts, frame cadence and common time span, **not** optical synchronization,
+  counts, frame cadence (within 10% of the requested rate: the B0587's 25 fps
+  mode delivers 26.3 fps on Linux and macOS alike, in a 40/40/40/30 ms
+  pattern, so the gate catches a wrong mode, not that cadence) and common
+  time span, **not** optical synchronization,
   marker coverage, or label accuracy. For hardware validation, show all views
   a common visible event and compare its capture times (allowing frame-period
   quantization); also inspect moving-marker detection. Run the later

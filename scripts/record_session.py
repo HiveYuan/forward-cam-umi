@@ -218,6 +218,47 @@ def _stop_recorders(recs):
     return failed
 
 
+def _take_leftovers(raw, stem):
+    """Files a failed or unfinished macOS take leaves behind on purpose (the
+    MJPEG writer keeps its segments and timestamp journal for recovery and
+    refuses to start while they exist)."""
+    names = [f".{stem}_timestamps.jsonl", f".{stem}_finalizing.mkv",
+             f".{stem}_concat.txt"]
+    return [p for p in (raw / n for n in names) if p.exists()] \
+        + sorted(raw.glob(f".{stem}_seg*.mkv"))
+
+
+def _archive_take(raw, stem, *, leftovers):
+    """Move a previous take of `stem` aside as `<stem>.take<k>.*`; return k,
+    or None when there was nothing to archive.
+
+    A finished take is its .mkv with sidecars. With `leftovers` (macOS), a
+    failed take with no .mkv, i.e. the writer's retained segments and
+    journal plus the meta/log of that attempt, is archived the same way
+    (its dot-files keep their names under the take stem), so the next run
+    with the same dataset name starts instead of dying on FileExistsError.
+    """
+    finished = (raw / f"{stem}.mkv").exists()
+    stray = _take_leftovers(raw, stem) if leftovers else []
+    if not finished and not stray:
+        return None
+    k = 1
+    while (raw / f"{stem}.take{k}.mkv").exists() or (raw / f"{stem}.take{k}_meta.json").exists() \
+            or list(raw.glob(f".{stem}.take{k}_*")):
+        k += 1
+    take = f"{stem}.take{k}"
+    for ext in (".mkv", "_ts.json", "_meta.json", "_recorder.log"):
+        src = raw / f"{stem}{ext}"
+        if src.exists():
+            src.rename(raw / f"{take}{ext}")
+    for src in stray:
+        src.rename(raw / src.name.replace(f".{stem}_", f".{take}_", 1))
+    if stray:
+        print(f"  (unfinished {stem} take archived as {take}.*: its segments and "
+              "timestamp journal are kept under the take name)")
+    return k
+
+
 def _recorder_failure(stem, code, log_path):
     """Surface the child's actual error instead of guessing a device fault."""
     detail = "no recorder output; inspect the log"
@@ -234,19 +275,32 @@ def _recorder_failure(stem, code, log_path):
 
 def _disk_budget_gb(cameras, *, is_macos, duration, num_episodes, episode_time):
     """Return required free space and the assumptions shown to the operator."""
-    if is_macos and duration is not None:
+    if is_macos:
         # Budget 0.5 compressed bytes/pixel for quality-95 MJPEG, scaled to
         # the selected modes. This is an estimate, not an encoder size cap;
-        # the runtime watchdog also reserves the measured remux copy.
+        # the runtime watchdog also reserves the measured remux copy. The
+        # macOS re-encode is ~8x the Linux camera-JPEG copy (0.06 B/px), so
+        # the Linux per-minute policy below must never budget a macOS session.
         bytes_per_second = 0.0
         for _, _, _, resolution, fps in cameras:
             width, height = map(int, resolution.split("x"))
             bytes_per_second += width * height * float(fps) * 0.5
-        required = bytes_per_second * (duration + 30) * 2 / 1e9 + 2
-        return required, (f"{duration:g}s capture + 30s startup budget, selected camera modes, "
-                          "two video copies for remux + 2 GB reserve; MJPEG size is scene-dependent")
-    # Keep the original Linux/untimed-session policy; report its actual
-    # floor instead of claiming that freeing only the estimate is enough.
+        if duration is not None:
+            seconds, basis = duration + 30, f"{duration:g}s capture + 30s startup budget"
+            floor = 0
+        else:
+            # Untimed: plan the episodes asked for, 30 s of handling each,
+            # under the same 30 GB floor as a Linux session.
+            seconds = num_episodes * (episode_time + 30)
+            basis = f"{num_episodes} x ({episode_time}s + 30s handling) planned"
+            floor = 30
+        required = bytes_per_second * seconds * 2 / 1e9 + 2
+        return max(required, floor), (
+            f"{basis}, selected camera modes at ~{bytes_per_second/1e6*60:.0f} MB/min, "
+            "two video copies for remux + 2 GB reserve; MJPEG size is scene-dependent"
+            + ("; 30 GB minimum" if floor else ""))
+    # Keep the original Linux policy; report its actual floor instead of
+    # claiming that freeing only the estimate is enough.
     estimate = num_episodes * (episode_time + 30) / 60 * 1.0 * 2
     return max(estimate, 30), (f"~{estimate:.1f} GB session estimate including remux; "
                                "30 GB minimum for untimed/standard sessions")
@@ -420,8 +474,20 @@ def main():
         from recording_io import validate_stem
         validate_stem(args.dataset)
 
+    # A rehearsal always records as "rehearsal", so freezing its marker map
+    # would pin every later rehearsal to the first glove print seen (the
+    # snapshot could only be escaped by hand-deleting it). Rehearsals take
+    # the map they are given and keep no snapshot; real datasets freeze.
+    rehearsal = args.cameras_only and args.dataset == "rehearsal"
     try:
-        marker_path = resolve_marker_map(PILOT, args.dataset, path=args.marker_map)
+        if rehearsal:
+            stale = PILOT / "data/raw" / f"{args.dataset}_marker_map.json"
+            if stale.exists():
+                stale.unlink()
+                print(f"  (removed stale {stale.name}: rehearsals keep no marker-map snapshot)")
+            marker_path = (PILOT / args.marker_map) if args.marker_map else None
+        else:
+            marker_path = resolve_marker_map(PILOT, args.dataset, path=args.marker_map)
         marker_map = load_marker_map(marker_path) if marker_path else None
         wrist_markers = WristMarkers.from_map(marker_map) if marker_map else None
     except (OSError, ValueError) as exc:
@@ -506,7 +572,7 @@ def main():
                     f"a recorder for {stem0} is already running (pid "
                     f"{', '.join(alive)}) — stop it first: kill -TERM "
                     f"{' '.join(alive)}  (it will finish its remux), then rerun")
-        if marker_map is not None:
+        if marker_map is not None and not rehearsal:
             saved = save_snapshot(PILOT, args.dataset, marker_map)
             print(f"session marker map: {saved}")
         for suffix, bypath, frag, res, fps in cameras:
@@ -539,16 +605,9 @@ def main():
             # NEVER overwrite a previous recording with the same stem (a
             # --resume session reuses the dataset name): archive it aside
             # first. Lost ep0-4 raws to this on 2026-09-09.
-            if (PILOT / "data/raw" / f"{stem}.mkv").exists():
-                k = 1
-                while (PILOT / "data/raw" / f"{stem}.take{k}.mkv").exists():
-                    k += 1
-                for ext in (".mkv", "_ts.json", "_meta.json",
-                            "_recorder.log"):
-                    src = PILOT / "data/raw" / f"{stem}{ext}"
-                    if src.exists():
-                        src.rename(PILOT / "data/raw"
-                                   / f"{stem}.take{k}{ext}")
+            archived = _archive_take(PILOT / "data/raw", stem, leftovers=is_macos)
+            if archived:
+                k = archived
                 # cached detections must follow their take, or the next
                 # session's detections would collide with the stale ones
                 for ext in ("_dodeca_detections.npz",
