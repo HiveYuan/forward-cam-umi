@@ -1,0 +1,57 @@
+{
+ "unit": "yosub_spring",
+ "note": "SPRING version of Yosub's glove (whole glove reprinted 2026-10-31; the four gripper-back markers 40/41/46/47 re-applied on the new print, caliper 12.11 mm on 2026-10-31; ball, tails and tips are the SAME stickers as marker_map_glove_yosub.json, sizes unchanged). Unit name 'yosub_spring' so every per-unit solve gets its own file beside the paper's. Use via record_session --marker-map (snapshotted into data/raw/<dataset>_marker_map.json) and the offline solves; sessions before 2026-11 (yam_glove5-8) keep marker_map_glove_yosub.json with bases 12.18. GLOVE unit kept by Yosub \u2014 second physical print of glove_markers_v4 (md5 a30db471\u2026), same ids and layout as Yuan's unit, SEPARATE calipers and SEPARATE bundle solves (glove_yosub_dodeca_bundle.json, glove_yosub_gripper_bundle.json). Caliper 2026-10-05: ball 15.22, tails 12.18, bases 12.18, 16h5 tips 6.22. Ball faces 15.22 (feeds the bundle solvers' --marker-mm). Workspace tags: tags36h11_yosub.json. TRAPS as Yuan's unit: 4x4-27 is a real ball face \u2014 detect with --keep-27; 16h5-2/3 decode as phantom 4x4-17 (harmless, 17 is not a glove id).",
+ "tails": {
+  "36": 12.18,
+  "37": 12.18,
+  "38": 12.18,
+  "39": 12.18,
+  "42": 12.18,
+  "43": 12.18,
+  "44": 12.18,
+  "45": 12.18,
+  "48": 12.18,
+  "49": 12.18
+ },
+ "bases": {
+  "40": 12.11,
+  "41": 12.11,
+  "46": 12.11,
+  "47": 12.11
+ },
+ "tips": {
+  "2": 6.22,
+  "3": 6.22
+ },
+ "tips_dict": "16h5",
+ "ball_faces": {
+  "25": "f0",
+  "26": "f1",
+  "27": "f2",
+  "28": "f3",
+  "29": "f4",
+  "30": "f5",
+  "31": "f6",
+  "32": "f7",
+  "33": "f8",
+  "34": "f9",
+  "35": "f10"
+ },
+ "ball_edge_mm": 15.22,
+ "wrist_cam": {
+  "model": "Arducam 1080P Low Light (0c45:0261)",
+  "serial": "UC684",
+  "note": "glove-mounted wrist fisheye, plugged 2026-10-05; a DIFFERENT unit from the robot's wrist cam. It IS metric here: the wrist-obs glove arm (pipeline A) reads width from the 16h5 tips 2/3 it sees, so it needs its own intrinsics \u2014 calibrate_uvc.py --name fisheye_glove_yosub --model rational (the default name would clobber the robot's fisheye_intrinsics.json).",
+  "intrinsics": "calib/fisheye_glove_yosub_intrinsics.json"
+ },
+ "spring_version": {
+  "since": "2026-10-31",
+  "replaced_markers": [
+   40,
+   41,
+   46,
+   47
+  ],
+  "bases_mm_before": 12.18
+ }
+}

@@ -95,8 +95,14 @@ def main():
     for cam, fps_nom in (("b0587", 25), ("b0587b", 25), ("fish", 30)):
         t = ts_of(f"{a.dataset}_{cam}")
         if t is None:
-            print(f"  {cam:7s} MISSING" + ("" if cam == "b0587b" else "  <-- required"))
-            if cam != "b0587b":
+            # the fixed camera is required (pose + width labels); the head
+            # cam is optional; a session without the wrist fisheye (head-cam
+            # glove, no tip tags) is fine, its holds are then checked only by
+            # the build's aperture-estimator fit
+            why = {"b0587": "  <-- required", "b0587b": "",
+                   "fish": "  (no wrist cam: tip/hold checks skipped)"}[cam]
+            print(f"  {cam:7s} MISSING{why}")
+            if cam == "b0587":
                 bad.append(f"stream {cam} missing")
             continue
         tw[cam] = t
