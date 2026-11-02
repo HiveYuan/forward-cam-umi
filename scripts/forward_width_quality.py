@@ -79,18 +79,9 @@ def select_predictions(models: Sequence[W.PairModel], available, policy):
             rejected[key] = reason
     if not accepted:
         return QualityDecision(None, accepted, rejected, ())
-    if any(m.holdout_p95_mm is None for m in models):
-        # Existing unranked models fuse all usable candidates.
-        selected = list(accepted)
-    else:
-        by_reference = {}
-        for model in models:
-            if model.key in accepted:
-                by_reference.setdefault(model.base, []).append(model)
-        selected = [min(group, key=lambda m: (m.holdout_p95_mm, m.tail)).key
-                    for group in by_reference.values()]
-    gap = float(np.median([accepted[key].gap_mm for key in selected]))
-    return QualityDecision(gap, accepted, rejected, tuple(selected))
+    # Same per-reference rule as the frozen path, applied to the survivors.
+    selected = W.select_fused(models, accepted)
+    return QualityDecision(W.fuse_width(models, accepted), accepted, rejected, tuple(selected))
 
 
 def predict_width(frame, models, base_transforms, K, dist, policy):

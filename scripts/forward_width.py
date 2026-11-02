@@ -271,6 +271,32 @@ def predict_pair(observation, model, K, dist, max_rms_px=5.0):
     )
 
 
+def select_fused(models, available):
+    """Keys of the candidates that vote in the fused width, in model order.
+
+    Faces sharing one fixed tag have correlated pose errors. Select their
+    best TRAINING-ranked available face before fusing distinct references;
+    a second face remains a fallback instead of getting a duplicate vote.
+    Old frozen models without a complete training-only ranking fuse every
+    available candidate; scores are never invented from verification outcomes.
+    The quality gate (forward_width_quality) applies this same rule to the
+    candidates it accepts, so the two paths cannot drift apart.
+    """
+    if any(m.holdout_p95_mm is None for m in models):
+        return [m.key for m in models if m.key in available]
+    by_reference = {}
+    for model in models:
+        if model.key in available:
+            by_reference.setdefault(model.base, []).append(model)
+    return [min(group, key=lambda m: (m.holdout_p95_mm, m.tail)).key
+            for group in by_reference.values()]
+
+
+def fuse_width(models, available):
+    selected = select_fused(models, available)
+    return float(np.median([available[key].gap_mm for key in selected])) if selected else None
+
+
 def predict_width(frame, models, base_transforms, K, dist):
     available = {}
     for model in models:
@@ -282,20 +308,7 @@ def predict_width(frame, models, base_transforms, K, dist):
                 available[model.key] = result
     if not available:
         return None, available
-    if any(m.holdout_p95_mm is None for m in models):
-        # Preserve old frozen models' fusion until a complete training-only
-        # ranking exists; do not invent scores from verification outcomes.
-        return float(np.median([p.gap_mm for p in available.values()])), available
-    by_reference = {}
-    for model in models:
-        if model.key in available:
-            by_reference.setdefault(model.base, []).append(model)
-    selected = [min(group, key=lambda m: (m.holdout_p95_mm, m.tail))
-                for group in by_reference.values()]
-    # Faces sharing one fixed tag have correlated pose errors. Select their
-    # best TRAINING-ranked available face before fusing distinct references;
-    # a second face remains a fallback instead of getting a duplicate vote.
-    return float(np.median([available[m.key].gap_mm for m in selected])), available
+    return fuse_width(models, available), available
 
 
 def error_summary(predictions, actual_mm):
