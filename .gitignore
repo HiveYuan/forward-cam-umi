@@ -24,3 +24,17 @@ rollout_logs/grid_20261016/*
 !rollout_logs/grid_20261016/placements.json
 # the viewpoint model's fit data is small and the model is reproduced from it
 !calib/head_residual_glove5.npz
+
+# Local Python environment and physical-device bindings (examples are tracked).
+.venv/
+calib/cameras.json
+calib/cameras.json.bak-*
+calib/*.local.json
+# Backups written beside a re-calibration belong to the capture unit; the
+# intrinsics and glove bundles themselves are the paper's calibration and
+# stay tracked (see calib/README.md).
+calib/*_intrinsics.json.bak-*
+calib/*.npz.bak-*
+# Per-frame camera-pose solves are regenerable; offline review outputs.
+calib/*_cam_world.json
+/tmp/
