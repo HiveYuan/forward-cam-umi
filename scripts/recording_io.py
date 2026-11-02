@@ -145,6 +145,14 @@ class MJPEGWriter:
                 written = os.write(self.process.stdin.fileno(), remaining)
             except BlockingIOError:
                 continue
+            except BrokenPipeError as exc:
+                # select() reports a closed pipe as writable; report why the
+                # muxer went away instead of the bare EPIPE.
+                code = self.process.poll()
+                why = (f"ffmpeg exited with code {code} while muxing"
+                       if code is not None else "ffmpeg closed its input while muxing")
+                raise RuntimeError(f"{why} (its stderr is in the recorder log); "
+                                   "segments and timestamps preserved") from exc
             remaining = remaining[written:]
         self.journal.write(json.dumps({"wall": wall}) + "\n")
         self.walls.append(wall)

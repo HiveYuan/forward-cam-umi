@@ -40,6 +40,8 @@ class CaptureClock:
             after = self.host_seconds()
             candidates.append((after - before, wall - (before + after) / 2))
         uncertainty, self.offset = min(candidates)
+        self.max_drift = 0.0
+        self.warned = False
         self.metadata = {"method": "session PTS -> CoreMedia host clock -> Unix anchor",
                          "wall_minus_host_s": self.offset,
                          "anchor_uncertainty_s": uncertainty / 2,
@@ -49,8 +51,20 @@ class CaptureClock:
         return CM.CMTimeGetSeconds(CM.CMClockGetTime(self.host))
 
     def check(self):
-        if abs(time.time() - (self.host_seconds() + self.offset)) > 0.020:
-            raise RuntimeError("system wall clock changed during capture; episode timing is unsafe")
+        """Record wall-clock drift against the anchor; never abort the take.
+
+        Frame times stay on the host clock anchored at start, so a later NTP
+        step or sleep/wake shows up here as drift. The Linux recorder has no
+        such check; a step there lands silently in the timestamps. Keep the
+        take and surface the drift in the metadata for the episode marks.
+        """
+        drift = time.time() - (self.host_seconds() + self.offset)
+        self.max_drift = max(self.max_drift, abs(drift))
+        if abs(drift) > 0.020 and not self.warned:
+            self.warned = True
+            print(f"!! system wall clock moved {drift*1000:+.0f} ms from the capture anchor; "
+                  "frame times keep the anchor, episode marks after this may be offset", flush=True)
+        return drift
 
 
 @dataclass(frozen=True)
@@ -318,6 +332,8 @@ def main(argv=None):
                 meta["status"] = "failed"
         meta.update(native_drops=capture.native_drops, queue_peak=capture.queue_peak,
                     error=error, received_frames=capture.received)
+        meta["clock"] = {**meta["clock"], "max_wall_drift_s": capture.clock.max_drift,
+                         "wall_clock_moved": capture.clock.warned}
         arrival_span = ((capture.last_arrival - capture.first_arrival)
                         if capture.first_arrival is not None else 0)
         meta["callback_timing"] = {"span_s": arrival_span,

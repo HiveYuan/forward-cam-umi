@@ -33,8 +33,11 @@ def check_stream(root, stem):
         problems.append(f"recorder status: {meta.get('status')}; {meta.get('error')}")
     if meta.get("native_drops", 0) or stats["gap_count"]:
         problems.append(f"native drops {meta.get('native_drops', 0)}, timestamp gaps {stats['gap_count']}")
-    if abs(stats["measured_fps"] / spec["fps"] - 1) > 0.05:
-        problems.append("measured frame rate differs from requested rate by >5%")
+    # Catch a wrong mode (15/25/30, 29.97), not the sensor's own cadence: the
+    # B0587's 25 fps mode delivers 26.27 fps on Linux (yam_glove5-8, 40/40/40/30
+    # ms intervals) and on macOS alike, so a 5% gate failed every good take.
+    if abs(stats["measured_fps"] / spec["fps"] - 1) > 0.10:
+        problems.append("measured frame rate differs from requested rate by >10%")
     # Diagnostic only: preserve the full-take failure criteria above. Startup
     # gaps must not be mistaken for sustained overload or silently discarded.
     later = [t for t in walls if t >= walls[0] + 2]
