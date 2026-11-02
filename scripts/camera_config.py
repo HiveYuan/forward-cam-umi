@@ -10,7 +10,9 @@ from pathlib import Path
 
 ROLES = ("b0587", "b0587b", "fish")
 ROLE_ALIASES = {"forward": "b0587", "head": "b0587b", "wrist": "fish"}
-DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "calib/cameras.macos.local.json"
+# The tree the script was invoked from, not the symlink target: pilot/ keeps
+# per-file symlinks into this checkout and owns its own calib/ and data/.
+DEFAULT_CONFIG = Path(__file__).parent.parent.resolve() / "calib/cameras.macos.local.json"
 
 
 def supported_frame_rate(requested, minimum, maximum):

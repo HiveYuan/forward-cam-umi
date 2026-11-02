@@ -18,7 +18,7 @@ import forward_width_quality as Q
 from forward_width_accept import evaluate_holds
 import labels_lib as L
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).parent.parent.resolve()   # the tree the script was invoked from, not the symlink target
 REASONS = {None: 0, "nonfinite_prediction": 1, "invalid_sensitivity": 2,
            "excess_local_sensitivity": 3}
 

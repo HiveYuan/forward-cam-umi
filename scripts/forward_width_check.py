@@ -14,7 +14,7 @@ import labels_lib as L
 import forward_width as W
 from marker_config import load_marker_map, resolve_marker_map
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).parent.parent.resolve()   # the tree the script was invoked from, not the symlink target
 MIN_PAIR_FRAMES_PER_APERTURE = 40
 
 
@@ -27,6 +27,17 @@ class TrainingSelectionError(ValueError):
 
 def read_json(path):
     return json.loads(Path(path).read_text())
+
+
+def relative_key(path, root=None):
+    """Hash-table key for a fixed input: checkout-relative when it lives in
+    the checkout, otherwise its absolute path (an --measurement-map on another
+    volume must not crash the review with a bare ValueError)."""
+    path, root = Path(path), Path(ROOT if root is None else root)
+    try:
+        return str(path.resolve().relative_to(root.resolve()))
+    except ValueError:
+        return str(path.resolve())
 
 
 def digest(path):
@@ -283,10 +294,10 @@ def main():
     for field in ("tails", "bases", "ball_faces", "ball_edge_mm"):
         if marker_map[field] != verification_map[field]:
             raise ValueError("Marker identities or physical geometry differ between recordings")
-    fixed = {str(p.relative_to(ROOT)): digest(p)
+    fixed = {relative_key(p): digest(p)
              for p in sorted((ROOT / "calib").glob("*.json"))}
-    fixed.update({str(p.relative_to(ROOT)): digest(p) for p in maps.values()})
-    fixed.update({str(p.relative_to(ROOT)): digest(p) for p in recorded_maps.values()})
+    fixed.update({relative_key(p): digest(p) for p in maps.values()})
+    fixed.update({relative_key(p): digest(p) for p in recorded_maps.values()})
     for path in (args.intr, args.bundle, args.gripper_bundle):
         fixed[str(path.resolve())] = digest(path)
     source = {}
@@ -294,7 +305,7 @@ def main():
         for path in (ROOT / f"data/raw/{ds}_glove_log.json",
                      ROOT / f"data/raw/{ds}_{args.camera}_ts.json",
                      ROOT / f"calib/{ds}_{args.camera}_dodeca_detections.npz"):
-            source[str(path.relative_to(ROOT))] = digest(path)
+            source[relative_key(path)] = digest(path)
     K, dist = L.load_intrinsics(args.intr)
     body, obj = L.load_bundle(args.bundle)
     if read_json(args.bundle)["marker_edge_mm"] != marker_map["ball_edge_mm"]:

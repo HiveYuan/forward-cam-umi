@@ -13,7 +13,7 @@ import forward_width_check as C
 import labels_lib as L
 from marker_config import load_marker_map
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).parent.parent.resolve()   # the tree the script was invoked from, not the symlink target
 
 
 def evaluate_holds(times, values, holds, p95_max_mm):
@@ -59,7 +59,7 @@ def main():
     marker_map = Path(frozen["analysis_marker_maps"][frozen["training_dataset"]])
     for path in (intr, ball, bases, marker_map):
         expected = frozen["fixed_inputs_sha256"].get(str(path))
-        expected = expected or frozen["fixed_inputs_sha256"].get(str(path.relative_to(ROOT)))
+        expected = expected or frozen["fixed_inputs_sha256"].get(C.relative_key(path))
         if expected is None or C.digest(path) != expected:
             raise ValueError(f"Frozen geometry changed: {path}")
     # Use exactly the original declared offline measured-size revision.

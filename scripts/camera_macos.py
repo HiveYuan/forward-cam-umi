@@ -126,6 +126,7 @@ or preview independently.
         self.sink = None
         self.callback_queue = None
         self.negotiated_fps = None
+        self.frames = None   # subclasses install the queue that read() drains
 
     def _timestamp(self, sample):
         return CM.CMSampleBufferGetPresentationTimeStamp(sample)
@@ -229,6 +230,9 @@ or preview independently.
             raise RuntimeError("capture is closed")
         if self.error is not None:
             raise RuntimeError(f"capture failed: {self.error}") from self.error
+        if self.frames is None:
+            raise RuntimeError(f"{type(self).__name__} installs no frame queue; "
+                               "subclasses must set self.frames in __init__")
         try:
             return self.frames.get(timeout=timeout)
         except queue.Empty as exc:
