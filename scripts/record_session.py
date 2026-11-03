@@ -46,7 +46,7 @@ TELEOP = Path("~/lerobot_alohamini/examples/yam/record_yam_teleop.py").expanduse
 # moves to a different port, update its by-path here.
 # (suffix, by-path device, sysfs-name fragment fallback, res, fps)
 CAMERAS = [
-    ("b0587", "/dev/v4l/by-path/pci-0000:44:00.0-usb-0:1:1.0-video-index0",
+    ("b0587", "/dev/v4l/by-path/pci-0000:05:00.0-usb-0:1:1.0-video-index0",
      "B0587", "3840x2160", "25"),          # original, portrait mount
     ("b0587b", "/dev/v4l/by-path/pci-0000:10:00.3-usb-0:2.1:1.0-video-index0",
      None, "3840x2160", "25"),             # twin, landscape (no name fallback:

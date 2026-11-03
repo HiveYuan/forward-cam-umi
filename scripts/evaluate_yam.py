@@ -50,7 +50,7 @@ from lerobot.utils.utils import log_say  # noqa: E402
 from yam_zmq_client import YamZmqClient, YamZmqClientConfig  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]  # repo root: calib/, train_runs/, rollout_logs/
-FORWARD_DEV = "/dev/v4l/by-path/pci-0000:44:00.0-usb-0:1:1.0-video-index0"
+FORWARD_DEV = "/dev/v4l/by-path/pci-0000:05:00.0-usb-0:1:1.0-video-index0"
 FISH_DEV = "/dev/v4l/by-path/pci-0000:06:00.0-usb-0:1:1.0-video-index0"
 HEAD_DEV = "/dev/v4l/by-path/pci-0000:10:00.3-usb-0:2.1:1.0-video-index0"   # SO-101 arm cam (b0587b); tracker must run with --release_cam
 TWIN_DEV = "/dev/v4l/by-path/pci-0000:10:00.3-usb-0:2.1:1.0-video-index0"
