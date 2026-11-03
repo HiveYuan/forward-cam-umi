@@ -8,7 +8,12 @@ labelled; labels are computed from these files by the pipeline in
 
 Copies: `gs://head-cam-umi-raw/pilot/raw/` (Google Cloud Storage, project
 `videosync-413908`, us-west1) and `/mnt/nas/nvme_archive/pilot/raw/` on the
-lab NAS, which the repo reaches as `data/raw/`. To work from the bucket:
+lab NAS. On the workstation the repo's `data/raw/` is the local NVMe
+(`/mnt/nvme/pilot/raw`): record and process there, then
+`scripts/archive_raw.sh <session>` copies a finished session to the NAS
+(recording over NFS dropped frames at every segment boundary, 2026-11-02).
+The archive is reachable from the local directory as `data/raw/nas/`. To
+work from the bucket:
 
 ```
 gcloud storage cp 'gs://head-cam-umi-raw/pilot/raw/yam_glove6_*' data/raw/
