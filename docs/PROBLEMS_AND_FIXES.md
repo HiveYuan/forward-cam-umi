@@ -57,3 +57,13 @@ lives. Statuses: **FIXED-TOOL** (encoded in a script/pipeline default),
    per-velocity decompositions overturned three verdicts (user-driven each
    time).
 4. Certification procedure for any new camera: `CAMERA_CERTIFICATION.md`.
+
+## Spring glove, first session (2026-11-02, yam_glove9)
+
+| problem | root cause | fix | status |
+|---|---|---|---|
+| ~0.5 s of frames lost at every 60 s segment boundary and 1 s at start, both cameras | `data/raw` had been a symlink to the NAS since 10-27; the recorder's segment switch stalls on the NFS write (local NVMe in October: 44 ms worst gap) | `data/raw` is the local NVMe again; `scripts/archive_raw.sh <session>` copies finished sessions to the NAS | FIXED-PROC |
+| recorder opened the head camera as the fixed camera, then found its own device busy | fixed camera's pinned PCI path no longer existed (bus renumbering); the name fallback grabbed the only B0587 | re-pinned to `pci-0000:05:00.0-usb-0:1`; a second identically named B0587 makes the name fallback refuse, so the pin must be right | FIXED-TOOL |
+| 4 of 12 episodes skipped by the build's pose gate (27–65 %) although the head camera tracked the ball | 41–67 % of their head frames saw ONE tile; `head_pose_fast` chains those (the paper's chain) but `build_dataset` defaults to `--cam-world-min-tiles 2` | pass `--cam-world-min-tiles 1` for head-camera builds (10/12 episodes, 88 % of frames kept); the two still skipped looked at the bin with no tile in view: tape a tile beside the bin | FIXED-PROC / OPEN (layout) |
+| reprinted glove: back markers 7–18 mm from the old bundle, tool point 15 mm off | the whole body was reprinted; only the ball and its stickers are the same part | unit `yosub_spring`: own marker map (bases 12.11 mm), re-solved gripper bundle, tool frame (`--robot-tool-from` reuses the robot side) and tool point; holds from a separate take (`--log` + `--fit-stems`): 12 GOOD width estimators, best 1.0–2.6 mm holdout RMS | FIXED-TOOL |
+| `spotcheck_dataset.py --raw` crashed on a new dataset | hard-coded list of the paper's glove takes | `--marks data/raw/<take>_glove_episodes.json` | FIXED-TOOL |
