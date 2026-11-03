@@ -1,0 +1,9 @@
+{
+ "p_body_mm": [
+  -95.58,
+  -94.58,
+  84.97
+ ],
+ "source": "glove_tool_frame.py: fingertip-marker midpoint in the glove ball's body frame (yam_glove9_b0587 forward frames with both tips and the ball)",
+ "note": "fovea crop centre for the SPRING glove unit (yosub_spring); the pre-spring unit's is calib/eef_target_glove_yosub.json"
+}

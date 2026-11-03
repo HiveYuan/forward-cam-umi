@@ -95,10 +95,20 @@ ap.add_argument("--unit", default="yosub")
 ap.add_argument("--handeye", default="calib/handeye_yam_he7.json")
 ap.add_argument("--robot-stems", default="yam_pilot5_b0587.take1")
 ap.add_argument("--glove-stems", default="yam_glove2_b0587.take2,yam_glove3_b0587")
+ap.add_argument("--robot-tool-from", default=None, metavar="HANDEYE_GLOVE_JSON",
+                help="reuse T_body_tool_robot from an earlier handeye_glove_<unit>.json "
+                     "(the robot ball and its mount are unchanged; the robot take's "
+                     "detection cache need not exist) instead of re-solving --robot-stems")
 a = ap.parse_args()
-Tr = tool_frame(a.robot_stems.split(","), "calib/dodeca_bundle_ideal.json",
-                "calib/gripper_bundle.json", "calib/marker_map_v3.json",
-                "calib/B0587_intrinsics.json", "ROBOT")
+if a.robot_tool_from:
+    prev = json.load(open(a.robot_tool_from))["source"]
+    Tr = np.array(prev["T_body_tool_robot"])
+    a.robot_stems = f"{prev['robot_stems']} (via {a.robot_tool_from})"
+    print(f"ROBOT tool frame reused from {a.robot_tool_from} ({prev['robot_stems']})")
+else:
+    Tr = tool_frame(a.robot_stems.split(","), "calib/dodeca_bundle_ideal.json",
+                    "calib/gripper_bundle.json", "calib/marker_map_v3.json",
+                    "calib/B0587_intrinsics.json", "ROBOT")
 Tg = tool_frame(a.glove_stems.split(","), f"calib/glove_{a.unit}_dodeca_bundle.json",
                 f"calib/glove_{a.unit}_gripper_bundle.json",
                 f"calib/marker_map_glove_{a.unit}.json",

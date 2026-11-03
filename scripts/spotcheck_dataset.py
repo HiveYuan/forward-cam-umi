@@ -80,17 +80,19 @@ GLOVE_TAKES = [("data/raw/yam_glove2_glove_episodes.json", "yam_glove2_{cam}.tak
                ("data/raw/yam_glove3_glove_episodes.json", "yam_glove3_{cam}", range(0, 30)),
                ("data/raw/yam_glove4_glove_episodes.json", "yam_glove4_{cam}", range(0, 7))]
 
+TAKES = None   # set from --marks: [(marks file, raw stem pattern, episode range or None)]
 
-def episode_wall_map(root, fps=15):
+
+def episode_wall_map(root, fps=15, takes=None):
     """dataset episode index -> (raw stem pattern, t_start, t_end). Marks are
     walked in build order; a mark whose duration does not match the dataset
     episode's length (+-3 frames) was skipped by the build's coverage gate."""
     f = sorted(glob.glob(str(root / "meta/episodes/*/*.parquet")))
     lens = pd.concat([pd.read_parquet(x, columns=["episode_index", "length"]) for x in f]).set_index("episode_index")["length"]
     out, di = {}, 0
-    for marks_file, pat, rng in GLOVE_TAKES:
+    for marks_file, pat, rng in (takes or TAKES or GLOVE_TAKES):
         marks = json.load(open(marks_file))["episodes"]
-        for mi in rng:
+        for mi in (range(len(marks)) if rng is None else rng):
             if di not in lens.index:
                 break
             m = marks[mi]
@@ -183,9 +185,15 @@ ap = argparse.ArgumentParser()
 ap.add_argument("repos", nargs="+")
 ap.add_argument("--episodes", default="0,10,28,35,50")
 ap.add_argument("--out", default="data/sanity/spotcheck")
+ap.add_argument("--marks", default=None, metavar="JSON",
+                help="with --raw: the episode-marks file of a dataset built from ONE glove take "
+                     "(data/raw/<take>_glove_episodes.json); default: the paper's GLOVE_TAKES list")
 ap.add_argument("--raw", default="", help="comma list of RAW camera suffixes to add by wall "
                                            "clock (e.g. b0587b for the head cam)")
 a = ap.parse_args()
+if a.marks:
+    take = Path(a.marks).name.removesuffix("_glove_episodes.json")
+    TAKES = [(a.marks, take + "_{cam}", None)]
 out = Path(a.out)
 out.mkdir(parents=True, exist_ok=True)
 rows = []
