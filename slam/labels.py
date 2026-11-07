@@ -12,14 +12,15 @@ build  For each segment, the tool (virtual flange, build_dataset's IK target fra
        quaternion interpolation, a step is a gap when no sample lies within 0.12 s, and
        episodes below 70% coverage are dropped. SLAM frames count as gaps only where
        the run has no pose (DROID returns every frame).
-       Scale (out of scope for now): --scale tiles = per-segment Umeyama fit to the tile
-       head poses (oracle, for evaluation); --scale none = raw SLAM units.
+       Scale: --scale <spec> from slam.scale (none | tiles = oracle | A = static ball |
+       B[:model] = metric depth + ball | fallback chains like "A,B").
        Gripper: --gripper wrist (default) = <work>/<session>/gt/gripper_wrist.npz, the
        session's own wrist-camera width (slam.wrist_width: tip separation, closed-jaw
        offset, repo bench + command maps); --gripper dataset = gt/gripper.npz (widths of
        Yosub's built glove dataset, slam.glove_width). Linearly interpolated; a step is a gripper gap when no width sample lies within
        0.12 s, and coverage uses pose AND gripper gaps (build_dataset: min of both).
-       -> <segment>/labels/<ref>.npz: t, T_ref_tool (N,4,4), gap, coverage, keep, meta
+       -> <segment>/labels/<name>.npz: t, T_ref_tool (N,4,4), gap, coverage, keep, meta
+          <name> = <ref> with the oracle (tiles) scale, else <ref>@<scale spec>, e.g. E3@A
 
 check  End-to-end label error on the training timeline: the relative chunk
        tool_t->tool_t+j from a SLAM label file vs from the tile label file, for every
@@ -38,7 +39,7 @@ import numpy as np
 from slam import config as C
 from slam import geometry as G
 from slam import relative as Rl
-from slam.evaluate import load_segment, load_tool_offset, segment_scale
+from slam.evaluate import load_segment, load_tool_offset
 
 FPS, LABEL_TOL, MIN_COVERAGE, BRIDGE, MIN_EPISODE = 15.0, 0.12, 0.7, 0.5, 1.0
 
@@ -81,6 +82,10 @@ def load_gripper(session, source="wrist"):
     return {int(k[1:-2]): (z[k], z[k[:-2] + "_v"]) for k in z.files if k.endswith("_t")}
 
 
+def label_name(ref, scale_mode):
+    return ref if ref == "tiles" or scale_mode == "tiles" else f"{ref}@{scale_mode}"
+
+
 def build_segment(seg, ref, scale_mode, T_bt, grip=None):
     S = load_segment(seg)
     ep = json.load(open(seg / "frames.json"))["episode"]
@@ -90,10 +95,10 @@ def build_segment(seg, ref, scale_mode, T_bt, grip=None):
     else:
         z = np.load(seg / "slam" / f"{ref}.npz")
         T_ref_cam = z["T_slam_cam"].astype(float).copy()
-        s = 1.0
-        if scale_mode == "tiles":
-            s, res = segment_scale(S, T_ref_cam)
-            meta["align_res_mm"] = 1000 * res
+        from slam.scale import estimate
+        r = estimate(seg, ref, scale_mode)
+        s = float(r["s"]) if r.get("ok") else float("nan")
+        meta["scale_method_used"] = r.get("method")
         meta["scale"] = s
         if not np.isfinite(s):
             T_ref_cam[:] = np.nan
@@ -126,7 +131,7 @@ def build_segment(seg, ref, scale_mode, T_bt, grip=None):
                  "gripper": "gt/gripper_wrist.npz or gt/gripper.npz" if gser is not None else
                  ("no width labels for this episode" if grip else "no gt/gripper.npz: pose-only coverage")})
     (seg / "labels").mkdir(exist_ok=True)
-    np.savez(seg / "labels" / f"{ref}.npz", t=out["t"], T_ref_tool=out["T_ref_tool"], gap=out["gap"],
+    np.savez(seg / "labels" / f"{label_name(ref, scale_mode)}.npz", t=out["t"], T_ref_tool=out["T_ref_tool"], gap=out["gap"],
              gripper=out["gripper"], gripper_gap=out["gripper_gap"], coverage=out["coverage"],
              keep=out["keep"], meta=json.dumps(meta))
     return meta
@@ -174,7 +179,7 @@ def cmd_build(a):
         extra = f", scale {m['scale']:.3f}" if "scale" in m else ""
         print(f"{seg.name}: {m['n_steps']} steps, coverage {100 * m['coverage']:.0f}%, "
               f"{'kept' if m['keep'] else 'DROPPED'}{extra}{', ' + m['skipped'] if 'skipped' in m else ''}")
-    print(f"{a.ref}: {kept} episodes kept")
+    print(f"{label_name(a.ref, a.scale)}: {kept} episodes kept")
 
 
 def cmd_check(a):
@@ -182,7 +187,7 @@ def cmd_check(a):
     errs = {j: [] for j in range(1, H + 1)}
     n_anchor = 0
     for seg in sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")):
-        p, g = seg / "labels" / f"{a.ref}.npz", seg / "labels" / "tiles.npz"
+        p, g = seg / "labels" / f"{label_name(a.ref, a.scale)}.npz", seg / "labels" / "tiles.npz"
         if not (p.exists() and g.exists()):
             continue
         A, B = np.load(p), np.load(g)
@@ -218,8 +223,10 @@ def cmd_check(a):
                              "rot_deg_p90": float(np.percentile(e[:, 1], 90))}
     dst = C.WORK / a.session / "eval"
     dst.mkdir(parents=True, exist_ok=True)
-    json.dump(res, open(dst / f"labels_{a.ref}.json", "w"), indent=1)
-    print(f"{a.ref} vs tiles, {n_anchor} anchors")
+    name = label_name(a.ref, a.scale)
+    res["ref"] = name
+    json.dump(res, open(dst / f"labels_{name}.json", "w"), indent=1)
+    print(f"{name} vs tiles, {n_anchor} anchors")
     print("dt[s]   n     pos mm (med/p90)   rot deg (med/p90)")
     for j, r in res["by_step"].items():
         print(f"{r['dt_s']:5.2f} {r['n']:6d}   {r['pos_mm_median']:6.1f} / {r['pos_mm_p90']:6.1f}"
@@ -231,7 +238,7 @@ def main():
     ap.add_argument("cmd", choices=["build", "check"])
     ap.add_argument("--session", required=True)
     ap.add_argument("--ref", required=True, help="'tiles' or a SLAM run name (E1, E2, E3)")
-    ap.add_argument("--scale", default="tiles", choices=["tiles", "none"])
+    ap.add_argument("--scale", default="tiles", help="slam.scale spec: none|tiles|A|B[:model]|A,B ...")
     ap.add_argument("--horizon", type=int, default=100)
     ap.add_argument("--gripper", default="wrist", choices=["wrist", "dataset"])
     a = ap.parse_args()

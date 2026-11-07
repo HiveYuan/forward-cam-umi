@@ -1,9 +1,8 @@
 # Tile-free head-cam UMI: SLAM pipeline
 
 Replaces the workspace AprilTag tiles with monocular SLAM on the head camera.
-Design: Google Doc "Tile-Free Head-Cam UMI with SLAM". Scale recovery is not
-implemented yet (translation metrics and labels use a tile-fitted scale, marked
-as an oracle).
+Design: Google Doc "Tile-Free Head-Cam UMI with SLAM". Metric scale comes from
+interchangeable methods in `scale.py` (see "Scale" below); `tiles` is the oracle.
 
 Code is here; raw recordings and detection caches are read from the main
 head-cam-umi checkout (`HEADCAM_DATA_REPO`); outputs go to `SLAM_WORK`
@@ -55,3 +54,39 @@ helped E1 (no masks) but not E2: with motion masks the 1 s rotation error was
 
 Tests: `$V -m slam.tests.test_relative`, `$V -m slam.tests.test_labels`; dataset checks:
 `slam.export_lerobot --verify`, `slam.relative_dataset` self-check.
+
+## Scale (`scale.py`, `depth.py`)
+
+One interface, `scale.estimate(segment, run, spec)` / `get_scale(...)`, selected by a
+spec string wherever a scale is used (`slam.labels --scale`, `slam.evaluate --scale`,
+`slam.report --scale`):
+
+| spec | method | needs |
+|---|---|---|
+| `none` | s = 1 | – |
+| `tiles` | oracle: Umeyama fit to the tile head poses | tile GT (evaluation only) |
+| `A` | static ball: windows where the ball centre is static in the world, p_i = R_i b_i + s c_i solved linearly; residual ≤ 5 mm, head baseline ≥ 20 mm; weighted median | ball poses, SLAM |
+| `B` / `B:<model>` | metric depth (`depth.py`: `da2-metric-indoor-large` default, `depth-pro`) corrected by the ball (face-centre depths vs network depth), against DROID keyframe depth on mask-valid cells | `$S -m slam.depth --session S --run R [--model M]` |
+| `A,B` | fallback chain: A where it succeeds, else B | both |
+
+Options of B (keyword arguments of `scale_depth_ball`): `correction=faces|disk`,
+`fit=scale|affine`, `depth_window`. Results are cached per segment in
+`epNN/scale/<run>_<spec>.json` (use `--overwrite` after changing parameters or upstream
+files). Labels built with a non-oracle scale are named `<run>@<spec>` (e.g. `E3@A,B`) and
+work with `export_lerobot --run`, `build_dataset --ref-run`.
+
+```
+$V -m slam.scale estimate --session S --run E3 --method A
+$V -m slam.scale eval --session S --run E3 --methods "A;B;B:depth-pro;A,B"     # vs the oracle
+$V -m slam.labels build --session S --ref E3 --scale A,B
+$V -m slam.evaluate --session S --runs E3 --scale A,B                            # eval_scale_A+B/
+```
+
+yam_glove7, E3 (scale error vs the tile oracle, 28 segments with GT):
+A 9/30 segments, |err| median 5.1%, p90 11.1%; B (DA2) 30/30, 5.8% / 21.4%;
+B:depth-pro 16.7% / 30.8%; A,B 30/30, 5.4% / 19.0%. Labels with A,B: tool_t→tool_t+1s
+position error 5.0 mm median (oracle scale 4.0 mm). The DA2 metric depth compresses the
+range in this white scene (true/network depth 0.49 at 0.3–0.6 m, 0.69 at 0.9–1.2 m), so a
+single correction factor taken at the ball biases B low by ~5%; an affine fit to the ball
+extrapolates worse (12.6%), so the default is a single factor.
+

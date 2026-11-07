@@ -7,7 +7,8 @@ Both frames need a strict tile pose (>= 2 tiles, rms <= 5 px) and a SLAM pose.
 
   head motion   cam_a->cam_b = (world->cam_a ... ) from the tiles vs (slam->cam_a)^-1 (slam->cam_b)
   rotation err  angle(R_gt^T R_slam)                         [deg]  primary, scale-free
-  trans err     |t_gt - s t_slam|, s = per-segment Umeyama   [mm]   oracle (tile-fitted) scale
+  trans err     |t_gt - s t_slam|, s from --scale (slam.scale spec; default tiles = per-segment
+                Umeyama oracle)                              [mm]
   label err     tool_a->tool_b with the ball poses at both ends (build_dataset "full"
                 variant) and the flange (tool) frame, tile head motion vs SLAM head motion
   static        baseline cam_a->cam_b = I (no SLAM at all)
@@ -160,8 +161,9 @@ def main():
     ap.add_argument("--session", required=True)
     ap.add_argument("--runs", default="E1,E2,E3")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--scale", default="tiles", help="slam.scale spec for translation/label metrics")
     a = ap.parse_args()
-    out = Path(a.out) if a.out else C.WORK / a.session / "eval"
+    out = Path(a.out) if a.out else C.WORK / a.session / ("eval" if a.scale == "tiles" else f"eval_scale_{a.scale.replace(',', '+').replace(':', '-')}")
     out.mkdir(parents=True, exist_ok=True)
     T_bt = load_tool_offset(a.session)
     runs = ["static"] + [r for r in a.runs.split(",") if r]
@@ -180,6 +182,13 @@ def main():
                     continue
                 T_sc, meta = r
                 s, res = segment_scale(S, T_sc)
+                if a.scale != "tiles":
+                    from slam.scale import estimate
+                    rs = estimate(seg, run, a.scale)
+                    s_or = s
+                    s = float(rs["s"]) if rs.get("ok") else np.nan
+                    seg_info[S["name"]].setdefault("scale_vs_oracle", {})[run] = (
+                        float(s / s_or - 1) if np.isfinite(s) and np.isfinite(s_or) else None)
                 seg_info[S["name"]][run] = {"scale": s, "align_res_mm": 1000 * res,
                                             "n_keyframes": meta.get("n_keyframes"),
                                             "runtime_s": meta.get("runtime_s"),
@@ -229,6 +238,10 @@ def main():
             R["per_segment_dt1"][sname] = stats(col["rot_err_deg"][ms])
         summary["runs"][run] = R
     json.dump(summary, open(out / "summary.json", "w"), indent=1, default=float)
+    summary["scale"] = a.scale
+    for run in runs[1:]:
+        sc = [v[run]["scale"] for v in seg_info.values() if run in v]
+        summary["runs"][run]["scale_ok_segments"] = [int(np.isfinite(sc).sum()), len(sc)]
     md = render_md(summary, runs)
     (out / "summary.md").write_text(md)
     print(md)
@@ -240,10 +253,12 @@ def fmt(s, key="median"):
 
 def render_md(S, runs):
     L = []
+    sc = S.get("scale", "tiles")
+    sc_t = "tile-fitted (oracle) scale" if sc == "tiles" else f"scale {sc}"
     for metric, title in (("rot_err_deg", "Head rotation error [deg]"),
                           ("rot_err_deg_same_tiles", "Head rotation error, same tiles seen at both ends [deg]"),
-                          ("trans_err_mm", "Head translation error, tile-fitted scale [mm]"),
-                          ("label_pos_err_mm", "Label (tool_t->tool_t+dt) position error [mm]"),
+                          ("trans_err_mm", f"Head translation error, {sc_t} [mm]"),
+                          ("label_pos_err_mm", f"Label (tool_t->tool_t+dt) position error, {sc_t} [mm]"),
                           ("label_rot_err_deg", "Label rotation error [deg]")):
         L += [f"### {title}: median / p95", "",
               "| run | " + " | ".join(f"{d}s" for d in S["dts"]) + " |",
@@ -254,6 +269,14 @@ def render_md(S, runs):
                 s = S["runs"][run]["by_dt"][str(d)][metric]
                 cells.append(f"{fmt(s)} / {fmt(s, 'p95')}")
             L.append(f"| {run} | " + " | ".join(cells) + " |")
+        L.append("")
+    if sc != "tiles":
+        L += ["Scale available on: " + ", ".join(
+            f"{r} {S['runs'][r]['scale_ok_segments'][0]}/{S['runs'][r]['scale_ok_segments'][1]} segments"
+            for r in runs[1:]) + "; translation/label statistics cover only those.", ""]
+        for r in runs[1:]:
+            L.append(f"Pairs with a scale, {r}: " + ", ".join(
+                f"{d}s: {S['runs'][r]['by_dt'][str(d)]['trans_err_mm'].get('n', 0)}" for d in S["dts"]))
         L.append("")
     n = S["runs"][runs[0]]["by_dt"]
     L += ["Pairs per dt: " + ", ".join(f"{d}s: {n[str(d)]['rot_err_deg'].get('n', 0)}" for d in S["dts"]), ""]

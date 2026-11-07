@@ -24,11 +24,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--session", required=True)
     ap.add_argument("--runs", default="E1,E2,E3")
+    ap.add_argument("--scale", default="tiles", help="slam.scale spec the evaluation was run with")
     a = ap.parse_args()
-    ev = C.WORK / a.session / "eval"
+    ev = C.WORK / a.session / ("eval" if a.scale == "tiles" else
+                               f"eval_scale_{a.scale.replace(',', '+').replace(':', '-')}")
+    from slam.labels import label_name
     S = json.load(open(ev / "summary.json"))
     runs = ["static"] + [r for r in a.runs.split(",") if r in S["runs"]]
-    L = [f"# SLAM evaluation: {a.session}", ""]
+    L = [f"# SLAM evaluation: {a.session} (scale: {a.scale})", ""]
 
     segs = sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]"))
     nf = sum(len(json.load(open(s / "frames.json"))["frames"]) for s in segs)
@@ -37,7 +40,7 @@ def main():
           f"{sum(v['in_ep'] for v in S['segments'].values())} in-episode frames).", ""]
 
     for metric, title in (("rot_err_deg", "Head rotation error cam_t->cam_t+dt [deg], median / p95"),
-                          ("trans_err_mm", "Head translation error, tile-fitted scale [mm], median / p95"),
+                          ("trans_err_mm", f"Head translation error, scale {a.scale} [mm], median / p95"),
                           ("label_pos_err_mm", "Label tool_t->tool_t+dt position error [mm], median / p95"),
                           ("label_rot_err_deg", "Label rotation error [deg], median / p95")):
         L += [f"## {title}", "", "| run | " + " | ".join(f"{d} s" for d in DT_SHOW) + " |",
@@ -87,11 +90,11 @@ def main():
         L += [f"| tile set changes between ends (n={t['n']}) | {t['rot_deg_median']:.2f} / {t['rot_deg_p95']:.2f} | "
               f"{t['trans_mm_median']:.1f} / {t['trans_mm_p95']:.1f} |", ""]
 
-    lab = [(r, ev / f"labels_{r}.json") for r in runs[1:]]
+    lab = [(r, C.WORK / a.session / "eval" / f"labels_{label_name(r, a.scale)}.json") for r in runs[1:]]
     lab = [(r, json.load(open(p))) for r, p in lab if p.exists()]
     if lab:
         steps = sorted({int(j) for _, d in lab for j in d["by_step"]})
-        L += ["## End-to-end labels on the 15 fps training timeline vs tile labels (tile-fitted scale)", "",
+        L += [f"## End-to-end labels on the 15 fps training timeline vs tile labels (scale {a.scale})", "",
               "Position error [mm] median / p90 of tool_t->tool_t+dt.", "",
               "| run | anchors | " + " | ".join(f"{j / 15:.2f} s" for j in steps) + " |",
               "|---|---|" + "---|" * len(steps)]
@@ -102,6 +105,14 @@ def main():
                 for j in steps) + " |")
         L.append("")
 
+    for r in runs[1:]:
+        sc = C.WORK / a.session / "eval" / f"scale_{r}.md"
+        if sc.exists():
+            L += [f"## Scale methods vs the tile oracle (run {r})", ""] + sc.read_text().splitlines()[2:]
+    if a.scale != "tiles":
+        L += ["Scale available on: " + ", ".join(
+            f"{r} {S['runs'][r]['scale_ok_segments'][0]}/{S['runs'][r]['scale_ok_segments'][1]} segments"
+            for r in runs[1:] if "scale_ok_segments" in S["runs"][r]) + "; translation/label rows cover only those.", ""]
     (ev / "report.md").write_text("\n".join(L))
     print("\n".join(L))
 
