@@ -25,6 +25,10 @@ SESSIONS = {
         "intrinsics": "B0587b_f3_intrinsics.json",
         "glove": "yosub",
         "tile_layout": "workspace_tiles_pilot_v3.json",
+        # SAM2 motion-mask prompts: object -> points in the glove's body frame
+        # ("ball" = body origin, "flange" = virtual flange, or [x, y, z] in metres).
+        # The hand point is the back of the hand (yosub glove), set from one frame.
+        "sam2_prompts": {"glove": ["ball", "flange"], "hand": [[-0.141, -0.0026, 0.1014]]},
     },
 }
 
