@@ -31,9 +31,11 @@ Environments: `V=/home/student/yuanliu-hawaii/.venv-headcam/bin/python` (numpy, 
 | 11 | LeRobot dataset (action = 7-D tool pose in the SLAM frame + gripper, state = gripper, label_valid) and its check | `$R -m slam.export_lerobot --session S --run E3 --repo R`; `--verify` | `<work>/lerobot/R` |
 | 12 | Training-time relative 10-D chunks (LeRobot delta_timestamps) | `slam.relative_dataset.RelativeChunkDataset`; self-check `$R -m slam.relative_dataset ...` | |
 
-With the raw-session gripper calibration log, `scripts/build_dataset.py ... --ref-poses
-<work>/<session>/segments --ref-run E3 --state-gripper-only` builds the same kind of
-dataset through Yosub's pipeline (widths from the wrist camera instead of step 9a).
+| 11b | Same through Yosub's pipeline: `build_dataset.py` fits its own width estimators (head-cam gripper markers) against a calibration log written from the verified widths | `$S -m slam.glove_width --session S --write-log`; `$R scripts/build_dataset.py --pipeline B --forward <stem> --log <work>/S/gt/glove_log_from_dataset.json --episode-marks <raw>/S_glove_episodes.json --raw-dir <raw> --det-dir <main>/calib --intrinsics calib/B0587b_f3_intrinsics.json --bundle calib/glove_yosub_dodeca_bundle.json --gripper-bundle calib/glove_yosub_gripper_bundle.json --marker-map calib/marker_map_glove_yosub.json --ref-poses <work>/S/segments --ref-run E3 --state-gripper-only --out R --out-root <dir>` | dataset |
+| 13 | Dataset check (either writer) | `$R -m slam.verify_dataset --session S --run E3 --root <dir> --repo R` | |
+
+With the session's original glove log (caliper holds) in place of the generated one,
+step 11b is exactly Yosub's glove recipe with the SLAM head chain.
 
 Key modules: `droid_masked.py` (mask-aware DROID: BA weights × valid(source) ×
 valid(matched target), masked keyframe selection), `relative.py` (relative

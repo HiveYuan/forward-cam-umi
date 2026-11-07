@@ -54,21 +54,20 @@ def main():
     ap.add_argument("--run", default="E3")
     ap.add_argument("--horizon", type=int, default=100)
     a = ap.parse_args()
-    import json
     from slam.export_lerobot import episodes
     rd = RelativeChunkDataset(a.repo, Path(a.root) / a.repo, a.horizon)
-    side = json.load(open(Path(a.root) / a.repo / "meta" / "slam_labels.json"))
-    labels = dict(episodes(a.session, a.run))
+    labels = list(episodes(a.session, a.run))          # both writers emit these, in order
     worst, n = 0.0, 0
-    for e in side["episodes"][::3]:
-        z = labels[e["source_episode"]]
-        f0 = rd.ds.meta.episodes[e["dataset_episode"]]["dataset_from_index"]
+    for d in range(0, len(labels), 3):
+        z = labels[d][1]
+        f0 = rd.ds.meta.episodes[d]["dataset_from_index"]
+        g = np.array([rd.ds.hf_dataset[f0 + i]["action"][6].item() for i in range(len(z["t"]))])
         for t in (0, len(z["t"]) // 2, len(z["t"]) - 2):
             item = rd[f0 + t]
-            ref, pad = Rl.chunk_actions(z["T_ref_tool"], z["gripper"], t, a.horizon)
+            ref, pad = Rl.chunk_actions(z["T_ref_tool"], g, t, a.horizon)
             got = item["action"].numpy()
             if not np.array_equal(item["action_is_pad"].numpy(), pad):
-                raise SystemExit(f"pad mismatch ep{e['source_episode']} t={t}")
+                raise SystemExit(f"pad mismatch ep{labels[d][0]} t={t}")
             worst = max(worst, float(np.abs(got[~pad] - ref[~pad]).max()) if (~pad).any() else 0.0)
             n += 1
     print(f"{n} samples, action {tuple(item['action'].shape)}, max |relative action - label| {worst:.2e}")
