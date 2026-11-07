@@ -11,7 +11,8 @@ head-cam-umi checkout (`HEADCAM_DATA_REPO`); outputs go to `SLAM_WORK`
 
 Environments: `V=/home/student/yuanliu-hawaii/.venv-headcam/bin/python` (numpy, cv2),
 `D=/home/student/miniconda3/envs/droid/bin/python` (DROID-SLAM),
-`S=/home/student/miniconda3/envs/sam2/bin/python` (SAM2 via transformers).
+`S=/home/student/miniconda3/envs/sam2/bin/python` (SAM2 via transformers, pandas),
+`R=/home/student/miniconda3/envs/lerobot/bin/python` (lerobot 0.4.4).
 
 | # | Step | Command | Output (`<work>/<session>/...`) |
 |---|---|---|---|
@@ -24,9 +25,15 @@ Environments: `V=/home/student/yuanliu-hawaii/.venv-headcam/bin/python` (numpy, 
 | 6 | E3 tile masks (needs E1 for occluded tiles) | `$V -m slam.tiles masks --session S` | `epNN/masks/tiles.npz` |
 | 7 | E2, E3 | `$D -m slam.run_batch --session S --run E2 --masks motion`; `--run E3 --masks motion,tiles` | `epNN/slam/E{2,3}.npz` |
 | 8 | Head-motion evaluation | `$V -m slam.evaluate --session S --runs E1,E2,E3` | `eval/{pairs.csv,summary.json,summary.md}` |
-| 9 | Labels on the 15 fps grid, end-to-end check | `$V -m slam.labels build --session S --ref tiles`; `--ref E3`; `check --ref E3` | `epNN/labels/*.npz`, `eval/labels_E3.json` |
+| 9a | Gripper widths from Yosub's built glove set (episodes matched by order/length, verified on images) | `$S -m slam.glove_width --session S` | `gt/gripper.npz` |
+| 9b | Labels on the 15 fps grid (pose + gripper), end-to-end check | `$V -m slam.labels build --session S --ref tiles`; `--ref E3`; `check --ref E3` | `epNN/labels/*.npz`, `eval/labels_E3.json` |
 | 10 | Report | `$V -m slam.report --session S` | `eval/report.md` |
-| 11 | LeRobot dataset | `scripts/build_dataset.py ... --ref-poses <work>/<session>/segments --ref-run E3 --state-gripper-only` (needs the gripper calibration log and lerobot) | dataset |
+| 11 | LeRobot dataset (action = 7-D tool pose in the SLAM frame + gripper, state = gripper, label_valid) and its check | `$R -m slam.export_lerobot --session S --run E3 --repo R`; `--verify` | `<work>/lerobot/R` |
+| 12 | Training-time relative 10-D chunks (LeRobot delta_timestamps) | `slam.relative_dataset.RelativeChunkDataset`; self-check `$R -m slam.relative_dataset ...` | |
+
+With the raw-session gripper calibration log, `scripts/build_dataset.py ... --ref-poses
+<work>/<session>/segments --ref-run E3 --state-gripper-only` builds the same kind of
+dataset through Yosub's pipeline (widths from the wrist camera instead of step 9a).
 
 Key modules: `droid_masked.py` (mask-aware DROID: BA weights × valid(source) ×
 valid(matched target), masked keyframe selection), `relative.py` (relative
@@ -38,4 +45,5 @@ end. A keyframe-threshold sweep (filter/keyframe 2.4/4.0 vs 1.2/2.0 vs 0.6/1.0)
 helped E1 (no masks) but not E2: with motion masks the 1 s rotation error was
 0.35° vs 0.33° median at twice the runtime, so the defaults are kept.
 
-Tests: `$V -m slam.tests.test_relative`, `$V -m slam.tests.test_labels`.
+Tests: `$V -m slam.tests.test_relative`, `$V -m slam.tests.test_labels`; dataset checks:
+`slam.export_lerobot --verify`, `slam.relative_dataset` self-check.

@@ -14,8 +14,10 @@ build  For each segment, the tool (virtual flange, build_dataset's IK target fra
        the run has no pose (DROID returns every frame).
        Scale (out of scope for now): --scale tiles = per-segment Umeyama fit to the tile
        head poses (oracle, for evaluation); --scale none = raw SLAM units.
-       The gripper channel needs the wrist-camera width labels, which are not built
-       here; it is stored as NaN.
+       Gripper: the wrist-camera width labels from <work>/<session>/gt/gripper.npz
+       (slam.glove_width: Yosub's built glove dataset, episodes matched and verified),
+       linearly interpolated; a step is a gripper gap when no width sample lies within
+       0.12 s, and coverage uses pose AND gripper gaps (build_dataset: min of both).
        -> <segment>/labels/<ref>.npz: t, T_ref_tool (N,4,4), gap, coverage, keep, meta
 
 check  End-to-end label error on the training timeline: the relative chunk
@@ -70,7 +72,15 @@ def tile_world_cam(S):
     return T_wc
 
 
-def build_segment(seg, ref, scale_mode, T_bt):
+def load_gripper(session):
+    p = C.gt_dir(session) / "gripper.npz"
+    if not p.exists():
+        return {}
+    z = np.load(p)
+    return {int(k[1:-2]): (z[k], z[k[:-2] + "_v"]) for k in z.files if k.endswith("_t")}
+
+
+def build_segment(seg, ref, scale_mode, T_bt, grip=None):
     S = load_segment(seg)
     ep = json.load(open(seg / "frames.json"))["episode"]
     meta = {"ref": ref, "scale_mode": scale_mode, "episode": ep["episode_index"]}
@@ -92,24 +102,32 @@ def build_segment(seg, ref, scale_mode, T_bt):
     ts = S["wall"][have]
     T_samples = T_ref_cam[have] @ S["T_cb"][have] @ T_bt
     out = {"t": np.zeros(0), "T_ref_tool": np.zeros((0, 4, 4)), "gap": np.zeros(0, bool),
-           "coverage": 0.0, "keep": False}
+           "gripper": np.zeros(0), "gripper_gap": np.zeros(0, bool), "coverage": 0.0, "keep": False}
+    gser = (grip or {}).get(ep["episode_index"])
     if len(ts) >= 2:
         t0, t1 = ep["t_start"], ep["t_end"]
         if t1 - t0 >= MIN_EPISODE:
             tq = np.arange(t0, t1, 1.0 / FPS)
             near = np.abs(tq[:, None] - ts[None]).min(1)
             gap = near > LABEL_TOL
-            cov = 1.0 - gap.mean()
+            if gser is not None:
+                gw = np.interp(tq, gser[0], gser[1])
+                ggap = np.abs(tq[:, None] - gser[0][None]).min(1) > LABEL_TOL
+            else:
+                gw, ggap = np.full(len(tq), np.nan), np.ones(len(tq), bool)
+            cov = min(1.0 - gap.mean(), 1.0 - ggap.mean()) if grip else 1.0 - gap.mean()
             out = {"t": tq, "T_ref_tool": interp_poses(tq, ts, T_samples), "gap": gap,
-                   "coverage": float(cov), "keep": bool(cov >= MIN_COVERAGE)}
+                   "gripper": gw, "gripper_gap": ggap, "coverage": float(cov),
+                   "keep": bool(cov >= MIN_COVERAGE)}
         else:
             meta["skipped"] = f"episode only {t1 - t0:.2f} s long"
     meta.update({"coverage": out["coverage"], "keep": out["keep"], "n_steps": len(out["t"]),
-                 "gripper": "NaN: wrist-camera width labels not built here"})
+                 "gripper": "gt/gripper.npz" if gser is not None else
+                 ("no width labels for this episode" if grip else "no gt/gripper.npz: pose-only coverage")})
     (seg / "labels").mkdir(exist_ok=True)
     np.savez(seg / "labels" / f"{ref}.npz", t=out["t"], T_ref_tool=out["T_ref_tool"], gap=out["gap"],
-             gripper=np.full(len(out["t"]), np.nan), coverage=out["coverage"], keep=out["keep"],
-             meta=json.dumps(meta))
+             gripper=out["gripper"], gripper_gap=out["gripper_gap"], coverage=out["coverage"],
+             keep=out["keep"], meta=json.dumps(meta))
     return meta
 
 
@@ -146,9 +164,11 @@ class RefPoses:
 
 def cmd_build(a):
     T_bt = load_tool_offset(a.session)
+    grip = load_gripper(a.session)
+    print(f"gripper widths for {len(grip)} episodes" if grip else "no gripper widths: pose-only coverage")
     kept = 0
     for seg in sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")):
-        m = build_segment(seg, a.ref, a.scale, T_bt)
+        m = build_segment(seg, a.ref, a.scale, T_bt, grip)
         kept += m["keep"]
         extra = f", scale {m['scale']:.3f}" if "scale" in m else ""
         print(f"{seg.name}: {m['n_steps']} steps, coverage {100 * m['coverage']:.0f}%, "
