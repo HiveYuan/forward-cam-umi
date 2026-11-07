@@ -14,9 +14,10 @@ build  For each segment, the tool (virtual flange, build_dataset's IK target fra
        the run has no pose (DROID returns every frame).
        Scale (out of scope for now): --scale tiles = per-segment Umeyama fit to the tile
        head poses (oracle, for evaluation); --scale none = raw SLAM units.
-       Gripper: the wrist-camera width labels from <work>/<session>/gt/gripper.npz
-       (slam.glove_width: Yosub's built glove dataset, episodes matched and verified),
-       linearly interpolated; a step is a gripper gap when no width sample lies within
+       Gripper: --gripper wrist (default) = <work>/<session>/gt/gripper_wrist.npz, the
+       session's own wrist-camera width (slam.wrist_width: tip separation, closed-jaw
+       offset, repo bench + command maps); --gripper dataset = gt/gripper.npz (widths of
+       Yosub's built glove dataset, slam.glove_width). Linearly interpolated; a step is a gripper gap when no width sample lies within
        0.12 s, and coverage uses pose AND gripper gaps (build_dataset: min of both).
        -> <segment>/labels/<ref>.npz: t, T_ref_tool (N,4,4), gap, coverage, keep, meta
 
@@ -72,8 +73,8 @@ def tile_world_cam(S):
     return T_wc
 
 
-def load_gripper(session):
-    p = C.gt_dir(session) / "gripper.npz"
+def load_gripper(session, source="wrist"):
+    p = C.gt_dir(session) / ("gripper_wrist.npz" if source == "wrist" else "gripper.npz")
     if not p.exists():
         return {}
     z = np.load(p)
@@ -122,7 +123,7 @@ def build_segment(seg, ref, scale_mode, T_bt, grip=None):
         else:
             meta["skipped"] = f"episode only {t1 - t0:.2f} s long"
     meta.update({"coverage": out["coverage"], "keep": out["keep"], "n_steps": len(out["t"]),
-                 "gripper": "gt/gripper.npz" if gser is not None else
+                 "gripper": "gt/gripper_wrist.npz or gt/gripper.npz" if gser is not None else
                  ("no width labels for this episode" if grip else "no gt/gripper.npz: pose-only coverage")})
     (seg / "labels").mkdir(exist_ok=True)
     np.savez(seg / "labels" / f"{ref}.npz", t=out["t"], T_ref_tool=out["T_ref_tool"], gap=out["gap"],
@@ -164,7 +165,7 @@ class RefPoses:
 
 def cmd_build(a):
     T_bt = load_tool_offset(a.session)
-    grip = load_gripper(a.session)
+    grip = load_gripper(a.session, a.gripper)
     print(f"gripper widths for {len(grip)} episodes" if grip else "no gripper widths: pose-only coverage")
     kept = 0
     for seg in sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")):
@@ -232,6 +233,7 @@ def main():
     ap.add_argument("--ref", required=True, help="'tiles' or a SLAM run name (E1, E2, E3)")
     ap.add_argument("--scale", default="tiles", choices=["tiles", "none"])
     ap.add_argument("--horizon", type=int, default=100)
+    ap.add_argument("--gripper", default="wrist", choices=["wrist", "dataset"])
     a = ap.parse_args()
     {"build": cmd_build, "check": cmd_check}[a.cmd](a)
 
