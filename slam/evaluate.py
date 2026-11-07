@@ -137,9 +137,12 @@ def evaluate_pairs(S, T_sc, s, T_bt, P):
     Tb = S["T_cb"][b] @ T_bt
     lab_gt = G.inv(Ta) @ rel_gt @ Tb
     lab = G.inv(Ta) @ rel_s @ Tb
-    d = G.inv(lab_gt) @ lab
     out["label_pos_err_mm"] = 1000 * np.linalg.norm(lab_gt[:, :3, 3] - lab[:, :3, 3], axis=1)
-    out["label_rot_err_deg"] = G.rot_angle_deg(d[:, :3, :3])
+    # rotation is scale-free: rotation blocks only (a failed scale fit makes rel_s NaN)
+    RaT = np.swapaxes(Ta[:, :3, :3], 1, 2)
+    Rl_gt = RaT @ rel_gt[:, :3, :3] @ Tb[:, :3, :3]
+    Rl = RaT @ rel_s[:, :3, :3] @ Tb[:, :3, :3]
+    out["label_rot_err_deg"] = G.rot_angle_deg(np.swapaxes(Rl_gt, 1, 2) @ Rl)
     return out
 
 
@@ -190,6 +193,10 @@ def main():
                     rows.append({"run": run, "segment": S["name"], "dt": dt, "k_a": int(S["k"][pa]),
                                  "k_b": int(S["k"][pb]), **{key: float(v[j]) for key, v in e.items()}})
 
+    for run in runs[1:]:
+        missing = [s for s, v in seg_info.items() if run not in v]
+        if missing:
+            print(f"WARNING: run {run} missing on {len(missing)} segments: {missing}")
     keys = list(rows[0].keys())
     with open(out / "pairs.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=keys)

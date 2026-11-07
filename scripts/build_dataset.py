@@ -253,6 +253,18 @@ def parse_args():
                    choices=["cw", "ccw", "180", "none"],
                    help="rotate emitted obs frames (portrait-mounted camera; "
                         "the mkv stores unrotated sensor frames)")
+    p.add_argument("--ref-poses", metavar="SEGMENTS_DIR", default=None,
+                   help="tile-free head chain: take each step's action pose "
+                        "from slam.labels outputs (<dir>/epNN/labels/"
+                        "<--ref-run>.npz, same 15 fps grid): the tool "
+                        "(virtual flange) pose in the episode's SLAM frame, "
+                        "converted to relative chunks at training time "
+                        "(slam/relative.py). Pipeline B pose actions only.")
+    p.add_argument("--ref-run", default="E3",
+                   help="label file name under epNN/labels/ for --ref-poses")
+    p.add_argument("--state-gripper-only", action="store_true",
+                   help="observation.state = gripper only (the absolute pose "
+                        "has no meaning across SLAM frames)")
     return p.parse_args()
 
 
@@ -335,6 +347,16 @@ def main():
     if not args.skeleton and not args.log:
         raise SystemExit("need --skeleton or --log (gripper calibration source)")
     ow, oh = (int(x) for x in args.obs_size.split("x"))
+    refp = None
+    if args.ref_poses:
+        if args.pipeline != "B" or args.joint_actions or args.cam_world:
+            raise SystemExit("--ref-poses: pipeline B pose actions only "
+                             "(no --joint-actions, no --cam-world)")
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from slam.labels import RefPoses
+        refp = RefPoses(args.ref_poses, args.ref_run)
+        print(f"== action poses from {args.ref_poses}/epNN/labels/"
+              f"{args.ref_run}.npz (tool in the episode's SLAM frame)")
 
     # ---- actuator series + episode timelines ---------------------------------
     if args.skeleton:
@@ -869,6 +891,8 @@ def main():
     else:
         adim, anames_out = 7, POSE_NAMES
         sdim, snames_out = adim, anames_out
+    if args.state_gripper_only:
+        sdim, snames_out = 1, ["gripper.pos"]
     features = {
         "action": {"dtype": "float32", "shape": (adim,), "names": anames_out},
         "observation.state": {"dtype": "float32", "shape": (sdim,),
@@ -1003,6 +1027,9 @@ def main():
         if ep in excl:
             print(f"  ep{ep}: EXCLUDED (--exclude-eps)")
             continue
+        if refp is not None and refp.episode(ep) is None:
+            print(f"  ep{ep}: SKIPPED — no kept {args.ref_run} label file")
+            continue
         # subsample the skeleton timeline to the output fps
         if ep_acts is not None:
             skel_fps = (len(twq) - 1) / max(twq[-1] - twq[0], 1e-9)
@@ -1031,7 +1058,15 @@ def main():
                 rv = rvec_from_quat(q[0])
                 g = float(np.interp(t, gt, gv))
                 vec = np.concatenate([tv[0], rv, [g]]).astype(np.float32)
+                if refp is not None:
+                    # pose from the SLAM chain; its gaps replace the
+                    # head-camera pose gaps counted above
+                    tvr, rvr, gap_r = refp.lookup(ep, t)
+                    vec = np.concatenate([tvr, rvr, [g]]).astype(np.float32)
+                    gaps_p += int(gap_r) - int(near_p > args.label_tol)
                 svec = vec
+                if args.state_gripper_only:
+                    svec = np.array([g], dtype=np.float32)
                 pose_vec, gF = vec, None
                 if quad is not None:
                     near_gF = np.abs(gtF - t).min() if len(gtF) else np.inf

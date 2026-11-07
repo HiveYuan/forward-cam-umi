@@ -7,7 +7,8 @@ build  For each segment, the tool (virtual flange, build_dataset's IK target fra
          --ref tiles   ref = the tile world:            world->tool, tile head poses with
                        build_dataset's --cam-world gates (>= 2 tiles, rms <= 5 px, bridge <= 0.5 s)
        then resampled like build_dataset (glove mode, --episode-marks): 15 fps over the
-       marked episode clipped to label coverage (skipped if < 1 s), componentwise
+       marked episode [t_start, t_end] (the take's label series spans every episode, so
+       build_dataset's clip to it is a no-op; skipped if < 1 s), componentwise
        quaternion interpolation, a step is a gap when no sample lies within 0.12 s, and
        episodes below 70% coverage are dropped. SLAM frames count as gaps only where
        the run has no pose (DROID returns every frame).
@@ -93,7 +94,7 @@ def build_segment(seg, ref, scale_mode, T_bt):
     out = {"t": np.zeros(0), "T_ref_tool": np.zeros((0, 4, 4)), "gap": np.zeros(0, bool),
            "coverage": 0.0, "keep": False}
     if len(ts) >= 2:
-        t0, t1 = max(ep["t_start"], ts[0]), min(ep["t_end"], ts[-1])
+        t0, t1 = ep["t_start"], ep["t_end"]
         if t1 - t0 >= MIN_EPISODE:
             tq = np.arange(t0, t1, 1.0 / FPS)
             near = np.abs(tq[:, None] - ts[None]).min(1)
@@ -102,7 +103,7 @@ def build_segment(seg, ref, scale_mode, T_bt):
             out = {"t": tq, "T_ref_tool": interp_poses(tq, ts, T_samples), "gap": gap,
                    "coverage": float(cov), "keep": bool(cov >= MIN_COVERAGE)}
         else:
-            meta["skipped"] = f"only {t1 - t0:.2f} s inside label coverage"
+            meta["skipped"] = f"episode only {t1 - t0:.2f} s long"
     meta.update({"coverage": out["coverage"], "keep": out["keep"], "n_steps": len(out["t"]),
                  "gripper": "NaN: wrist-camera width labels not built here"})
     (seg / "labels").mkdir(exist_ok=True)
@@ -110,6 +111,37 @@ def build_segment(seg, ref, scale_mode, T_bt):
              gripper=np.full(len(out["t"]), np.nan), coverage=out["coverage"], keep=out["keep"],
              meta=json.dumps(meta))
     return meta
+
+
+class RefPoses:
+    """Per-step tool poses from `build` outputs, for scripts/build_dataset.py --ref-poses.
+
+    lookup(episode_index, t) -> (tvec (3,), rvec (3,), is_gap) for the step whose time is
+    t on the episode's 15 fps grid, or None if the episode has no kept label file."""
+
+    def __init__(self, segments_dir, run):
+        from pathlib import Path
+        self.dir, self.run, self.cache = Path(segments_dir), run, {}
+
+    def episode(self, ep):
+        if ep not in self.cache:
+            p = self.dir / f"ep{ep:02d}" / "labels" / f"{self.run}.npz"
+            z = np.load(p) if p.exists() else None
+            self.cache[ep] = z if z is not None and bool(z["keep"]) and len(z["t"]) else None
+        return self.cache[ep]
+
+    def lookup(self, ep, t):
+        z = self.episode(ep)
+        if z is None:
+            return None
+        i = int(round((t - z["t"][0]) * FPS))
+        if not 0 <= i < len(z["t"]) or abs(z["t"][i] - t) > 0.5 / FPS:
+            return np.full(3, np.nan), np.full(3, np.nan), True
+        T = z["T_ref_tool"][i]
+        q = G.R_to_quat(T[:3, :3])[0]
+        ang = 2 * np.arctan2(np.linalg.norm(q[:3]), q[3])
+        rv = q[:3] / max(np.linalg.norm(q[:3]), 1e-12) * ang
+        return T[:3, 3].copy(), rv, bool(z["gap"][i])
 
 
 def cmd_build(a):
