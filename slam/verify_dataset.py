@@ -57,13 +57,17 @@ def main():
         wr = max(wr, float(np.abs(A - B).max()))
         if st.shape[1] != 1 or not np.allclose(st[:, 0], act[:, 6]):
             raise SystemExit(f"ep{ep}: state is not the gripper channel")
-        gerr.append(act[:, 6] - z["gripper"])
+        gerr.append((ep, act[:, 6] - z["gripper"]))
         item = ds[f0]
         img = (item[IMKEY].permute(1, 2, 0).numpy() * 255).astype(float)
         k = int(np.argmin(np.abs(ts - z["t"][0])))
         wi = max(wi, float(np.abs(img - decode_frames(video, pts, [k])[k].astype(float)).mean()))
-    g = np.concatenate(gerr)
+    g = np.concatenate([e for _, e in gerr])
     print(f"{len(labels)} episodes, {ds.num_frames} frames")
+    for name, par in (("even episodes", 0), ("odd episodes", 1)):
+        gp = np.abs(np.concatenate([e for ep, e in gerr if ep % 2 == par]))
+        print(f"gripper vs width labels, {name}: median |err| {np.median(gp):.3f}, p95 {np.percentile(gp, 95):.3f}, "
+              f"corr {np.corrcoef(np.concatenate([e + z['gripper'] for (ep, e), (_, z) in zip(gerr, labels) if ep % 2 == par]), np.concatenate([z['gripper'] for (ep, e), (_, z) in zip(gerr, labels) if ep % 2 == par]))[0, 1]:.3f}")
     print(f"max |action pose - label| {wp:.2e}; max |relative chunk - label chunk| {wr:.2e}; "
           f"worst first-image diff {wi:.2f}/255")
     print(f"gripper vs width labels: median |err| {np.median(np.abs(g)):.3f}, p95 {np.percentile(np.abs(g), 95):.3f} "

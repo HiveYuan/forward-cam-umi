@@ -31,11 +31,14 @@ Environments: `V=/home/student/yuanliu-hawaii/.venv-headcam/bin/python` (numpy, 
 | 11 | LeRobot dataset (action = 7-D tool pose in the SLAM frame + gripper, state = gripper, label_valid) and its check | `$R -m slam.export_lerobot --session S --run E3 --repo R`; `--verify` | `<work>/lerobot/R` |
 | 12 | Training-time relative 10-D chunks (LeRobot delta_timestamps) | `slam.relative_dataset.RelativeChunkDataset`; self-check `$R -m slam.relative_dataset ...` | |
 
-| 11b | Same through Yosub's pipeline: `build_dataset.py` fits its own width estimators (head-cam gripper markers) against a calibration log written from the verified widths | `$S -m slam.glove_width --session S --write-log`; `$R scripts/build_dataset.py --pipeline B --forward <stem> --log <work>/S/gt/glove_log_from_dataset.json --episode-marks <raw>/S_glove_episodes.json --raw-dir <raw> --det-dir <main>/calib --intrinsics calib/B0587b_f3_intrinsics.json --bundle calib/glove_yosub_dodeca_bundle.json --gripper-bundle calib/glove_yosub_gripper_bundle.json --marker-map calib/marker_map_glove_yosub.json --ref-poses <work>/S/segments --ref-run E3 --state-gripper-only --out R --out-root <dir>` | dataset |
+| 11a | Wrist-camera tip detections (16h5) | `cd <main checkout> && $V scripts/detect_parallel.py data/raw/S_fish.mkv --workers 20` | `<main>/calib/S_fish_tips16h5_detections.npz` |
+| 11b | Same through Yosub's pipeline, gripper from the WRIST camera: `build_dataset.py --grip-from-wrist` fits its tip estimators against a calibration log written from the verified widths of the EVEN episodes only (the unit's width-holds log is not archived), so the odd episodes are a held-out test | `$S -m slam.glove_width --session S --write-log --log-episodes even`; `$R scripts/build_dataset.py --pipeline B --forward <stem> --wrist S_fish --grip-from-wrist --wrist-intrinsics calib/fisheye_glove_yosub_intrinsics.json --log <work>/S/gt/glove_log_from_dataset_even.json --episode-marks <raw>/S_glove_episodes.json --raw-dir <raw> --det-dir <main>/calib --intrinsics calib/B0587b_f3_intrinsics.json --bundle calib/glove_yosub_dodeca_bundle.json --gripper-bundle calib/glove_yosub_gripper_bundle.json --marker-map calib/marker_map_glove_yosub.json --ref-poses <work>/S/segments --ref-run E3 --state-gripper-only --out R --out-root <dir>` | dataset |
 | 13 | Dataset check (either writer) | `$R -m slam.verify_dataset --session S --run E3 --root <dir> --repo R` | |
 
-With the session's original glove log (caliper holds) in place of the generated one,
-step 11b is exactly Yosub's glove recipe with the SLAM head chain.
+yam_glove7 (E3): held-out odd episodes, wrist-camera width vs Yosub's widths: median
+|err| 0.049, p95 0.125, corr 0.945 (command units, range 0.20-0.78); poses equal the labels.
+With the unit's width-holds log (caliper holds) in place of the generated one, step 11b is
+exactly Yosub's glove recipe with the SLAM head chain.
 
 Key modules: `droid_masked.py` (mask-aware DROID: BA weights × valid(source) ×
 valid(matched target), masked keyframe selection), `relative.py` (relative

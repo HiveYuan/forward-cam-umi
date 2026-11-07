@@ -21,8 +21,11 @@ Output <work>/<session>/gt/gripper.npz: per kept episode e: g<e>_t (wall), g<e>_
 plus meta (source dataset, offset, per-episode source index and image-check numbers).
 
   /home/student/miniconda3/envs/sam2/bin/python -m slam.glove_width --session yam_glove7
-  ... --write-log   # also/only: gt/glove_log_from_dataset.json, the verified widths as
-                    # build_dataset --log "e8_meas" events (gripper calibration source)
+  ... --write-log [--log-episodes even]
+        # gt/glove_log_from_dataset[_even].json: the verified widths as build_dataset --log
+        # "e8_meas" events. It stands in for the unit's width-holds log (not archived): a
+        # calibration source for build_dataset's width estimators. With --log-episodes even
+        # only even episodes calibrate, so odd episodes test the wrist-camera widths.
 """
 import argparse
 import glob
@@ -56,18 +59,22 @@ def raw_frame(video, pts, k, W=3840, H=2160):
     return cv2.resize(img, (640, 360), interpolation=cv2.INTER_AREA)
 
 
-def write_log(session):
+def write_log(session, which="all"):
     """gt/gripper.npz -> a build_dataset --log: one e8_meas event per width sample, in
     gripper command units (the dataset's action[6]; no "units": "mm", so no gap map)."""
     z = np.load(C.gt_dir(session) / "gripper.npz")
     ev = []
     for k in sorted(x for x in z.files if x.endswith("_t")):
+        ep = int(k[1:-2])
+        if which != "all" and ep % 2 != (0 if which == "even" else 1):
+            continue
         ev += [{"event": "e8_meas", "t_wall": float(t), "gripper_pos": float(v)}
                for t, v in zip(z[k], z[k[:-2] + "_v"])]
     ev.sort(key=lambda e: e["t_wall"])
-    dst = C.gt_dir(session) / "glove_log_from_dataset.json"
+    dst = C.gt_dir(session) / ("glove_log_from_dataset.json" if which == "all"
+                               else f"glove_log_from_dataset_{which}.json")
     json.dump({"source": "slam.glove_width (verified episode match to the built glove dataset)",
-               "units": "command", "events": ev}, open(dst, "w"))
+               "episodes": which, "units": "command", "events": ev}, open(dst, "w"))
     print(f"wrote {dst}: {len(ev)} e8_meas events")
 
 
@@ -77,9 +84,10 @@ def main():
     ap.add_argument("--dataset", default=str(DS))
     ap.add_argument("--slow", type=float, default=2.5)
     ap.add_argument("--write-log", action="store_true")
+    ap.add_argument("--log-episodes", default="all", choices=["all", "even", "odd"])
     a = ap.parse_args()
     if a.write_log and (C.gt_dir(a.session) / "gripper.npz").exists():
-        return write_log(a.session)
+        return write_log(a.session, a.log_episodes)
     s = C.session(a.session)
     stem = s["head_stem"]
     ds = Path(a.dataset)
