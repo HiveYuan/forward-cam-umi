@@ -8,6 +8,7 @@ per-segment mask/SLAM metadata; writes <work>/<session>/eval/report.md.
 """
 import argparse
 import json
+from pathlib import Path
 
 import numpy as np
 
@@ -25,9 +26,10 @@ def main():
     ap.add_argument("--session", required=True)
     ap.add_argument("--runs", default="E1,E2,E3")
     ap.add_argument("--scale", default="tiles", help="slam.scale spec the evaluation was run with")
+    ap.add_argument("--eval-dir", default=None, help="evaluate --out directory (default by --scale)")
     a = ap.parse_args()
-    ev = C.WORK / a.session / ("eval" if a.scale == "tiles" else
-                               f"eval_scale_{a.scale.replace(',', '+').replace(':', '-')}")
+    ev = Path(a.eval_dir) if a.eval_dir else C.WORK / a.session / (
+        "eval" if a.scale == "tiles" else f"eval_scale_{a.scale.replace(',', '+').replace(':', '-')}")
     from slam.labels import label_name
     S = json.load(open(ev / "summary.json"))
     runs = ["static"] + [r for r in a.runs.split(",") if r in S["runs"]]

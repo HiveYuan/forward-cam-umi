@@ -68,6 +68,7 @@ spec string wherever a scale is used (`slam.labels --scale`, `slam.evaluate --sc
 | `A` | static ball: windows where the ball centre is static in the world, p_i = R_i b_i + s c_i solved linearly; residual ≤ 5 mm, head baseline ≥ 20 mm; weighted median | ball poses, SLAM |
 | `B` / `B:<model>` | metric depth (`depth.py`: `da2-metric-indoor-large` default, `depth-pro`) corrected by the ball (face-centre depths vs network depth), against DROID keyframe depth on mask-valid cells | `$S -m slam.depth --session S --run R [--model M]` |
 | `A,B` | fallback chain: A where it succeeds, else B | both |
+| `B+Acheck` | **main method (decision 2026-11-08)**: s = B on every segment; A computed where possible and only compared, \|s_A/s_B − 1\| > 10% flags the segment (recorded, nothing changed or dropped) | both |
 
 Options of B (keyword arguments of `scale_depth_ball`): `correction=faces|disk`,
 `fit=scale|affine`, `depth_window`. Results are cached per segment in
@@ -80,7 +81,13 @@ $V -m slam.scale estimate --session S --run E3 --method A
 $V -m slam.scale eval --session S --run E3 --methods "A;B;B:depth-pro;A,B"     # vs the oracle
 $V -m slam.labels build --session S --ref E3 --scale A,B
 $V -m slam.evaluate --session S --runs E3 --scale A,B                            # eval_scale_A+B/
+$V -m slam.scale crosscheck --session S --run E3 --method B+Acheck   # eval/scale_E3_B+Acheck.md
 ```
+
+yam_glove7 E3 with `B+Acheck`: scale |err| median 5.8%, p90 21.4%, bias −5.3% (30/30
+segments, 28 with tile GT); A and B both on 9 segments, 3 flagged: ep01 (A wrong, −9.7%),
+ep12 and ep15 (B wrong, ≈ −20%). ep09 is not flagged although both are ≈ −16% (shared error).
+Labels: tool_t→tool_t+1 s 5.9 / 19.5 mm (median / p90) vs 4.0 / 14.1 mm with the oracle.
 
 yam_glove7, E3 (scale error vs the tile oracle, 28 segments with GT):
 A 9/30 segments, |err| median 5.1%, p90 11.1%; B (DA2) 30/30, 5.8% / 21.4%;

@@ -30,6 +30,11 @@ slam.labels --scale, slam.evaluate --scale, slam.report):
          small, near ball relative to the background (depth-dependent error in this white scene),
          so k and s come out ~5% low with DA2 (~17% with Depth Pro).
 
+  B+Acheck  decision of 2026-11-08: B is the method, A only cross-checks. s = B's result on
+         every segment; where A also succeeds, the relative difference s_A/s_B - 1 is recorded
+         and |diff| > threshold (10%) flags the segment. Flags are informational only: they
+         neither change s nor drop the segment.
+
 A spec may chain methods for fallback: "A,B" = A if it succeeds, else B. "B:<model>" picks the
 depth network (slam.depth MODELS; default da2-metric-indoor-large), e.g. "B:depth-pro".
 Each result is cached in <segment>/scale/<run>_<method>.json: {s, ok, method, ...diagnostics}.
@@ -236,7 +241,22 @@ def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="face
             "correction": correction, "depth_window": depth_window}
 
 
-METHODS = {"none": scale_none, "tiles": scale_tiles, "A": scale_static_ball, "B": scale_depth_ball}
+def scale_b_with_a_check(seg, run, model="da2-metric-indoor-large", threshold=0.10, **_):
+    """B is the scale; A is computed where possible and only compared with it."""
+    b = estimate(seg, run, "B" if model == DEPTH_MODELS[0] else f"B:{model}")
+    a = estimate(seg, run, "A")
+    out = {"s": float(b["s"]), "ok": bool(b.get("ok")), "s_B": float(b["s"]), "B_ok": bool(b.get("ok")),
+           "s_A": float(a["s"]) if a.get("ok") else float("nan"), "A_ok": bool(a.get("ok")),
+           "threshold": threshold, "ab_diff": None, "flagged": False, "model": model}
+    if out["A_ok"] and out["B_ok"]:
+        out["ab_diff"] = out["s_A"] / out["s_B"] - 1
+        out["flagged"] = bool(abs(out["ab_diff"]) > threshold)
+    return out
+
+
+METHODS = {"none": scale_none, "tiles": scale_tiles, "A": scale_static_ball, "B": scale_depth_ball,
+           "B+Acheck": scale_b_with_a_check}
+TAKES_MODEL = ("B", "B+Acheck")
 
 
 # ------------------------------------------------------------------ interface
@@ -247,8 +267,8 @@ def _provenance(seg, run, m, kw):
               if v.default is not inspect.Parameter.empty}
     params.update(kw)
     files = [seg / "slam" / f"{run}.npz", seg / "gt.npz"]
-    if m == "B":
-        files.append(seg / "depth" / f"{run}_{params['model']}.npz")
+    if m in TAKES_MODEL:
+        files.append(seg / "depth" / f"{run}_{params.get('model', DEPTH_MODELS[0])}.npz")
     up = {f.name: [f.stat().st_mtime_ns, f.stat().st_size] if f.exists() else None for f in files}
     return {"version": CACHE_VERSION, "params": params, "upstream": up}
 
@@ -264,8 +284,8 @@ def estimate(seg, run, method, cache=True, **cfg):
         m, _, opt = spec.partition(":")
         if m not in METHODS:
             raise KeyError(f"unknown scale method {m!r}; known {sorted(METHODS)}")
-        if opt and m != "B":
-            raise ValueError(f"{spec!r}: only B takes an option (the depth model)")
+        if opt and m not in TAKES_MODEL:
+            raise ValueError(f"{spec!r}: only {TAKES_MODEL} take an option (the depth model)")
         if opt and opt not in DEPTH_MODELS:
             raise ValueError(f"{spec!r}: unknown depth model; known {DEPTH_MODELS}")
         kw = dict(cfg)
@@ -347,16 +367,99 @@ def cmd_eval(a):
     print("\n".join(L))
 
 
+def _err_stats(errs):
+    e = np.array([x for x in errs if x is not None and np.isfinite(x)])
+    if not len(e):
+        return {"n": 0}
+    return {"n": int(len(e)), "abs_median": float(np.median(np.abs(e))),
+            "abs_p90": float(np.percentile(np.abs(e), 90)), "bias_median": float(np.median(e))}
+
+
+def cmd_crosscheck(a):
+    """Summary for a B-primary spec with A cross-check: scale error vs the oracle, the
+    cross-check flags, and label errors next to the oracle-scale labels (with and without the
+    flagged segments). Writes <work>/<session>/eval/scale_<run>_<spec>.md/.json (new files)."""
+    from slam.labels import STEPS, check_labels, label_name
+    segs = sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]"))
+    rows = []
+    for seg in segs:
+        r = estimate(seg, a.run, a.method)
+        o = estimate(seg, a.run, "tiles")
+        so = float(o["s"]) if o.get("ok") else np.nan
+        rel = (lambda s: float(s / so - 1) if np.isfinite(s) and np.isfinite(so) else None)
+        rows.append({"segment": seg.name, "oracle": so, "s": float(r["s"]), "ok": bool(r.get("ok")),
+                     "s_A": r.get("s_A"), "s_B": r.get("s_B"), "ab_diff": r.get("ab_diff"),
+                     "flagged": bool(r.get("flagged")), "threshold": r.get("threshold"),
+                     "err": rel(float(r["s"])) if r.get("ok") else None,
+                     "err_A": rel(r["s_A"]) if r.get("A_ok") else None,
+                     "err_B": rel(r["s_B"]) if r.get("B_ok") else None})
+    flagged = [r["segment"] for r in rows if r["flagged"]]
+    both = [r for r in rows if r["ab_diff"] is not None]
+    cov = sum(r["ok"] for r in rows)
+    st_all = _err_stats([r["err"] for r in rows])
+    st_kept = _err_stats([r["err"] for r in rows if not r["flagged"]])
+    name = label_name(a.run, a.method)
+    lab = check_labels(a.session, name)
+    lab_t = check_labels(a.session, a.run)                          # oracle (tiles) scale labels
+    lab_x = check_labels(a.session, name, exclude=set(flagged))
+    lab_tx = check_labels(a.session, a.run, exclude=set(flagged))
+    pct = (lambda v, f="+.1f": "-" if v is None else format(100 * v, f))
+    L = [f"# Scale {a.method} on {a.session}, run {a.run}", "",
+         "B is the scale on every segment; A (static ball) is only a cross-check: |s_A/s_B - 1| > "
+         f"{100 * next((r['threshold'] for r in rows if r['threshold'] is not None), 0.10):.0f}% flags a segment "
+         "(recorded only; s and the segment are kept).", "",
+         "## Scale error vs the tile oracle (s/s_oracle - 1)", "",
+         "| set | segments with a scale | compared (tile GT) | abs err median | abs err p90 | bias (median) |",
+         "|---|---|---|---|---|---|",
+         f"| all | {cov}/{len(rows)} | {st_all['n']} | {pct(st_all.get('abs_median'), '.1f')}% | "
+         f"{pct(st_all.get('abs_p90'), '.1f')}% | {pct(st_all.get('bias_median'))}% |",
+         f"| without flagged | {cov - len(flagged)}/{len(rows)} | {st_kept['n']} | {pct(st_kept.get('abs_median'), '.1f')}% | "
+         f"{pct(st_kept.get('abs_p90'), '.1f')}% | {pct(st_kept.get('bias_median'))}% |", "",
+         "## Cross-check A vs B", "",
+         f"Segments where both A and B give a scale: {len(both)} ({', '.join(r['segment'] for r in both)}). "
+         f"Flagged: {len(flagged)}" + (f" ({', '.join(flagged)})" if flagged else "") + ".", "",
+         "| segment | A/B - 1 | A err vs oracle | B err vs oracle | flagged | which is wrong |",
+         "|---|---|---|---|---|---|"]
+    for r in both:
+        wrong = "-"
+        if r["flagged"] and r["err_A"] is not None and r["err_B"] is not None:
+            wrong = "A" if abs(r["err_A"]) > abs(r["err_B"]) else "B"
+        L.append(f"| {r['segment']} | {pct(r['ab_diff'])}% | {pct(r['err_A'])}% | {pct(r['err_B'])}% | "
+                 f"{'yes' if r['flagged'] else ''} | {wrong} |")
+    L += ["", "## Label error: tool_t->tool_t+dt position [mm], median / p90, vs tile labels", "",
+          "| labels | anchors | " + " | ".join(f"{j / 15:.2f} s" for j in STEPS) + " |",
+          "|---|---|" + "---|" * len(STEPS)]
+
+    def lrow(title, res):
+        b = res["by_step"]
+        return (f"| {title} | {res['anchors']} | " + " | ".join(
+            f"{b[j]['pos_mm_median']:.1f} / {b[j]['pos_mm_p90']:.1f}" if j in b else "-" for j in STEPS) + " |")
+    L += [lrow(f"{a.run}, scale {a.method}", lab), lrow(f"{a.run}, tile (oracle) scale", lab_t)]
+    if flagged:
+        L += [lrow(f"{a.run}, scale {a.method}, without flagged", lab_x),
+              lrow(f"{a.run}, tile scale, without flagged", lab_tx)]
+    L += ["", "Label anchors exist only where the tile labels (>= 2 tiles, 70% coverage) also exist."]
+    ev = C.WORK / a.session / "eval"
+    ev.mkdir(parents=True, exist_ok=True)
+    tag = a.method.replace(",", "+").replace(":", "-")
+    (ev / f"scale_{a.run}_{tag}.md").write_text("\n".join(L) + "\n")
+    json.dump({"rows": rows, "flagged": flagged, "scale_all": st_all, "scale_without_flagged": st_kept,
+               "labels": lab, "labels_tiles": lab_t, "labels_without_flagged": lab_x,
+               "labels_tiles_without_flagged": lab_tx}, open(ev / f"scale_{a.run}_{tag}.json", "w"),
+              indent=1, default=float)
+    print("\n".join(L))
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["estimate", "eval"])
+    ap.add_argument("cmd", choices=["estimate", "eval", "crosscheck"])
     ap.add_argument("--session", required=True)
     ap.add_argument("--run", default="E3")
     ap.add_argument("--method", default="A")
     ap.add_argument("--methods", default="A;B;A,B", help="semicolon-separated specs")
     ap.add_argument("--overwrite", action="store_true")
     a = ap.parse_args()
-    {"estimate": cmd_estimate, "eval": cmd_eval}[a.cmd](a)
+    {"estimate": cmd_estimate, "eval": cmd_eval, "crosscheck": cmd_crosscheck}[a.cmd](a)
 
 
 if __name__ == "__main__":

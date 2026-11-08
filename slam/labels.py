@@ -182,12 +182,19 @@ def cmd_build(a):
     print(f"{label_name(a.ref, a.scale)}: {kept} episodes kept")
 
 
-def cmd_check(a):
-    H = a.horizon
+STEPS = (1, 2, 4, 8, 15, 30, 60, 100)
+
+
+def check_labels(session, name, horizon=100, exclude=()):
+    """Relative-chunk error of label file <name> vs the tile labels, per step j (dt = j/15 s),
+    over anchors where both are gap-free; segments in `exclude` (e.g. "ep12") are skipped."""
+    H = horizon
     errs = {j: [] for j in range(1, H + 1)}
     n_anchor = 0
-    for seg in sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")):
-        p, g = seg / "labels" / f"{label_name(a.ref, a.scale)}.npz", seg / "labels" / "tiles.npz"
+    for seg in sorted(C.segments_dir(session).glob("ep[0-9][0-9]")):
+        if seg.name in exclude:
+            continue
+        p, g = seg / "labels" / f"{name}.npz", seg / "labels" / "tiles.npz"
         if not (p.exists() and g.exists()):
             continue
         A, B = np.load(p), np.load(g)
@@ -212,8 +219,8 @@ def cmd_check(a):
                 d = G.inv(rb[j - 1][None])[0] @ ra[j - 1]
                 errs[j].append((1000 * np.linalg.norm(ra[j - 1][:3, 3] - rb[j - 1][:3, 3]),
                                 G.rot_angle_deg(d[:3, :3][None])[0]))
-    res = {"ref": a.ref, "anchors": n_anchor, "by_step": {}}
-    for j in (1, 2, 4, 8, 15, 30, 60, 100):
+    res = {"ref": name, "anchors": n_anchor, "excluded": sorted(exclude), "by_step": {}}
+    for j in STEPS:
         if j > H or not errs[j]:
             continue
         e = np.array(errs[j])
@@ -221,12 +228,16 @@ def cmd_check(a):
                              "pos_mm_p90": float(np.percentile(e[:, 0], 90)),
                              "rot_deg_median": float(np.median(e[:, 1])),
                              "rot_deg_p90": float(np.percentile(e[:, 1], 90))}
+    return res
+
+
+def cmd_check(a):
+    name = label_name(a.ref, a.scale)
+    res = check_labels(a.session, name, a.horizon)
     dst = C.WORK / a.session / "eval"
     dst.mkdir(parents=True, exist_ok=True)
-    name = label_name(a.ref, a.scale)
-    res["ref"] = name
     json.dump(res, open(dst / f"labels_{name}.json", "w"), indent=1)
-    print(f"{name} vs tiles, {n_anchor} anchors")
+    print(f"{name} vs tiles, {res['anchors']} anchors")
     print("dt[s]   n     pos mm (med/p90)   rot deg (med/p90)")
     for j, r in res["by_step"].items():
         print(f"{r['dt_s']:5.2f} {r['n']:6d}   {r['pos_mm_median']:6.1f} / {r['pos_mm_p90']:6.1f}"

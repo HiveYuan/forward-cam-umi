@@ -113,6 +113,25 @@ def test_options_params_and_invalidation():
     _with_stubs(body)
 
 
+def test_b_primary_with_a_check():
+    """B+Acheck: s is always B's; A only sets ab_diff/flagged, never s or ok."""
+    import tempfile
+    saved = dict(SC.METHODS)
+    try:
+        for sa, a_ok, expect_flag in ((0.80, True, True), (0.72, True, False), (0.5, False, False)):
+            SC.METHODS.update({"A": lambda seg, run, sa=sa, a_ok=a_ok, **_: {"s": sa if a_ok else float("nan"), "ok": a_ok},
+                               "B": lambda seg, run, **_: {"s": 0.70, "ok": True}})
+            with tempfile.TemporaryDirectory() as tmp:
+                seg = _stub_segment(tmp)
+                (seg / "depth").mkdir()
+                r = SC.estimate(seg, "R", "B+Acheck")
+                assert r["ok"] and r["s"] == 0.70 and r["flagged"] == expect_flag
+                assert (r["ab_diff"] is None) == (not a_ok)
+    finally:
+        SC.METHODS.clear()
+        SC.METHODS.update(saved)
+
+
 if __name__ == "__main__":
     for name, f in list(globals().items()):
         if name.startswith("test_"):
