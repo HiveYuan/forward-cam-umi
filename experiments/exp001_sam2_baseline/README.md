@@ -17,3 +17,15 @@ E1 (no masks) is also evaluated.
 ```
 $V -m slam.run experiments/exp001_sam2_baseline/config.yaml --repro slam.E3
 ```
+
+**Result (2026-11-08, commit a862b33, 103 min).**
+- Every exp000 number is reproduced exactly. SAM2 masks, E1/E3 trajectories and tile masks are
+  bit-identical to the legacy files.
+- E3 recomputed (`repro1`) is bit-identical too, so the reproducibility tolerance is 0 (see
+  experiments/README.md).
+- New chunk-length label error (mean over steps 1..H, position mm / rotation deg), E3:
+
+| scale | H=15 | H=30 | H=50 | H=100 |
+|---|---|---|---|---|
+| oracle (tiles) | 4.9 / 0.59 | 6.8 / 0.81 | 8.2 / 0.97 | 9.5 / 1.12 |
+| B+Acheck | 5.7 / 0.59 | 8.3 / 0.81 | 10.2 / 0.97 | 11.9 / 1.12 |

@@ -64,10 +64,23 @@ cache, while any change to code, parameters, data or environment gets a new key.
 (atomic rename), so an interrupted run resumes where it stopped. Analysis (scale, labels,
 evaluation) is small and recomputed per experiment in `<work>/runs/<exp>/<variant>/`.
 
-**Reproducibility tolerance.** DROID-SLAM's CUDA kernels are not bitwise deterministic. With
-`--repro slam.E3` the same configuration is recomputed under a cache tag and compared with the
-first run (`results/repro.md`). Measured tolerance (exp001, yam_glove7 E3, 30 segments):
-see "Reproducibility" below (filled in from exp001).
+**Reproducibility tolerance.** `--repro slam.E3` recomputes a node under a cache tag, reruns
+everything downstream, and compares with the first run (`results/repro.md`). Measured in
+exp001 (yam_glove7, 30 segments, RTX 3090, driver 580, DROID torch 2.5.1+cu124):
+
+- **Tolerance: 0, i.e. bitwise identical.** E3 recomputed: all arrays of `traj.npz` match on
+  30/30 segments (poses, keyframe poses, inverse depth, keyframe indices). So do every metric
+  downstream (scale, labels, evaluation).
+- The trajectories are also bit-identical to the 2026-11-06 legacy runs: E1 and E3 30/30, and
+  the SAM2 masks 30/30 segments (8972 frames).
+- So, despite the expectation, DROID's CUDA path is deterministic on this setup
+  (`torch.manual_seed(0)`, one GPU).
+- Not covered: other GPUs, drivers or CUDA/torch builds may differ. Re-measure with `--repro`
+  when any of them changes; the package versions are in the cache key anyway.
+- exp001's `repro.md` shows a "rotation difference" max of 0.017 deg with all deltas 0. That is
+  the numerical floor of the arccos angle formula used then (a trajectory compared with itself
+  reads 0.019 deg), not a difference. The report now uses an atan2 formula and states
+  bit-identity explicitly (from exp002 on).
 
 ## Experiments
 
