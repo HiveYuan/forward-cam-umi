@@ -7,7 +7,9 @@ interchangeable methods in `scale.py` (see "Scale" below); `tiles` is the oracle
 **Experiments (since 2026-11-08):** run everything through the experiment framework,
 `python -m slam.run experiments/<exp>/config.yaml` (see `experiments/README.md` and
 `slam/pipeline/`). It calls the modules below; their CLIs still work for ad-hoc use.
-SLAM backends implement `slam/backends/base.py` (DROID now, AMB3R next). New in the modules:
+SLAM backends implement `slam/backends/base.py` (DROID now, AMB3R next). Decisions 2026-11-09: the motion masks are frozen at
+`sam3_v2` (exp006's parameters) and the scale primary is `Bsession` with the A check (exp005); see
+`experiments/README.md`, "Current defaults". New in the modules:
 scale method `native` and the generic `cross_check` (`scale.py`), chunk-length label
 metrics (`labels.py`), `evaluate_session` (`evaluate.py`), `tiles.noise_floor` /
 `segment_tile_masks`. `run_droid.py` now writes the backend's `traj.npz` format: it adds
@@ -78,7 +80,8 @@ spec string wherever a scale is used (`slam.labels --scale`, `slam.evaluate --sc
 | `A` | static ball: windows where the ball centre is static in the world, p_i = R_i b_i + s c_i solved linearly; residual ≤ 5 mm, head baseline ≥ 20 mm; weighted median | ball poses, SLAM |
 | `B` / `B:<model>` | metric depth (`depth.py`: `da2-metric-indoor-large` default, `depth-pro`) corrected by the ball (face-centre depths vs network depth), against DROID keyframe depth on mask-valid cells | `$S -m slam.depth --session S --run R [--model M]` |
 | `A,B` | fallback chain: A where it succeeds, else B | both |
-| `B+Acheck` | **main method (decision 2026-11-08)**: s = B on every segment; A computed where possible and only compared, \|s_A/s_B − 1\| > 10% flags the segment (recorded, nothing changed or dropped) | both |
+| `B+Acheck` | main method 2026-11-08 to 2026-11-09: s = B on every segment; A computed where possible and only compared, \|s_A/s_B − 1\| > 10% flags the segment (recorded, nothing changed or dropped) | both |
+| `Bsession` (framework only) | **main method (decision 2026-11-09)**, with the A check: B with one ball correction k pooled over the session (median of the per-segment k) instead of each segment's own k (exp005) | both, all segments of the session |
 
 Options of B (keyword arguments of `scale_depth_ball`): `correction=faces|disk`,
 `fit=scale|affine`, `depth_window`. Results are cached per segment in

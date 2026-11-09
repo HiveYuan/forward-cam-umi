@@ -84,6 +84,17 @@ exp001 (yam_glove7, 30 segments, RTX 3090, driver 580, DROID torch 2.5.1+cu124):
   reads 0.019 deg), not a difference. The report now uses an atan2 formula and states
   bit-identity explicitly (from exp002 on).
 
+## Current defaults (decisions)
+
+New experiments start from these unless they test an alternative to them:
+
+| what | default | since | evidence |
+|---|---|---|---|
+| motion masks | `sam3_v2` with exp006's parameters, frozen (a change needs a new impl name or version and its own comparison) | 2026-11-09 | exp006 audit: moving regions 54/80 vs SAM2 40, static 10/74 vs v1 73, held block 0.98-0.99 |
+| tile masks (E3) | `tile_geometry`, `slam_fallback: E1` | exp000 (legacy) | exp001 reproduces it bitwise |
+| scale | primary `Bsession` (pool `segments`, correction `faces`), check `A` at 10% | 2026-11-09 | exp005: \|err\| p90 17.7% vs 20.1% for B, labels at 1 s 4.8 vs 5.7 mm median |
+| SLAM | `droid`, demo parameters, native 960x536, per-episode segments | exp000 (legacy) | exp001; a shared map over the take is being tested next |
+
 ## Experiments
 
 | exp | what |
