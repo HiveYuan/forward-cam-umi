@@ -26,6 +26,8 @@ check  End-to-end label error on the training timeline: the relative chunk
        tool_t->tool_t+j from a SLAM label file vs from the tile label file, for every
        anchor t where both are gap-free, j = 1..100 (6.7 s at 15 fps).
        -> <work>/<session>/eval/labels_<ref>.json
+       chunk_labels(): the same errors averaged over each anchor's chunk j = 1..H (used by
+       the experiment framework, slam.pipeline.impl_analysis).
 
   python -m slam.labels build --session yam_glove7 --ref tiles
   python -m slam.labels build --session yam_glove7 --ref E3
@@ -86,7 +88,9 @@ def label_name(ref, scale_mode):
     return ref if ref == "tiles" or scale_mode == "tiles" else f"{ref}@{scale_mode}"
 
 
-def build_segment(seg, ref, scale_mode, T_bt, grip=None):
+def build_segment(seg, ref, scale_mode, T_bt, grip=None, scale=None):
+    """scale: None = slam.scale.estimate(seg, ref, scale_mode); or (s, method label) computed
+    elsewhere (s None/NaN = no scale for this segment). The file is named after scale_mode."""
     S = load_segment(seg)
     ep = json.load(open(seg / "frames.json"))["episode"]
     meta = {"ref": ref, "scale_mode": scale_mode, "episode": ep["episode_index"]}
@@ -95,10 +99,14 @@ def build_segment(seg, ref, scale_mode, T_bt, grip=None):
     else:
         z = np.load(seg / "slam" / f"{ref}.npz")
         T_ref_cam = z["T_slam_cam"].astype(float).copy()
-        from slam.scale import estimate
-        r = estimate(seg, ref, scale_mode)
-        s = float(r["s"]) if r.get("ok") else float("nan")
-        meta["scale_method_used"] = r.get("method")
+        if scale is None:
+            from slam.scale import estimate
+            r = estimate(seg, ref, scale_mode)
+            s = float(r["s"]) if r.get("ok") else float("nan")
+            meta["scale_method_used"] = r.get("method")
+        else:
+            s = float("nan") if scale[0] is None else float(scale[0])
+            meta["scale_method_used"] = scale[1]
         meta["scale"] = s
         if not np.isfinite(s):
             T_ref_cam[:] = np.nan
@@ -185,12 +193,12 @@ def cmd_build(a):
 STEPS = (1, 2, 4, 8, 15, 30, 60, 100)
 
 
-def check_labels(session, name, horizon=100, exclude=()):
-    """Relative-chunk error of label file <name> vs the tile labels, per step j (dt = j/15 s),
-    over anchors where both are gap-free; segments in `exclude` (e.g. "ep12") are skipped."""
+def anchor_errors(session, name, horizon=100, exclude=()):
+    """The anchors of check_labels: yields (segment, anchor index, [(j, pos_mm, rot_deg), ...])
+    for every anchor t where label file <name> and the tile labels are both gap-free, with the
+    error of the relative chunk tool_t->tool_t+j (vs the tile labels) at every step j = 1..horizon
+    that check_labels counts (not padded past the end, gap-free at t+j)."""
     H = horizon
-    errs = {j: [] for j in range(1, H + 1)}
-    n_anchor = 0
     for seg in sorted(C.segments_dir(session).glob("ep[0-9][0-9]")):
         if seg.name in exclude:
             continue
@@ -212,15 +220,28 @@ def check_labels(session, name, horizon=100, exclude=()):
         for t in np.where(ok)[0]:
             ra, pad = Rl.relative_chunk(TA, t, H)
             rb, _ = Rl.relative_chunk(TB, t, H)
-            n_anchor += 1
+            e = []
             for j in range(1, H + 1):
                 if pad[j - 1] or not ok[min(t + j, len(ok) - 1)]:
                     continue
                 d = G.inv(rb[j - 1][None])[0] @ ra[j - 1]
-                errs[j].append((1000 * np.linalg.norm(ra[j - 1][:3, 3] - rb[j - 1][:3, 3]),
-                                G.rot_angle_deg(d[:3, :3][None])[0]))
+                e.append((j, 1000 * np.linalg.norm(ra[j - 1][:3, 3] - rb[j - 1][:3, 3]),
+                          G.rot_angle_deg(d[:3, :3][None])[0]))
+            yield seg.name, int(t), e
+
+
+def step_stats(anchors, name, horizon=100, exclude=(), steps=STEPS):
+    """check_labels' summary of anchor_errors() output: per step j in `steps`, error statistics
+    over the anchors that count step j."""
+    H = horizon
+    errs = {j: [] for j in range(1, H + 1)}
+    n_anchor = 0
+    for _, _, e in anchors:
+        n_anchor += 1
+        for j, pos, rot in e:
+            errs[j].append((pos, rot))
     res = {"ref": name, "anchors": n_anchor, "excluded": sorted(exclude), "by_step": {}}
-    for j in STEPS:
+    for j in steps:
         if j > H or not errs[j]:
             continue
         e = np.array(errs[j])
@@ -229,6 +250,47 @@ def check_labels(session, name, horizon=100, exclude=()):
                              "rot_deg_median": float(np.median(e[:, 1])),
                              "rot_deg_p90": float(np.percentile(e[:, 1], 90))}
     return res
+
+
+def check_labels(session, name, horizon=100, exclude=(), steps=STEPS):
+    """Relative-chunk error of label file <name> vs the tile labels, per step j (dt = j/15 s),
+    over anchors where both are gap-free; segments in `exclude` (e.g. "ep12") are skipped."""
+    return step_stats(anchor_errors(session, name, horizon, exclude), name, horizon, exclude, steps)
+
+
+CHUNK_KEYS = ("anchors", "pos_mm_mean", "pos_mm_median", "pos_mm_p90", "rot_deg_mean", "rot_deg_median",
+              "rot_deg_p90", "pooled_pos_mm_mean", "pooled_rot_deg_mean")
+
+
+def chunk_stats(anchors, chunk_H):
+    """Chunk-length label error from anchor_errors() output (computed with horizon >= max(chunk_H)):
+    for each H, per anchor the mean error over its counted steps j = 1..H (anchors with no
+    counted step are left out), then mean / median / p90 over anchors; pooled = mean over all
+    (anchor, j) pairs. -> {str(H): {CHUNK_KEYS}}."""
+    anchors = [e for _, _, e in anchors]
+    out = {}
+    for H in chunk_H:
+        per, pooled = [], []
+        for e in anchors:
+            a = np.array([(pos, rot) for j, pos, rot in e if j <= H]).reshape(-1, 2)
+            if len(a):
+                per.append(a.mean(0))
+                pooled.append(a)
+        r = dict.fromkeys(CHUNK_KEYS)
+        r["anchors"] = len(per)
+        if per:
+            per, pooled = np.array(per), np.concatenate(pooled)
+            for c, q in ((0, "pos_mm"), (1, "rot_deg")):
+                r.update({f"{q}_mean": float(per[:, c].mean()), f"{q}_median": float(np.median(per[:, c])),
+                          f"{q}_p90": float(np.percentile(per[:, c], 90)),
+                          f"pooled_{q}_mean": float(pooled[:, c].mean())})
+        out[str(H)] = r
+    return out
+
+
+def chunk_labels(session, name, chunk_H, exclude=()):
+    """chunk_stats() of label file <name> vs the tile labels."""
+    return chunk_stats(anchor_errors(session, name, max(chunk_H), exclude), chunk_H)
 
 
 def cmd_check(a):

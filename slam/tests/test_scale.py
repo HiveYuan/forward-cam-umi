@@ -132,6 +132,94 @@ def test_b_primary_with_a_check():
         SC.METHODS.update(saved)
 
 
+# ---------------------------------------------------------------- cross_check, native, framework kwargs
+def _same(a, b):
+    return (np.isnan(a) and np.isnan(b)) or a == b
+
+
+def test_cross_check_flags_never_change_s():
+    ok = lambda s: {"s": s, "ok": True}                                   # noqa: E731
+    bad = {"s": float("nan"), "ok": False, "error": "x"}
+    cases = [  # primary, checks, threshold, expected flagged_by, expected diffs
+        (ok(0.70), {"A": ok(0.80)}, 0.10, ["A"], {"A": 0.80 / 0.70 - 1}),
+        (ok(0.70), {"A": ok(0.72)}, 0.10, [], {"A": 0.72 / 0.70 - 1}),
+        (ok(0.70), {"A": ok(0.60)}, 0.10, ["A"], {"A": 0.60 / 0.70 - 1}),    # negative diff
+        (bad, {"A": ok(0.80)}, 0.10, [], {"A": None}),                       # failing primary
+        (ok(0.70), {"A": bad}, 0.10, [], {"A": None}),                       # failing check
+        (ok(0.70), {"A": ok(0.90), "C": ok(0.71)}, 0.10, ["A"], {"A": 0.90 / 0.70 - 1, "C": 0.71 / 0.70 - 1}),
+        (ok(0.70), {"A": ok(0.50), "C": ok(0.95)}, 0.10, ["A", "C"], {"A": 0.50 / 0.70 - 1, "C": 0.95 / 0.70 - 1}),
+        (ok(0.70), {"A": ok(0.90)}, None, [], {"A": 0.90 / 0.70 - 1}),       # no threshold: record only
+        (ok(0.70), {}, 0.10, [], {}),                                        # no checks
+    ]
+    for primary, checks, thr, flagged_by, diffs in cases:
+        r = SC.cross_check(primary, checks, thr)
+        assert _same(r["s"], primary["s"]) and r["ok"] == primary["ok"], (primary, checks, r)
+        assert r["flagged_by"] == flagged_by and r["flagged"] == bool(flagged_by), (checks, r)
+        assert set(r["checks"]) == set(checks)
+        for name, d in diffs.items():
+            c = r["checks"][name]
+            assert c["ok"] == checks[name]["ok"] and _same(c["s"], checks[name]["s"])
+            assert (c["diff"] is None) if d is None else abs(c["diff"] - d) < 1e-15, (name, c, d)
+
+
+def test_b_with_a_check_keys_and_values():
+    """B+Acheck keeps its legacy output keys; its values follow cross_check."""
+    import tempfile
+    saved = dict(SC.METHODS)
+    try:
+        SC.METHODS.update({"A": lambda seg, run, **_: {"s": 0.80, "ok": True},
+                           "B": lambda seg, run, **_: {"s": 0.70, "ok": True}})
+        with tempfile.TemporaryDirectory() as tmp:
+            seg = _stub_segment(tmp)
+            r = SC.estimate(seg, "R", "B+Acheck", cache=False)
+        assert set(r) == {"s", "ok", "s_B", "B_ok", "s_A", "A_ok", "threshold", "ab_diff", "flagged", "model", "method", "provenance"}
+        assert r["s"] == r["s_B"] == 0.70 and r["s_A"] == 0.80 and r["ab_diff"] == 0.80 / 0.70 - 1 and r["flagged"]
+    finally:
+        SC.METHODS.clear()
+        SC.METHODS.update(saved)
+
+
+def test_native():
+    import tempfile
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as tmp:
+        for name, extra, expect in (("M", {"metric": np.array(True)}, True),
+                                    ("U", {"metric": np.array(False)}, False),
+                                    ("L", {}, False)):                 # legacy traj.npz: no 'metric' key
+            seg = Path(tmp) / name
+            (seg / "slam").mkdir(parents=True)
+            np.savez(seg / "slam" / "R.npz", k=np.arange(3), T_slam_cam=np.tile(np.eye(4), (3, 1, 1)), **extra)
+            (seg / "gt.npz").write_bytes(b"x")
+            r = SC.estimate(seg, "R", "native")
+            assert r["ok"] == expect and r["method"] == "native"
+            assert r["s"] == 1.0 if expect else (np.isnan(r["s"]) and "error" in r)
+            assert (seg / "scale" / "R_native.json").exists() == expect      # failures are not cached
+
+
+def test_registry_composites_and_framework_kwargs():
+    from slam.pipeline import spec as SP
+    assert "native" in SC.METHODS and SC.COMPOSITE_METHODS == ("B+Acheck",)
+    d = SP.scale_method_defaults()
+    assert "B+Acheck" not in d and d["native"] == {} and d["none"] == {}
+    assert d["B"]["depth"] == "" and not {"model", "mask_names", "mask_dilate_px"} & set(d["B"])
+    import inspect
+    p = inspect.signature(SC.scale_depth_ball).parameters
+    assert p["mask_names"].default is None and p["mask_dilate_px"].default == 8
+
+
+def test_provenance_of_mask_kwargs():
+    """mask_names/mask_dilate_px at their defaults leave the provenance as before they existed
+    (old caches stay valid); other values are recorded (and invalidate)."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        seg = _stub_segment(tmp)
+        p0 = SC._provenance(seg, "R", "B", {})["params"]
+        assert "mask_names" not in p0 and "mask_dilate_px" not in p0 and p0["min_cells"] == 200
+        assert SC._provenance(seg, "R", "B", {"mask_names": None, "mask_dilate_px": 8})["params"] == p0
+        p1 = SC._provenance(seg, "R", "B", {"mask_names": ["motion"], "mask_dilate_px": 4})["params"]
+        assert p1["mask_names"] == ["motion"] and p1["mask_dilate_px"] == 4
+
+
 if __name__ == "__main__":
     for name, f in list(globals().items()):
         if name.startswith("test_"):

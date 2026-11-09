@@ -56,7 +56,12 @@ def layout_tiles(session):
 
 
 # ---------------------------------------------------------------- detect
-def detect_segment(session, seg, pts, ts):
+def detect_segment(session, seg, pts, ts, detect_scale=0.5, subpix_win=5, out=None):
+    """Detect on the segment's raw frames (frames.json in `seg`): detection on the frame
+    resized by detect_scale, cornerSubPix (subpix_win x subpix_win) at full resolution.
+    Writes `out` (default seg/tiles.npz)."""
+    seg = Path(seg)
+    out = seg / "tiles.npz" if out is None else Path(out)
     s = C.session(session)
     fr = json.load(open(seg / "frames.json"))["frames"]
     k0, k1 = fr[0]["k"], fr[-1]["k"]
@@ -79,18 +84,19 @@ def detect_segment(session, seg, pts, ts):
         if len(buf) < W * H:
             break
         g = np.frombuffer(buf, np.uint8).reshape(H, W)
-        cs, ids, _ = det.detectMarkers(cv2.resize(g, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA))
+        cs, ids, _ = det.detectMarkers(cv2.resize(g, None, fx=detect_scale, fy=detect_scale,
+                                                  interpolation=cv2.INTER_AREA))
         if ids is not None:
             for i, c in zip(ids.ravel(), cs):
                 if int(i) in ids_ok:
-                    c2 = (c.reshape(4, 2) * 2).astype(np.float32)
+                    c2 = (c.reshape(4, 2) / detect_scale).astype(np.float32)
                     K.append(k0 + n)
                     I.append(int(i))
-                    Cs.append(cv2.cornerSubPix(g, c2, (5, 5), (-1, -1), crit))
+                    Cs.append(cv2.cornerSubPix(g, c2, (subpix_win, subpix_win), (-1, -1), crit))
         n += 1
     if proc.wait() != 0 or n != n_want:
         raise RuntimeError(f"{seg.name}: decoded {n}/{n_want} frames")
-    np.savez(seg / "tiles.npz", det_k=np.array(K, int), det_id=np.array(I, int),
+    np.savez(out, det_k=np.array(K, int), det_id=np.array(I, int),
              det_corners=np.array(Cs, float).reshape(-1, 4, 2))
     return f"{seg.name}: {len(K)} tile detections in {n} frames"
 
@@ -122,11 +128,13 @@ def solve_tiles(corners_by_id, Tt, edge, K, D):
     return G.rt_to_T(rv.ravel(), tv.ravel())[0]
 
 
-def cmd_noise(a):
-    s = C.session(a.session)
+def noise_floor(session, seg_dirs):
+    """GT noise floor over the given segment directories (each with tiles.npz and
+    frames.json); returns the dict `slam.tiles noise` writes to gt_noise.json."""
+    s = C.session(session)
     intr = json.load(open(C.CALIB / s["intrinsics"]))
     K, D = np.array(intr["camera_matrix"]), np.array(intr["dist_coeffs"]).ravel()
-    Tt, edge, _, _ = layout_tiles(a.session)
+    Tt, edge, _, _ = layout_tiles(session)
     tile_ids = sorted(Tt)
     splits = [((tile_ids[0], tile_ids[1]), (tile_ids[2], tile_ids[3])),
               ((tile_ids[0], tile_ids[2]), (tile_ids[1], tile_ids[3])),
@@ -134,7 +142,7 @@ def cmd_noise(a):
     res = {str(dt): [] for dt in DTS_NOISE}
     per_frame = []
     n_frames = 0
-    for seg in sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")):
+    for seg in map(Path, seg_dirs):
         z = np.load(seg / "tiles.npz")
         fr = json.load(open(seg / "frames.json"))["frames"]
         wall = {f["k"]: f["wall"] for f in fr}
@@ -176,6 +184,11 @@ def cmd_noise(a):
         out["by_dt"][dt] = {"n": len(v)} if not len(v) else {
             "n": len(v), "rot_deg_median": float(np.median(v[:, 0])), "rot_deg_p95": float(np.percentile(v[:, 0], 95)),
             "trans_mm_median": float(np.median(v[:, 1])), "trans_mm_p95": float(np.percentile(v[:, 1], 95))}
+    return out
+
+
+def cmd_noise(a):
+    out = noise_floor(a.session, sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")))
     dst = C.WORK / a.session / "eval"
     dst.mkdir(parents=True, exist_ok=True)
     json.dump(out, open(dst / "gt_noise.json", "w"), indent=1)
@@ -211,8 +224,12 @@ def slam_world_poses(seg, run, gt):
     z = np.load(p)
     k_all, T_sc = z["k"], z["T_slam_cam"].astype(float)
     idx = {int(k): i for i, k in enumerate(k_all)}
-    sel = [idx[int(k)] for k in gt["cam_k"]]
-    T_wc = G.inv(gt["T_cam_world"])
+    sel = np.array([idx[int(k)] for k in gt["cam_k"]], int)
+    ok = np.isfinite(T_sc[sel]).all((1, 2))            # NaN = frame not tracked by the run
+    if ok.sum() < 3:
+        return None
+    sel = sel[ok]
+    T_wc = G.inv(gt["T_cam_world"][ok])
     U, _, Vt = np.linalg.svd((T_wc[:, :3, :3] @ np.swapaxes(T_sc[sel, :3, :3], 1, 2)).sum(0))
     R = U @ np.diag([1, 1, np.linalg.det(U @ Vt)]) @ Vt
     cs = (R @ T_sc[sel, :3, 3].T).T
@@ -225,61 +242,73 @@ def slam_world_poses(seg, run, gt):
     return {int(k): Ti for k, Ti in zip(k_all, G.inv(T))}
 
 
+def segment_tile_masks(seg, session, margin_mm=10.0, max_gap_s=0.5, grow_mm_per_s=100.0,
+                       slam_fallback="E1", slam_margin_mm=25.0):
+    """Tile masks of one segment directory (frames.json, gt.npz, tiles.npz, and
+    slam/<slam_fallback>.npz if a fallback run is given; falsy = off).
+    Returns (masked (T, H, W) bool, True = masked; meta dict)."""
+    seg = Path(seg)
+    Tt, edge, tile_m, _ = layout_tiles(session)
+    fj = json.load(open(seg / "frames.json"))
+    fr = fj["frames"]
+    W, H = fj["size"]
+    gt = np.load(seg / "gt.npz")
+    z = np.load(seg / "tiles.npz")
+    wall = np.array([f["wall"] for f in fr])
+    pose_w = {int(k): (T, wall[int(k) - fr[0]["k"]]) for k, T in zip(gt["cam_k"], gt["T_cam_world"])}
+    pk = np.array(sorted(pose_w))
+    pwall = np.array([pose_w[k][1] for k in pk])
+    masked = np.zeros((len(fr), H, W), bool)
+    slam_cw = slam_world_poses(seg, slam_fallback, gt) if slam_fallback else None
+    n_pose = n_near = n_slam = n_none = 0
+    for i, f in enumerate(fr):
+        m = np.zeros((H, W), np.uint8)
+        src = None
+        if f["k"] in pose_w:
+            src, gap = pose_w[f["k"]][0], 0.0
+            n_pose += 1
+        elif len(pk):
+            j = int(np.argmin(np.abs(pwall - f["wall"])))
+            gap = abs(pwall[j] - f["wall"])
+            if gap <= max_gap_s:
+                src = pose_w[int(pk[j])][0]
+                n_near += 1
+        if src is None and slam_cw is not None and np.isfinite(slam_cw[f["k"]]).all():
+            src, gap = slam_cw[f["k"]], slam_margin_mm / grow_mm_per_s
+            n_slam += 1
+        if src is None:
+            n_none += 1
+        else:
+            half = tile_m / 2 + margin_mm / 1000.0 + grow_mm_per_s / 1000.0 * gap
+            sq = np.array([[-half, half, 0], [half, half, 0], [half, -half, 0], [-half, -half, 0]])
+            for tid, T in Tt.items():
+                uv = project_output((T[:3, :3] @ sq.T).T + T[:3, 3], np.asarray(src), fj)
+                if uv is not None:
+                    cv2.fillConvexPoly(m, np.round(uv * 16).astype(np.int32), 1, cv2.LINE_8, 4)
+        sel = z["det_k"] == f["k"]
+        scale = (tile_m + 2 * margin_mm / 1000.0) / edge
+        for c in z["det_corners"][sel]:
+            uv = to_output_px(c, fj)
+            ctr = uv.mean(0)
+            uv = ctr + (uv - ctr) * scale
+            cv2.fillConvexPoly(m, np.round(uv * 16).astype(np.int32), 1, cv2.LINE_8, 4)
+        masked[i] = m > 0
+    meta = {"margin_mm": margin_mm, "max_gap_s": max_gap_s, "grow_mm_per_s": grow_mm_per_s,
+            "slam_fallback": slam_fallback, "slam_margin_mm": slam_margin_mm, "frames_pose": n_pose,
+            "frames_near_pose": n_near, "frames_slam": n_slam, "frames_no_pose": n_none}
+    return masked, meta
+
+
 def cmd_masks(a):
-    Tt, edge, tile_m, _ = layout_tiles(a.session)
     for seg in sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")):
-        fj = json.load(open(seg / "frames.json"))
-        fr = fj["frames"]
-        W, H = fj["size"]
-        gt = np.load(seg / "gt.npz")
-        z = np.load(seg / "tiles.npz")
-        wall = np.array([f["wall"] for f in fr])
-        pose_w = {int(k): (T, wall[int(k) - fr[0]["k"]]) for k, T in zip(gt["cam_k"], gt["T_cam_world"])}
-        pk = np.array(sorted(pose_w))
-        pwall = np.array([pose_w[k][1] for k in pk])
-        masked = np.zeros((len(fr), H, W), bool)
-        slam_cw = slam_world_poses(seg, a.slam_fallback, gt) if a.slam_fallback else None
-        n_pose = n_near = n_slam = n_none = 0
-        for i, f in enumerate(fr):
-            m = np.zeros((H, W), np.uint8)
-            src = None
-            if f["k"] in pose_w:
-                src, gap = pose_w[f["k"]][0], 0.0
-                n_pose += 1
-            elif len(pk):
-                j = int(np.argmin(np.abs(pwall - f["wall"])))
-                gap = abs(pwall[j] - f["wall"])
-                if gap <= a.max_gap:
-                    src = pose_w[int(pk[j])][0]
-                    n_near += 1
-            if src is None and slam_cw is not None:
-                src, gap = slam_cw[f["k"]], a.slam_margin_mm / a.grow_mm_per_s
-                n_slam += 1
-            if src is None:
-                n_none += 1
-            else:
-                half = tile_m / 2 + a.margin_mm / 1000.0 + a.grow_mm_per_s / 1000.0 * gap
-                sq = np.array([[-half, half, 0], [half, half, 0], [half, -half, 0], [-half, -half, 0]])
-                for tid, T in Tt.items():
-                    uv = project_output((T[:3, :3] @ sq.T).T + T[:3, 3], np.asarray(src), fj)
-                    if uv is not None:
-                        cv2.fillConvexPoly(m, np.round(uv * 16).astype(np.int32), 1, cv2.LINE_8, 4)
-            sel = z["det_k"] == f["k"]
-            scale = (tile_m + 2 * a.margin_mm / 1000.0) / edge
-            for c in z["det_corners"][sel]:
-                uv = to_output_px(c, fj)
-                ctr = uv.mean(0)
-                uv = ctr + (uv - ctr) * scale
-                cv2.fillConvexPoly(m, np.round(uv * 16).astype(np.int32), 1, cv2.LINE_8, 4)
-            masked[i] = m > 0
+        masked, meta = segment_tile_masks(seg, a.session, margin_mm=a.margin_mm, max_gap_s=a.max_gap,
+                                          grow_mm_per_s=a.grow_mm_per_s, slam_fallback=a.slam_fallback,
+                                          slam_margin_mm=a.slam_margin_mm)
         (seg / "masks").mkdir(exist_ok=True)
         np.savez_compressed(seg / "masks" / "tiles.npz", masked=np.packbits(masked, axis=-1),
-                            meta=json.dumps({"margin_mm": a.margin_mm, "max_gap_s": a.max_gap,
-                                             "grow_mm_per_s": a.grow_mm_per_s, "slam_fallback": a.slam_fallback,
-                                             "slam_margin_mm": a.slam_margin_mm, "frames_pose": n_pose,
-                                             "frames_near_pose": n_near, "frames_slam": n_slam,
-                                             "frames_no_pose": n_none}))
-        print(f"{seg.name}: pose {n_pose}, nearest pose {n_near}, slam {n_slam}, none {n_none}; "
+                            meta=json.dumps(meta))
+        print(f"{seg.name}: pose {meta['frames_pose']}, nearest pose {meta['frames_near_pose']}, "
+              f"slam {meta['frames_slam']}, none {meta['frames_no_pose']}; "
               f"masked {100 * masked.mean():.2f}% of pixels", flush=True)
 
 

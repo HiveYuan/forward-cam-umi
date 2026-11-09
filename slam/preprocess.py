@@ -57,15 +57,17 @@ def output_geometry(K, D, W, H, alpha, width):
     return newK, s, h_scaled, h_out, crop_top, Ko
 
 
-def load_gt(session):
+def load_gt(session, gt_dir=None):
     s = C.session(session)
-    g = C.gt_dir(session)
+    g = C.gt_dir(session) if gt_dir is None else Path(gt_dir)
     cam = {d["k"]: d for d in json.load(open(g / f"{s['head_stem']}_cam_world.json"))["per_frame"]}
     ball = dict(np.load(g / "ball_poses.npz", allow_pickle=False))
     return cam, ball
 
 
-def process_episode(session, e, ts, pts, a, out_root):
+def process_episode(session, e, ts, pts, a, out_root, gt_dir=None):
+    """One segment -> out_root/epNN (published by renaming out_root/.epNN.tmp).
+    a: preroll, width, alpha, jpg_quality. gt_dir: default <SLAM_WORK>/<session>/gt."""
     s = C.session(session)
     video = C.RAW / f"{s['head_stem']}.mkv"
     intr = json.load(open(C.CALIB / s["intrinsics"]))
@@ -74,7 +76,7 @@ def process_episode(session, e, ts, pts, a, out_root):
     W, H = intr["width"], intr["height"]
     newK, sc, h_scaled, h_out, crop_top, Ko = output_geometry(K, D, W, H, a.alpha, a.width)
     m1, m2 = cv2.initUndistortRectifyMap(K, D, None, newK, (W, H), cv2.CV_16SC2)
-    cam, ball = load_gt(session)
+    cam, ball = load_gt(session, gt_dir)
 
     i0 = bisect.bisect_left(ts, e["t_start"] - a.preroll)
     i1 = bisect.bisect_right(ts, e["t_end"]) - 1

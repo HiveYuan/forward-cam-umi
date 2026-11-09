@@ -3,7 +3,9 @@
 
 For every segment and run, pairs (a, b) are formed with an anchor frame a inside the
 episode and b the frame whose wall time is closest to t_a + dt (within half a frame).
-Both frames need a strict tile pose (>= 2 tiles, rms <= 5 px) and a SLAM pose.
+Both frames need a strict tile pose (>= 2 tiles, rms <= 5 px). A pair with an untracked end
+(NaN row of T_slam_cam, slam.backends.base) has non-finite SLAM errors: the statistics skip it
+and the tracking-failure fraction counts it as a failure.
 
   head motion   cam_a->cam_b = (world->cam_a ... ) from the tiles vs (slam->cam_a)^-1 (slam->cam_b)
   rotation err  angle(R_gt^T R_slam)                         [deg]  primary, scale-free
@@ -12,7 +14,8 @@ Both frames need a strict tile pose (>= 2 tiles, rms <= 5 px) and a SLAM pose.
   label err     tool_a->tool_b with the ball poses at both ends (build_dataset "full"
                 variant) and the flange (tool) frame, tile head motion vs SLAM head motion
   static        baseline cam_a->cam_b = I (no SLAM at all)
-  track fail    dt = 0.08 s pairs whose rotation error exceeds 2 deg
+  track fail    dt = 0.08 s pairs whose rotation error exceeds 2 deg (fail_deg) or is not
+                finite (an end untracked)
   same_tiles    1 if the same tile set is detected at both ends (tiles.npz). The tile GT
                 has a fixed per-tile-set bias (~0.4 deg, slam.tiles noise), so pairs whose
                 tile set changes carry that bias; same-tile pairs are the cleaner reference
@@ -106,7 +109,9 @@ def pairs_for(S, dt):
 
 
 def segment_scale(S, T_sc):
-    m = S["strict"]
+    """Oracle scale: Umeyama fit of the SLAM camera centres to the tile head poses over the
+    frames with a strict tile pose and a finite SLAM pose -> (s, median residual [m])."""
+    m = S["strict"] & np.isfinite(T_sc).all((1, 2))
     if m.sum() < 10:
         return np.nan, np.nan
     src, dst = T_sc[m, :3, 3], S["T_wc"][m, :3, 3]
@@ -156,20 +161,22 @@ def stats(x):
             "p95": float(np.percentile(x, 95)), "mean": float(x.mean())}
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--session", required=True)
-    ap.add_argument("--runs", default="E1,E2,E3")
-    ap.add_argument("--out", default=None)
-    ap.add_argument("--scale", default="tiles", help="slam.scale spec for translation/label metrics")
-    a = ap.parse_args()
-    out = Path(a.out) if a.out else C.WORK / a.session / ("eval" if a.scale == "tiles" else f"eval_scale_{a.scale.replace(',', '+').replace(':', '-')}")
+def evaluate_session(session, runs, out, scale_fn=None, dts=DTS, fail_deg=FAIL_DEG, scale_name="tiles"):
+    """Evaluate `runs` (plus the static baseline) on every segment of the session; writes
+    <out>/{pairs.csv, summary.json, summary.md} and returns the summary (as rendered).
+
+    scale_fn(seg, run, s_oracle) -> s for the translation/label metrics; None = the per-segment
+    tile oracle s_oracle (and then no scale_vs_oracle entries). scale_name labels the scale in
+    summary.md ("tiles" = oracle). fail_deg: tracking-failure threshold (summary.md and the
+    returned summary['fail_deg']; summary.json keeps the legacy keys)."""
+    dts = list(dts)
+    out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    T_bt = load_tool_offset(a.session)
-    runs = ["static"] + [r for r in a.runs.split(",") if r]
+    T_bt = load_tool_offset(session)
+    runs = ["static"] + [r for r in runs if r]
 
     rows, seg_info = [], {}
-    for seg in sorted(C.segments_dir(a.session).glob("ep[0-9][0-9]")):
+    for seg in sorted(C.segments_dir(session).glob("ep[0-9][0-9]")):
         S = load_segment(seg)
         seg_info[S["name"]] = {"n_frames": len(S["k"]), "in_ep": int(S["in_ep"].sum()),
                                "in_ep_strict": int((S["in_ep"] & S["strict"]).sum())}
@@ -182,18 +189,16 @@ def main():
                     continue
                 T_sc, meta = r
                 s, res = segment_scale(S, T_sc)
-                if a.scale != "tiles":
-                    from slam.scale import estimate
-                    rs = estimate(seg, run, a.scale)
+                if scale_fn is not None:
                     s_or = s
-                    s = float(rs["s"]) if rs.get("ok") else np.nan
+                    s = scale_fn(seg, run, s_or)
                     seg_info[S["name"]].setdefault("scale_vs_oracle", {})[run] = (
                         float(s / s_or - 1) if np.isfinite(s) and np.isfinite(s_or) else None)
                 seg_info[S["name"]][run] = {"scale": s, "align_res_mm": 1000 * res,
                                             "n_keyframes": meta.get("n_keyframes"),
                                             "runtime_s": meta.get("runtime_s"),
                                             "valid_frac": meta.get("valid_frac")}
-            for dt in DTS:
+            for dt in dts:
                 P = pairs_for(S, dt)
                 if len(P) == 0:
                     continue
@@ -215,10 +220,10 @@ def main():
     col = {k: np.array([r[k] for r in rows]) for k in keys if k not in ("run", "segment")}
     run_c = np.array([r["run"] for r in rows])
     seg_c = np.array([r["segment"] for r in rows])
-    summary = {"dts": DTS, "runs": {}, "segments": seg_info}
+    summary = {"dts": dts, "runs": {}, "segments": seg_info}
     for run in runs:
         R = {"by_dt": {}, "by_speed_dt0.5": {}, "per_segment_dt1": {}}
-        for dt in DTS:
+        for dt in dts:
             m = (run_c == run) & np.isclose(col["dt"], dt)
             R["by_dt"][str(dt)] = {k: stats(col[k][m]) for k in
                                    ("rot_err_deg", "trans_err_mm", "label_pos_err_mm", "label_rot_err_deg",
@@ -227,7 +232,8 @@ def main():
             R["by_dt"][str(dt)]["rot_err_deg_same_tiles"] = stats(col["rot_err_deg"][ms])
             R["by_dt"][str(dt)]["trans_err_mm_same_tiles"] = stats(col["trans_err_mm"][ms])
         m = (run_c == run) & np.isclose(col["dt"], 0.08)
-        R["track_fail_frac"] = float((col["rot_err_deg"][m] > FAIL_DEG).mean()) if m.any() else None
+        x = col["rot_err_deg"][m]
+        R["track_fail_frac"] = float((~np.isfinite(x) | (x > fail_deg)).mean()) if m.any() else None
         m5 = (run_c == run) & np.isclose(col["dt"], 0.5)
         speed = col["gt_rot_deg"] / 0.5
         for lo, hi in zip(SPEED_BINS[:-1], SPEED_BINS[1:]):
@@ -238,13 +244,33 @@ def main():
             R["per_segment_dt1"][sname] = stats(col["rot_err_deg"][ms])
         summary["runs"][run] = R
     json.dump(summary, open(out / "summary.json", "w"), indent=1, default=float)
-    summary["scale"] = a.scale
+    summary["scale"] = scale_name
+    summary["fail_deg"] = fail_deg
     for run in runs[1:]:
         sc = [v[run]["scale"] for v in seg_info.values() if run in v]
         summary["runs"][run]["scale_ok_segments"] = [int(np.isfinite(sc).sum()), len(sc)]
     md = render_md(summary, runs)
     (out / "summary.md").write_text(md)
-    print(md)
+    return summary
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--session", required=True)
+    ap.add_argument("--runs", default="E1,E2,E3")
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--scale", default="tiles", help="slam.scale spec for translation/label metrics")
+    a = ap.parse_args()
+    out = Path(a.out) if a.out else C.WORK / a.session / ("eval" if a.scale == "tiles" else f"eval_scale_{a.scale.replace(',', '+').replace(':', '-')}")
+    scale_fn = None
+    if a.scale != "tiles":
+        from slam.scale import estimate
+
+        def scale_fn(seg, run, s_or):
+            rs = estimate(seg, run, a.scale)
+            return float(rs["s"]) if rs.get("ok") else np.nan
+    evaluate_session(a.session, a.runs.split(","), out, scale_fn, scale_name=a.scale)
+    print((out / "summary.md").read_text())
 
 
 def fmt(s, key="median"):
@@ -286,7 +312,7 @@ def render_md(S, runs):
     for run in runs:
         b = S["runs"][run]["by_speed_dt0.5"]
         L.append(f"| {run} | " + " | ".join(f"{fmt(v)} ({v.get('n', 0)})" for v in b.values()) + " |")
-    L += ["", "### Tracking failures (dt = 0.08 s pairs with rotation error > 2 deg)", ""]
+    L += ["", f"### Tracking failures (dt = 0.08 s pairs with rotation error > {S.get('fail_deg', FAIL_DEG):g} deg)", ""]
     for run in runs[1:]:
         f = S["runs"][run]["track_fail_frac"]
         L.append(f"- {run}: {100 * f:.2f}%" if f is not None else f"- {run}: -")

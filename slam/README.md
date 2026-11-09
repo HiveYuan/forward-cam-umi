@@ -4,6 +4,15 @@ Replaces the workspace AprilTag tiles with monocular SLAM on the head camera.
 Design: Google Doc "Tile-Free Head-Cam UMI with SLAM". Metric scale comes from
 interchangeable methods in `scale.py` (see "Scale" below); `tiles` is the oracle.
 
+**Experiments (since 2026-11-08):** run everything through the experiment framework,
+`python -m slam.run experiments/<exp>/config.yaml` (see `experiments/README.md` and
+`slam/pipeline/`). It calls the modules below; their CLIs still work for ad-hoc use.
+SLAM backends implement `slam/backends/base.py` (DROID now, AMB3R next). New in the modules:
+scale method `native` and the generic `cross_check` (`scale.py`), chunk-length label
+metrics (`labels.py`), `evaluate_session` (`evaluate.py`), `tiles.noise_floor` /
+`segment_tile_masks`. `run_droid.py` now writes the backend's `traj.npz` format: it adds
+`tracked` and `metric`, and `pose7` is renamed `x_pose7`.
+
 Code is here; raw recordings and detection caches are read from the main
 head-cam-umi checkout (`HEADCAM_DATA_REPO`); outputs go to `SLAM_WORK`
 (see `config.py`). Run modules from the repository root.
@@ -52,7 +61,8 @@ end. A keyframe-threshold sweep (filter/keyframe 2.4/4.0 vs 1.2/2.0 vs 0.6/1.0)
 helped E1 (no masks) but not E2: with motion masks the 1 s rotation error was
 0.35° vs 0.33° median at twice the runtime, so the defaults are kept.
 
-Tests: `$V -m slam.tests.test_relative`, `$V -m slam.tests.test_labels`; dataset checks:
+Tests: `$V -m slam.tests.test_<name>` for pipeline (framework core), scale, analysis,
+labels, labels_chunk, report, relative; dataset checks:
 `slam.export_lerobot --verify`, `slam.relative_dataset` self-check.
 
 ## Scale (`scale.py`, `depth.py`)

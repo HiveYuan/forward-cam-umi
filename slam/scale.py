@@ -6,6 +6,8 @@ A method maps (segment, SLAM run) to a scale s with  metric translation = s * SL
 slam.labels --scale, slam.evaluate --scale, slam.report):
 
   none   s = 1 (raw SLAM units)
+  native s = 1 for a metric SLAM run (traj.npz metric=True, e.g. a backend that outputs metres);
+         fails on an up-to-scale run (monocular DROID, legacy files without the key)
   tiles  oracle: Umeyama fit of the SLAM camera centres to the tile head poses (evaluation only)
   A      static ball (design doc, option A, point-only): while the hand rests, the ball centre is a
          fixed point of the scene. In the SLAM frame it is p_i = R_i b_i + s c_i (b_i = ball centre
@@ -33,7 +35,8 @@ slam.labels --scale, slam.evaluate --scale, slam.report):
   B+Acheck  decision of 2026-11-08: B is the method, A only cross-checks. s = B's result on
          every segment; where A also succeeds, the relative difference s_A/s_B - 1 is recorded
          and |diff| > threshold (10%) flags the segment. Flags are informational only: they
-         neither change s nor drop the segment.
+         neither change s nor drop the segment. The general form (any primary, any checks) is
+         cross_check(), used by the experiment framework (slam.pipeline.impl_analysis).
 
 A spec may chain methods for fallback: "A,B" = A if it succeeds, else B. "B:<model>" picks the
 depth network (slam.depth MODELS; default da2-metric-indoor-large), e.g. "B:depth-pro".
@@ -90,6 +93,15 @@ def scale_none(seg, run, **_):
     return {"s": 1.0, "ok": True}
 
 
+def scale_native(seg, run, **_):
+    """s = 1 when the run's trajectory is already metric (traj.npz 'metric'; absent = not metric)."""
+    z = np.load(seg / "slam" / f"{run}.npz")
+    if "metric" in z.files and bool(z["metric"]):
+        return {"s": 1.0, "ok": True, "metric": True}
+    return {"s": float("nan"), "ok": False, "metric": False,
+            "error": f"run {run} is not metric (traj.npz metric is False or missing)"}
+
+
 def scale_tiles(seg, run, **_):
     from slam.evaluate import segment_scale
     S = _segment(seg)
@@ -100,10 +112,12 @@ def scale_tiles(seg, run, **_):
 
 def scale_static_ball(seg, run, window_s=1.0, step_s=0.25, res_max_mm=5.0, min_baseline_mm=20.0,
                       min_frames=10, **_):
+    """Windows use only frames with a ball pose AND a finite SLAM pose (untracked frames are
+    NaN rows); a window with fewer than min_frames such frames is skipped."""
     S = _segment(seg)
     z, _ = _run(seg, run)
     T = z["T_slam_cam"].astype(float)
-    have = np.isfinite(S["T_cb"][:, 0, 0])
+    have = np.isfinite(S["T_cb"][:, 0, 0]) & np.isfinite(T).all((1, 2))
     idx = np.where(have)[0]
     wall = S["wall"]
     wins = []
@@ -116,7 +130,7 @@ def scale_static_ball(seg, run, window_s=1.0, step_s=0.25, res_max_mm=5.0, min_b
         Rb = (T[w, :3, :3] @ S["T_cb"][w, :3, 3][..., None])[..., 0]       # R_i b_i
         c = T[w, :3, 3]
         s, p, res = fit_static_point(Rb, c)
-        if s <= 0:
+        if not np.isfinite(s) or s <= 0:
             continue
         base = s * np.linalg.norm(c - c.mean(0), axis=1).max()
         wins.append({"t0": float(wall[w[0]]), "s": float(s), "res_mm": 1000 * float(np.sqrt((res ** 2).mean())),
@@ -164,10 +178,14 @@ def ball_faces(session):
 
 
 def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="faces", min_facing=0.7,
-                     fit="scale", min_affine_range=0.15, depth_window=None, z_max=4.0, min_cells=200, **_):
+                     fit="scale", min_affine_range=0.15, depth_window=None, z_max=4.0, min_cells=200,
+                     mask_names=None, mask_dilate_px=8, **_):
     """fit: "scale" = corrected depth k d (one factor from the ball), "affine" = a d + b fitted
     (Theil-Sen) to the ball samples across keyframes, falling back to "scale" if the ball's depth
-    range is below min_affine_range [m]."""
+    range is below min_affine_range [m]. Background cells: valid under the masks mask_names
+    (None = the masks recorded in the run's meta) dilated by mask_dilate_px. Keyframes without a
+    finite SLAM pose (their frame's T_slam_cam row, or kf_pose_cw where saved) are left out of
+    the background ratio; non-finite inverse depth cells never count."""
     dp = seg / "depth" / f"{run}_{model}.npz"
     if not dp.exists():
         return {"s": float("nan"), "ok": False, "error": f"missing {dp} (run slam.depth)"}
@@ -180,7 +198,12 @@ def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="face
     kf_t, disp = z["kf_t"], z["kf_disp"].astype(float)
     if not np.array_equal(D["kf_t"], kf_t):
         return {"s": float("nan"), "ok": False, "error": "depth cache is for other keyframes"}
-    valid = _valid_cells(seg, meta.get("masks", []), len(fj["frames"]), (W, H))
+    T_sc = z["T_slam_cam"]
+    kf_ok = np.isfinite(T_sc[kf_t]).all((1, 2))                # keyframes with a SLAM pose
+    if "kf_pose_cw" in z.files:
+        kf_ok &= np.isfinite(z["kf_pose_cw"]).all(1)
+    names = meta.get("masks", []) if mask_names is None else list(mask_names)
+    valid = _valid_cells(seg, names, len(fj["frames"]), (W, H), mask_dilate_px)
     pairs = []                                                  # (network depth, metric depth)
     faces = ball_faces(fj["session"]) if correction == "faces" else None
     for j, i in enumerate(kf_t):
@@ -222,10 +245,12 @@ def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="face
     zb_med = float(np.median(list(z_ball.values()))) if z_ball else np.nan
     ratios, per_kf = [], []
     for j, i in enumerate(kf_t):
+        if not kf_ok[j]:
+            continue
         d8 = D["depth"][j].astype(float).reshape(H // 8, 8, W // 8, 8).mean((1, 3))   # DROID's 1/8 grid
         zc = alpha * d8 + beta                                  # corrected (metric) network depth
         zs = 1.0 / np.clip(disp[j], 1e-6, None)
-        m = valid[i] & np.isfinite(zc) & (zc > 0.1) & (zc < z_max) & (disp[j] > 1e-3)
+        m = valid[i] & np.isfinite(zc) & (zc > 0.1) & (zc < z_max) & (disp[j] > 1e-3) & np.isfinite(disp[j])
         if depth_window:                                       # compare only near the ball's depth
             m &= np.abs(zc / z_ball.get(int(i), zb_med) - 1) <= depth_window
         m[:1], m[-1:], m[:, :1], m[:, -1:] = False, False, False, False
@@ -241,22 +266,42 @@ def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="face
             "correction": correction, "depth_window": depth_window}
 
 
+def cross_check(primary, checks, threshold):
+    """Primary scale result + cross-check results {name: result} -> {s, ok, flagged, flagged_by,
+    checks: {name: {s, ok, diff}}}. s and ok are ALWAYS the primary's; a check only flags:
+    diff = s_check / s - 1 where both succeeded, |diff| > threshold flags the segment
+    (threshold None: diffs are recorded, nothing is flagged)."""
+    s, ok = float(primary["s"]), bool(primary.get("ok"))
+    out_checks, flagged_by = {}, []
+    for name, r in checks.items():
+        c_ok = bool(r.get("ok"))
+        c = {"s": float(r["s"]) if c_ok else float("nan"), "ok": c_ok, "diff": None}
+        if ok and c_ok:
+            c["diff"] = c["s"] / s - 1
+            if threshold is not None and abs(c["diff"]) > threshold:
+                flagged_by.append(name)
+        out_checks[name] = c
+    return {"s": s, "ok": ok, "flagged": bool(flagged_by), "flagged_by": flagged_by, "checks": out_checks}
+
+
 def scale_b_with_a_check(seg, run, model="da2-metric-indoor-large", threshold=0.10, **_):
     """B is the scale; A is computed where possible and only compared with it."""
     b = estimate(seg, run, "B" if model == DEPTH_MODELS[0] else f"B:{model}")
     a = estimate(seg, run, "A")
-    out = {"s": float(b["s"]), "ok": bool(b.get("ok")), "s_B": float(b["s"]), "B_ok": bool(b.get("ok")),
-           "s_A": float(a["s"]) if a.get("ok") else float("nan"), "A_ok": bool(a.get("ok")),
-           "threshold": threshold, "ab_diff": None, "flagged": False, "model": model}
-    if out["A_ok"] and out["B_ok"]:
-        out["ab_diff"] = out["s_A"] / out["s_B"] - 1
-        out["flagged"] = bool(abs(out["ab_diff"]) > threshold)
-    return out
+    cc = cross_check(b, {"A": a}, threshold)
+    ca = cc["checks"]["A"]
+    return {"s": cc["s"], "ok": cc["ok"], "s_B": float(b["s"]), "B_ok": bool(b.get("ok")),
+            "s_A": ca["s"], "A_ok": ca["ok"], "threshold": threshold, "ab_diff": ca["diff"],
+            "flagged": cc["flagged"], "model": model}
 
 
-METHODS = {"none": scale_none, "tiles": scale_tiles, "A": scale_static_ball, "B": scale_depth_ball,
-           "B+Acheck": scale_b_with_a_check}
+METHODS = {"none": scale_none, "native": scale_native, "tiles": scale_tiles, "A": scale_static_ball,
+           "B": scale_depth_ball, "B+Acheck": scale_b_with_a_check}
 TAKES_MODEL = ("B", "B+Acheck")
+COMPOSITE_METHODS = ("B+Acheck",)        # built from other methods; not a config-level method
+# keyword arguments added after CACHE_VERSION 2 caches were written: left out of the provenance
+# while at their default, so those caches stay valid (same result)
+_LATE_KW_DEFAULTS = {"mask_names": None, "mask_dilate_px": 8}
 
 
 # ------------------------------------------------------------------ interface
@@ -266,6 +311,9 @@ def _provenance(seg, run, m, kw):
     params = {k: v.default for k, v in inspect.signature(fn).parameters.items()
               if v.default is not inspect.Parameter.empty}
     params.update(kw)
+    for k, d in _LATE_KW_DEFAULTS.items():
+        if k in params and params[k] == d:
+            del params[k]
     files = [seg / "slam" / f"{run}.npz", seg / "gt.npz"]
     if m in TAKES_MODEL:
         files.append(seg / "depth" / f"{run}_{params.get('model', DEPTH_MODELS[0])}.npz")

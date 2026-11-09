@@ -27,10 +27,14 @@ from slam.scale import DEPTH_MODELS  # noqa: E402
 assert set(MODELS) == set(DEPTH_MODELS), "keep slam.scale.DEPTH_MODELS in sync"
 
 
-def load(model):
+def load(model, revision=None):
+    """(image processor, network on cuda in eval mode). model: a short name (key of MODELS)
+    or a transformers repo id; revision=None is the repo's main branch (the legacy behaviour)."""
     from transformers import AutoImageProcessor, AutoModelForDepthEstimation
-    proc = AutoImageProcessor.from_pretrained(MODELS[model])
-    net = AutoModelForDepthEstimation.from_pretrained(MODELS[model]).to("cuda").eval()
+    repo = MODELS.get(model, model)
+    kw = {} if revision is None else {"revision": revision}
+    proc = AutoImageProcessor.from_pretrained(repo, **kw)
+    net = AutoModelForDepthEstimation.from_pretrained(repo, **kw).to("cuda").eval()
     return proc, net
 
 
@@ -41,6 +45,17 @@ def predict(proc, net, rgb):
     H, W = rgb.shape[:2]
     d = proc.post_process_depth_estimation(out, target_sizes=[(H, W)])[0]["predicted_depth"]
     return d.float().cpu().numpy()
+
+
+def depth_stack(proc, net, image_paths):
+    """(n, H, W) float16 metric depth [m] of the given images (BGR files, fed as RGB)."""
+    deps = []
+    for p in image_paths:
+        bgr = cv2.imread(str(p))
+        if bgr is None:
+            raise FileNotFoundError(f"cannot read image {p}")
+        deps.append(predict(proc, net, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)).astype(np.float16))
+    return np.stack(deps)
 
 
 def main():
@@ -62,13 +77,10 @@ def main():
         if dst.exists() and not a.overwrite:
             continue
         kf = np.load(seg / "slam" / f"{a.run}.npz")["kf_t"]
-        deps = []
-        for i in kf:
-            bgr = cv2.imread(str(seg / "images" / f"{int(i):06d}.jpg"))
-            deps.append(predict(proc, net, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)).astype(np.float16))
+        depth = depth_stack(proc, net, [seg / "images" / f"{int(i):06d}.jpg" for i in kf])
         dst.parent.mkdir(exist_ok=True)
-        np.savez_compressed(dst, kf_t=kf, depth=np.stack(deps), model=MODELS[a.model])
-        d = np.stack(deps).astype(float)
+        np.savez_compressed(dst, kf_t=kf, depth=depth, model=MODELS[a.model])
+        d = depth.astype(float)
         print(f"[{time.time() - t0:5.0f}s] {seg.name}: {len(kf)} keyframes, depth median {np.median(d):.2f} m "
               f"(p5 {np.percentile(d, 5):.2f}, p95 {np.percentile(d, 95):.2f})", flush=True)
 
