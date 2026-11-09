@@ -107,6 +107,28 @@ def git_state(repo):
             "submodules": subs}
 
 
+def git_patches(repo):
+    """{path: diff text} of the uncommitted changes of a checkout ('.') and of each submodule,
+    exactly the texts whose sha256 git_state() records (empty diffs left out)."""
+    out = {}
+    d = _git(repo, "diff", "HEAD", *DIFF_OPTS, "--submodule=short")
+    if d.strip():
+        out["."] = d
+    if (Path(repo) / ".gitmodules").exists():
+        for line in _git(repo, "submodule", "status", "--recursive").splitlines():
+            path = line[1:].split()[1]
+            sd = _git(Path(repo) / path, "diff", "HEAD", *DIFF_OPTS)
+            if sd.strip():
+                out[path] = sd
+    return out
+
+
+def patch_file_name(path, text):
+    """File name under third_party_patches/<checkout>/ for a diff text."""
+    stem = "root" if path == "." else path.replace("/", "__")
+    return f"{stem}_{sha256_text(text)[:12]}.diff"
+
+
 def _ast_canon(node):
     """Version-stable serialisation of a syntax tree (node type + non-empty fields)."""
     import ast

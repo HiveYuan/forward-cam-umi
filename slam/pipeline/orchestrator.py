@@ -117,6 +117,21 @@ class Runner:
                 code[iid] = self.impl_fingerprint(n.impl)
         return fp, code
 
+    def patch_files(self):
+        """{checkout: {path: repo-relative patch file or None}} for every patched third-party
+        checkout a node runs; prints how to save a missing one (third_party_patches/README.md)."""
+        out = {}
+        for c in sorted({c for n in self.order for c in n.impl.code_inputs}):
+            out[c] = {}
+            for path, text in H.git_patches(c).items():
+                f = REPO / "third_party_patches" / Path(c).name / H.patch_file_name(path, text)
+                ok = f.exists() and f.read_text() == text
+                out[c][path] = str(f.relative_to(REPO)) if ok else None
+                if not ok:
+                    print(f"WARNING: patch of {c} ({path}) is not saved in the repo; save it as "
+                          f"{f.relative_to(REPO)} (see third_party_patches/README.md)", flush=True)
+        return out
+
     def env_versions(self, env):
         """{python, packages: {normalised name: version}} of an environment (one subprocess)."""
         if env not in self._env_versions:
@@ -243,7 +258,8 @@ class Runner:
     def run_producer(self, n, by_id):
         d = CA.node_dir(WORK, n.step, n.key)
         todo = CA.missing_segments(d, self.segments)
-        rec = {"id": n.id, "step": n.step, "impl": n.impl.name, "env": n.impl.env, "key": n.key,
+        rec = {"id": n.id, "variant": self.variant, "tag": self.tags.get(n.id),
+               "step": n.step, "impl": n.impl.name, "env": n.impl.env, "key": n.key,
                "cache_dir": str(d), "segments_cached": len(self.segments) - len(todo),
                "segments_computed": 0, "start": now()}
         self.record["nodes"].append(rec)
@@ -387,7 +403,7 @@ class Runner:
         rel = self.exp_dir.relative_to(REPO) if self.in_repo else None
         ignore = [f"{rel}/results", f"{rel}/run.json"] if rel else []
         self.git = RI.git_repo_state(REPO, ignore)
-        self.tags, self.repro_info = {}, None
+        self.tags, self.repro_info, self.variant = {}, None, "main"
         order = self.plan()
         self.print_plan(order)
         if a.repro:                                     # fail before computing anything
@@ -421,7 +437,8 @@ class Runner:
                "scratch": not self.in_repo, "segments": self.segments, "host": RI.host_info(),
                "gpu": RI.gpu_info(), "data_fingerprints": self.data_fp, "code_fingerprints": self.code_fp,
                "seeds": {n.id: n.params["seed"] for n in order if "seed" in n.params},
-               "weights": RI.weights_of(order), "envs": {}, "record": self.record}
+               "weights": RI.weights_of(order), "third_party_patches": self.patch_files(),
+               "envs": {}, "record": self.record}
         for env in sorted({n.impl.env for n in order} | {"venv"}):
             try:
                 inv["envs"][env] = E.snapshot(env)
@@ -446,7 +463,7 @@ class Runner:
                     order_r = SP.compute_keys(_clone(order), self.data_fp, self.code_fp,
                                               {x: tag for x in affected if x == node})
                     print(f"[{now()}] repro {i}: recompute {node} (key {next(n.key for n in order_r if n.id == node)})")
-                    self.tags = {node: tag}
+                    self.tags, self.variant = {node: tag}, tag
                     self.run_producers(order_r)
                     self.run_analysis(tag, order_r)
                     variants.append(tag)
@@ -462,6 +479,17 @@ class Runner:
             inv["end"] = now()
             inv["duration_s"] = time.time() - t0
             inv["repro"] = self.repro_info
+            try:                                            # code must not change during a run
+                g_end = RI.git_repo_state(REPO, ignore)
+                inv["git_end"] = {"commit": g_end["commit"], "clean": g_end["clean"],
+                                  "dirty_files": g_end["dirty_files"]}
+                inv["git_changed_during_run"] = (g_end["commit"] != self.git["commit"]
+                                                 or g_end["dirty_files"] != self.git["dirty_files"])
+                if inv["git_changed_during_run"]:
+                    print("WARNING: the repository changed while this run was going on (see run.json git_end)",
+                          flush=True)
+            except Exception as err:
+                inv["git_end"] = {"error": repr(err)}
             try:
                 inv["weights_end"] = RI.weights_of(order)        # incl. models downloaded meanwhile
             except Exception as err:

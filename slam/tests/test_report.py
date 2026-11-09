@@ -5,13 +5,16 @@ test_legacy_* read experiments/exp000_legacy/results (in the repository); everyt
 synthetic and written to temporary directories.
 """
 import json
+import re
 import shutil
 import tempfile
 from pathlib import Path
 
 import numpy as np
 
+from slam import config as C
 from slam import geometry as G
+from slam import labels as Lb
 from slam.evaluate import stats
 from slam.pipeline import impl_report as R
 from slam.pipeline.worker import Job
@@ -74,6 +77,7 @@ def contract_scale(rows_in, run, primary="B", checks=("A",), threshold=0.10):
 
 
 def fake_summary(rng, runs, segs, shift=0.0):
+    """slam.evaluate summary.json; the first segment has no scale (NaN, as slam.evaluate writes it)."""
     keys = ("rot_err_deg", "trans_err_mm", "label_pos_err_mm", "label_rot_err_deg", "gt_rot_deg", "gt_trans_mm",
             "rot_err_deg_same_tiles", "trans_err_mm_same_tiles")
     S = {"dts": DTS, "runs": {}, "segments": {}}
@@ -81,8 +85,8 @@ def fake_summary(rng, runs, segs, shift=0.0):
         S["segments"][seg] = {"n_frames": 100, "in_ep": 60, "in_ep_strict": 40}
         for r in runs:
             if r != "static":
-                S["segments"][seg][r] = {"scale": 0.5, "align_res_mm": 4.0, "n_keyframes": 10 + i,
-                                         "runtime_s": 30.0 + i, "valid_frac": 0.8}
+                S["segments"][seg][r] = {"scale": float("nan") if i == 0 else 0.5, "align_res_mm": 4.0,
+                                         "n_keyframes": 10 + i, "runtime_s": 30.0 + i, "valid_frac": 0.8}
     for r in runs:
         by = {str(d): {k: stats(rng.gamma(2.0, size=40) + shift) for k in keys} for d in DTS}
         S["runs"][r] = {"by_dt": by, "by_speed_dt0.5": {}, "per_segment_dt1": {}, "track_fail_frac": 0.01}
@@ -95,15 +99,20 @@ def fake_labels(rng, ref, chunk=True):
                                 "pos_mm_p90": 20.0, "rot_deg_median": float(rng.uniform(0.1, 1)),
                                 "rot_deg_p90": 2.0} for j in STEPS}}
     if chunk:
-        lab["chunk"] = {str(h): {"anchors": 80, "pos_mm_mean": float(rng.uniform(2, 8)), "pos_mm_median": 3.0,
+        lab["chunk"] = {str(h): {"anchors": 79 if h == 15 else 80, "pos_mm_mean": float(rng.uniform(2, 8)), "pos_mm_median": 3.0,
                                  "pos_mm_p90": 9.0, "rot_deg_mean": float(rng.uniform(0.2, 0.8)),
                                  "rot_deg_median": 0.4, "rot_deg_p90": 1.0, "pooled_pos_mm_mean": 4.0,
                                  "pooled_rot_deg_mean": 0.5} for h in HS}
     return lab
 
 
-def make_results(d, seed=0, shift=0.0, s_factor=None, fail_deg=2.0):
-    """Synthetic analysis results dir (contract layout): runs E1 (no scale) and E3 (B+Acheck)."""
+ROT_LAB, ROT_CHUNK = ("rot_deg_median", "rot_deg_p90"), ("rot_deg_mean", "rot_deg_median", "rot_deg_p90",
+                                                         "pooled_rot_deg_mean")
+
+
+def make_results(d, seed=0, shift=0.0, s_factor=None, fail_deg=2.0, rot_scale_free=True):
+    """Synthetic analysis results dir (contract layout): runs E1 (no scale) and E3 (B+Acheck).
+    rot_scale_free: the scaled labels have the oracle's rotation numbers (as real ones do)."""
     rng = np.random.default_rng(seed)
     d = Path(d)
     segs = ["ep00", "ep01", "ep02", "ep03"]
@@ -123,8 +132,14 @@ def make_results(d, seed=0, shift=0.0, s_factor=None, fail_deg=2.0):
             {"segment": "ep03", "oracle_s": 0.70, "s_B": 0.66 * s_factor.get("ep03", 1), "s_A": 0.65}]
     json.dump(contract_scale(rows, "E3"), open(d / "scale_E3.json", "w"))
     (d / "scale_E3.md").write_text("# scale\n")
-    json.dump(fake_labels(rng, "E3"), open(d / "labels_E3.json", "w"))
-    json.dump(fake_labels(rng, "E3@B+Acheck"), open(d / "labels_E3@B+Acheck.json", "w"))
+    lo, ls = fake_labels(rng, "E3"), fake_labels(rng, "E3@B+Acheck")
+    if rot_scale_free:
+        for j, b in ls["by_step"].items():
+            b.update({k: lo["by_step"][j][k] for k in ROT_LAB})
+        for h, c in ls["chunk"].items():
+            c.update({k: lo["chunk"][h][k] for k in ROT_CHUNK})
+    json.dump(lo, open(d / "labels_E3.json", "w"))
+    json.dump(ls, open(d / "labels_E3@B+Acheck.json", "w"))
     json.dump({"frames_with_all_tiles": 40, "by_dt": {"0.08": {"n": 9, "rot_deg_median": 0.1, "rot_deg_p95": 0.4,
                                                                "trans_mm_median": 1.9, "trans_mm_p95": 5.7}},
                "tile_switch": {"n": 12, "rot_deg_median": 0.39, "rot_deg_p95": 1.2, "trans_mm_median": 7.5,
@@ -188,6 +203,24 @@ def comparison_tables(md):
         cells = [[c.strip() for c in ln.strip("|").split(" | ")] for ln in lines]
         out[title] = (cells[0], cells[2:])
     return out
+
+
+def section_table(md, heading_start):
+    """(header, rows, text after the table up to the next heading) of the first '## ' section
+    whose heading starts with heading_start."""
+    sec = next(b for b in md.split("\n## ")[1:] if b.startswith(heading_start))
+    lines = sec.split("\n")
+    tab = [ln for ln in lines if ln.startswith("|")]
+    cells = [[c.strip() for c in ln.strip().strip("|").split(" | ")] for ln in tab]
+    after = "\n".join(lines[max(i for i, ln in enumerate(lines) if ln.startswith("|")) + 1:])
+    return cells[0], cells[2:], after
+
+
+def strict_json(path):
+    """json.load that refuses NaN / Infinity literals."""
+    def bad(c):
+        raise ValueError(f"non-strict JSON constant {c} in {path}")
+    return json.loads(Path(path).read_text(), parse_constant=bad)
 
 
 def random_traj(rng, n):
@@ -259,6 +292,34 @@ def test_metrics_schema_synthetic():
             assert title in md, title
         assert "H=100 (6.67 s)" in md and "| E3 | B+Acheck (flag" in md and "Comparison" not in md
         assert "track fail (dt 0.08 s, err > 2 deg)" in md
+        # copies are strict JSON: the summaries' NaN -> null (originals untouched); NaN-free files unchanged
+        for f in out.rglob("*.json"):
+            strict_json(f)
+        assert "NaN" in (res / "eval_oracle" / "summary.json").read_text()
+        cp = strict_json(out / "eval_oracle" / "summary.json")
+        assert cp["segments"]["ep00"]["E3"]["scale"] is None and cp["segments"]["ep01"]["E3"]["scale"] == 0.5
+        assert cp["runs"] == S["runs"] and cp["dts"] == S["dts"]
+        assert (out / "analysis.json").read_bytes() == (res / "analysis.json").read_bytes()
+        # sample sizes under the head and label tables (fake stats: 40 pairs per dt; 90 anchors per step)
+        _, _, after = section_table(md, "Head rotation error")
+        assert after.strip() == "n [frame pairs]: 0.08 s: 40, 0.5 s: 40, 1.0 s: 40, 2.0 s: 40, 6.67 s: 40"
+        _, _, after = section_table(md, "Tool labels (15 fps training timeline) vs tile labels: tool_t->tool_t+dt position")
+        assert after.strip().startswith("n [anchors counting the step]: 0.07 s: 90, 0.13 s: 90, ")
+        assert "pair-based" in md and "`eval_*/summary.md`" in md and "15 fps training timeline" in md
+        # chunk table: anchors per H, mean / median, rotation once (scale-free), counted steps not recorded
+        lab = json.load(open(res / "labels_E3.json"))
+        hdr, rows, after = section_table(md, "Chunk-length label error")
+        assert hdr == ["run", "quantity"] + [f"H={h} ({h / 15:.2f} s)" for h in HS]
+        assert rows[0] == ["E3", "anchors", "79", "80", "80", "80"]
+        by_q = {r[1]: r[2:] for r in rows}
+        assert list(by_q) == ["anchors", "position [mm], oracle (tiles), mean / median",
+                              "position [mm], B+Acheck, mean / median", "rotation [deg], every scale, mean / median"]
+        assert by_q["position [mm], oracle (tiles), mean / median"] == [
+            f"{lab['chunk'][str(h)]['pos_mm_mean']:.1f} / 3.0" for h in HS]
+        assert by_q["rotation [deg], every scale, mean / median"] == [
+            f"{lab['chunk'][str(h)]['rot_deg_mean']:.2f} / 0.40" for h in HS]
+        assert R.SCALE_FREE in after and "not recorded in labels_*.json" in after
+        assert "steps_median" not in m["runs"]["E3"]["chunk"]["oracle"]["15"]
         # without analysis.json the files are discovered: same numbers (slam falls back to the summary)
         (res / "analysis.json").unlink()
         m2 = R.variant_metrics(res, "expT", "main")
@@ -327,6 +388,16 @@ def test_legacy_roundtrip_report():
                 n_cells += ng
         assert n_cells > 200
         assert "runs only in" not in md                       # the fake has E1, E2, E3 like exp000
+        check_comparison_units(tabs)
+        hdr, rows = tabs["Head rotation error [deg], n = frame pairs"]
+        assert hdr == ["run", "dt [s]", "expF n", "expF median", "expF p95",
+                       "exp000_legacy n", "exp000_legacy median", "exp000_legacy p95"]
+        assert ["E3", "6.67", "88"] == rows[-1][:3]
+        pos = next(t for t in tabs if t.startswith("Tool label position"))
+        rot = next(t for t in tabs if t.startswith("Tool label rotation"))
+        assert {r[1] for r in tabs[pos][1]} == {"oracle", "configured"} and tabs[pos][0][3] == "expF n"
+        assert {r[1] for r in tabs[rot][1]} == {"every scale"} and rot.endswith(R.SCALE_FREE)
+        assert ["E3", "every scale", "anchors", "989"] == next(r for r in tabs[rot][1] if r[0] == "E3")[:4]
 
 
 def test_trajectory_known_perturbation():
@@ -377,6 +448,35 @@ def _write_traj(path, T, k, n_kf):
     B.save_output(path, out, inp, "droid", {})
 
 
+THETA, JUMP = 0.3, 100
+REPRO = {"node": "slam.E3", "base_keys": {"slam.E3": "KMAIN", "depth.da2@E3": "DMAIN"},
+         "runs": [{"variant": "repro1", "keys": {"slam.E3": "KREP", "depth.da2@E3": "DREP"}}]}
+
+
+def make_slam_cache(work, segs, rng, perturbed=("ep01",)):
+    """<work>/cache/slam/{KMAIN,KREP}/epNN/traj.npz (+ frames in the preprocess entry PRE named in
+    the manifests). The repro trajectory is the main one, bit for bit, except in `perturbed`
+    segments: Sim3-transformed, a rotation jump of THETA deg from frame JUMP, first 4 frames
+    untracked, one keyframe more."""
+    for seg in segs:
+        n = 240
+        k = 5000 + np.arange(n)
+        fr = {"frames": [{"i": i, "k": int(k[i]), "wall": 100.0 + i / 30.0, "in_episode": True} for i in range(n)]}
+        fdir = work / "cache" / "preprocess" / "PRE" / seg
+        fdir.mkdir(parents=True)
+        json.dump(fr, open(fdir / "frames.json", "w"))
+        T = random_traj(rng, n)
+        T2 = T.copy()
+        if seg in perturbed:
+            T2 = sim3(T, 1.3, G.rodrigues([[0.0, 0.0, 1.0]])[0], np.ones(3))
+            T2[JUMP:, :3, :3] = G.rodrigues([[np.radians(THETA), 0, 0]])[0] @ T2[JUMP:, :3, :3]
+            T2[:4] = np.nan
+        _write_traj(work / "cache" / "slam" / "KMAIN" / seg / "traj.npz", T, k, 12)
+        _write_traj(work / "cache" / "slam" / "KREP" / seg / "traj.npz", T2, k, 13 if seg in perturbed else 12)
+    for key in ("KMAIN", "KREP"):
+        json.dump({"deps": {"preprocess": "PRE", "masks": []}}, open(work / "cache" / "slam" / key / "manifest.json", "w"))
+
+
 def test_repro_report():
     """--repro: metric deltas, per-segment scale differences and trajectory differences read from
     a synthetic cache (<work>/cache/slam/<key>/epNN/traj.npz, frames from the preprocess entry
@@ -388,25 +488,9 @@ def test_repro_report():
         rep = make_results(tmp / "v_rep", seed=1, shift=0.25, s_factor={"ep03": 1.02})
         work = tmp / "work"
         segs = ["ep00", "ep01"]
-        theta, jump = 0.3, 100
-        for seg in segs:
-            n = 240
-            k = 5000 + np.arange(n)
-            fr = {"frames": [{"i": i, "k": int(k[i]), "wall": 100.0 + i / 30.0, "in_episode": True} for i in range(n)]}
-            fdir = work / "cache" / "preprocess" / "PRE" / seg
-            fdir.mkdir(parents=True)
-            json.dump(fr, open(fdir / "frames.json", "w"))
-            T = random_traj(rng, n)
-            T2 = sim3(T, 1.3, G.rodrigues([[0.0, 0.0, 1.0]])[0], np.ones(3))
-            if seg == "ep01":
-                T2[jump:, :3, :3] = G.rodrigues([[np.radians(theta), 0, 0]])[0] @ T2[jump:, :3, :3]
-                T2[:4] = np.nan
-            _write_traj(work / "cache" / "slam" / "KMAIN" / seg / "traj.npz", T, k, 12)
-            _write_traj(work / "cache" / "slam" / "KREP" / seg / "traj.npz", T2, k, 13 if seg == "ep01" else 12)
-        for key in ("KMAIN", "KREP"):
-            json.dump({"deps": {"preprocess": "PRE", "masks": []}}, open(work / "cache" / "slam" / key / "manifest.json", "w"))
-        repro = {"node": "slam.E3", "base_keys": {"slam.E3": "KMAIN", "depth.da2@E3": "DMAIN"},
-                 "runs": [{"variant": "repro1", "keys": {"slam.E3": "KREP", "depth.da2@E3": "DREP"}}]}
+        theta = THETA
+        make_slam_cache(work, segs, rng)
+        repro = REPRO
         out = tmp / "exp" / "results"
         r = R.run_report(make_job(out, {"main": main, "repro1": rep}, repro=repro, work=work, segments=segs))
         assert r["repro"].endswith("repro.md")
@@ -437,6 +521,208 @@ def test_repro_report():
         assert "| E3 head rotation median [deg] (0.08 s / 0.5 s / 1.0 s / 2.0 s / 6.67 s) |" in md
         assert "## repro1: slam.E3 per segment" in md
         assert "repro.md" in (out / "report.md").read_text()
+        # bit identity: ep00 is the main trajectory bit for bit (stable angle: exactly 0), ep01 is not
+        assert t["segments_bit_identical"] == 1 and e0["bit_identical"] is True and e1["bit_identical"] is False
+        assert e0["rot_diff_deg"]["1.0"]["max"] == 0.0
+        assert "| ep00 | yes |" in md and "| ep01 | no |" in md
+        line = next(ln for ln in md.splitlines() if ln.startswith("- slam.E3 recomputed (repro1): "))
+        assert line.startswith("- slam.E3 recomputed (repro1): outputs differ on 1/2 segments (bit-identical on 1); ")
+        assert re.search(r"; \d+/\d+ metric deltas nonzero, largest \+0\.250 \(E\d head ", line), line
+        assert line.endswith("; per-segment scale s differs by up to 2.00%"), line
+        assert line in (out / "report.md").read_text().splitlines()
+        # only the runs depending on slam.E3 (E3 via slam.E3, depth.da2@E3) are in the tolerance table;
+        # E1's nonzero deltas (its analysis was rerun on a shifted fake) are summarised, not hidden
+        assert rj["runs_recomputed"] == ["E3"]
+        assert d[("E1 head rotation median [deg]", "1.0 s")]["run"] == "E1" and x["run"] == "E3"
+        rows = [ln.split(" | ")[0].lstrip("| ") for ln in md.split("## Tolerance")[1].split("## repro1")[0].splitlines()
+                if ln.startswith("| ")]
+        assert not any(r.startswith("E1 ") for r in rows) and any(r.startswith("E3 head rotation") for r in rows)
+        assert re.search(r"Not recomputed: E1 \(independent of slam\.E3.*\d+/\d+ metric deltas nonzero, "
+                         r"largest \+0\.250 \(E1 head ", md)
+        assert "Runs depending on slam.E3 (recomputed, listed below): E3." in md
+        # rotation label / chunk rows are the same for both scales: one row each
+        assert any(r.startswith("E3 label rot median, every scale (scale-free) [deg] (") for r in rows)
+        assert any(r.startswith("E3 chunk mean rot, every scale (scale-free) [deg] (") for r in rows)
+        assert not any("rot" in r and "B+Acheck scale" in r for r in rows)
+        assert any(r.startswith("E3 label pos median, B+Acheck scale [mm]") for r in rows)
+        assert "0.00% / 2.00% (ep03)" in md
+
+
+def test_repro_bit_identical():
+    """A recomputation that reproduces the SLAM outputs bit for bit and every metric: one line
+    in report.md and at the top of repro.md; rotation differences exactly 0 (stable angle)."""
+    rng = np.random.default_rng(7)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        main = make_results(tmp / "v_main", seed=2)
+        rep = make_results(tmp / "v_rep", seed=2)
+        work = tmp / "work"
+        segs = ["ep00", "ep01"]
+        make_slam_cache(work, segs, rng, perturbed=())
+        out = tmp / "exp" / "results"
+        R.run_report(make_job(out, {"main": main, "repro1": rep}, repro=REPRO, work=work, segments=segs))
+        line = "- slam.E3 recomputed (repro1): outputs bit-identical on 2/2 segments; every metric delta 0"
+        assert line in (out / "report.md").read_text().splitlines()
+        md = (out / "repro.md").read_text()
+        assert md.splitlines()[2] == line
+        assert "rot_angle_deg_stable" in md and "exactly 0 for identical poses" in md
+        t = json.load(open(out / "repro.json"))["variants"]["repro1"]["trajectories"]["slam.E3"]
+        assert t["segments_bit_identical"] == 2 and all(e["bit_identical"] for e in t["per_segment"].values())
+        assert all(st["n"] > 0 and st["max"] == 0.0 for st in t["rot_diff_deg_pooled"].values())
+        assert "Not recomputed: E1 (independent of slam.E3" in md and "(every metric delta 0, see repro.json)" in md
+        assert "| E3 per-segment scale \\|s_repro/s_main - 1\\| median / max | - | 0.00% / 0.00% | 0.00% |" in md
+    # which runs a recomputed node (and its descendants) affects
+    assert R.recomputed_runs(["slam.E3", "depth.da2@E3"], ["E1", "E3"]) == ["E3"]
+    assert R.recomputed_runs(["depth.da2@E3"], ["E1", "E3"]) == ["E3"]
+    assert R.recomputed_runs(["masks.motion", "slam.E3", "depth.da2@E3"], ["E1", "E3"]) == ["E3"]
+    assert R.recomputed_runs(["slam.E1", "masks.tiles", "slam.E3", "depth.da2@E3"], ["E1", "E3"]) == ["E1", "E3"]
+    assert R.recomputed_runs(["tiles", "masks.tiles", "slam.E3"], ["E1", "E3"]) == ["E1", "E3"]
+    assert R.recomputed_runs(["preprocess", "slam.E1"], ["E1", "E3"]) == ["E1", "E3"]
+
+
+def test_rotation_shown_once_only_when_scale_free():
+    """Rotation label / chunk rows appear once ('every scale') when the scales agree, per scale
+    otherwise."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        for free in (True, False):
+            res = make_results(tmp / f"main_{free}", rot_scale_free=free)
+            out = tmp / f"exp_{free}" / "results"
+            R.run_report(make_job(out, {"main": res}))
+            md = (out / "report.md").read_text()
+            hdr, rows, _ = section_table(md, "Tool labels (15 fps training timeline) vs tile labels: tool_t->tool_t+dt rotation")
+            _, prow, _ = section_table(md, "Tool labels (15 fps training timeline) vs tile labels: tool_t->tool_t+dt position")
+            _, crows, after = section_table(md, "Chunk-length label error")
+            rot_q = [r[1] for r in crows if r[1].startswith("rotation")]
+            assert [r[1] for r in prow] == ["oracle (tiles)", "B+Acheck"]
+            assert [r[1] for r in crows if r[1].startswith("position")] == [
+                "position [mm], oracle (tiles), mean / median", "position [mm], B+Acheck, mean / median"]
+            if free:
+                assert [r[1] for r in rows] == ["every scale"] and R.SCALE_FREE in md
+                assert rot_q == ["rotation [deg], every scale, mean / median"] and R.SCALE_FREE in after
+            else:
+                assert [r[1] for r in rows] == ["oracle (tiles)", "B+Acheck"] and R.SCALE_FREE not in md
+                assert rot_q == ["rotation [deg], oracle (tiles), mean / median",
+                                 "rotation [deg], B+Acheck, mean / median"]
+
+
+def make_label_view(view, session, segs, rng, names=("E3", "E3@B+Acheck")):
+    """Label files of an analysis view, <view>/<session>/segments/epNN/labels/{tiles,<name>}.npz:
+    15 fps grids with gaps; the scaled file is the oracle one with translations x1.1 (same
+    rotations). Returns {seg: mask of steps gap-free in both}."""
+    oks = {}
+    for i, seg in enumerate(segs):
+        n = 70 + 20 * i
+        t = 10.0 + np.arange(n) / 15.0
+        d = Path(view) / session / "segments" / seg / "labels"
+        d.mkdir(parents=True)
+        gap_t, gap_s = np.zeros(n, bool), np.zeros(n, bool)
+        gap_t[[5, 6, 30]] = True
+        gap_s[[12, 50 + i]] = True
+        T = random_traj(rng, n)
+        np.savez(d / "tiles.npz", t=t, T_ref_tool=random_traj(rng, n), gap=gap_t, keep=np.array(True))
+        for k, name in enumerate(names):
+            Tn = T.copy()
+            Tn[:, :3, 3] *= 1.0 + 0.1 * k
+            np.savez(d / f"{name}.npz", t=t, T_ref_tool=Tn, gap=gap_s, keep=np.array(True))
+        oks[seg] = ~gap_t & ~gap_s
+    return oks
+
+
+def expected_steps_median(oks, H):
+    """Median over anchors (t gap-free, >= 1 counted step) of the counted steps j <= H: t + j
+    inside the series and gap-free."""
+    c = []
+    for ok in oks.values():
+        n = len(ok)
+        for t in np.where(ok)[0]:
+            k = sum(1 for j in range(1, H + 1) if t + j < n and ok[t + j])
+            if k:
+                c.append(k)
+    return float(np.median(c))
+
+
+def test_chunk_steps_recount_and_compare():
+    """labels_*.json without the counted steps: the report recounts them from the analysis view's
+    label files (checked against the file's anchor counts), shows them with mean / median per H,
+    and says 'not recorded' when the recount does not match; the comparison chunk table shows
+    the same per experiment."""
+    rng = np.random.default_rng(11)
+    session, segs = "yam_glove7", ["ep00", "ep01", "ep02"]
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        res = make_results(tmp / "run" / "main" / "results")
+        oks = make_label_view(tmp / "run" / "main" / "view", session, segs, rng)
+        old = C.WORK
+        C.WORK = tmp / "run" / "main" / "view"
+        try:
+            for name, f in (("E3", "labels_E3.json"), ("E3@B+Acheck", "labels_E3@B+Acheck.json")):
+                an = list(Lb.anchor_errors(session, name, 100))
+                lab = Lb.step_stats(an, name, 100, (), tuple(STEPS))
+                lab["chunk"] = Lb.chunk_stats(an, HS)
+                json.dump(R._clean(lab), open(res / f, "w"))
+        finally:
+            C.WORK = old
+        exps = tmp / "experiments"
+        for name, compare in (("expA", []), ("expB", ["expA"])):
+            R.run_report(make_job(exps / name / "results", {"main": res}, compare=compare, name=name,
+                                  experiments_root=exps))
+        exp_steps = {str(h): expected_steps_median(oks, h) for h in HS}
+        assert exp_steps["100"] < 100 and exp_steps["15"] > 0               # truncated long chunks
+        m = json.load(open(exps / "expB" / "results" / "metrics.json"))
+        lab = json.load(open(res / "labels_E3.json"))
+        for name in ("oracle", "B+Acheck"):
+            ch = m["runs"]["E3"]["chunk"][name]
+            assert {h: v["steps_median"] for h, v in ch.items()} == exp_steps
+            assert {h: v["anchors"] for h, v in ch.items()} == {h: v["anchors"] for h, v in lab["chunk"].items()}
+        assert "steps_median" not in lab["chunk"]["15"]                      # the analysis file is unchanged
+        md = (exps / "expB" / "results" / "report.md").read_text()
+        hdr, rows, after = section_table(md, "Chunk-length label error")
+        by_q = {r[1]: r[2:] for r in rows}
+        assert by_q["anchors"] == [str(lab["chunk"][str(h)]["anchors"]) for h in HS]
+        assert by_q["counted steps per anchor, median"] == [R._count(exp_steps[str(h)]) for h in HS]
+        c = lab["chunk"]
+        assert by_q["position [mm], oracle (tiles), mean / median"] == [
+            f"{c[str(h)]['pos_mm_mean']:.1f} / {c[str(h)]['pos_mm_median']:.1f}" for h in HS]
+        assert by_q["rotation [deg], every scale, mean / median"] == [
+            f"{c[str(h)]['rot_deg_mean']:.2f} / {c[str(h)]['rot_deg_median']:.2f}" for h in HS]
+        assert f"(e.g. E3, H=100: {R._count(exp_steps['100'])} of 100)" in after
+        assert "truncated chunks" in after and "not recorded" not in after
+        # comparison: the same rows for both experiments, n / units in every table
+        tabs = comparison_tables(md)
+        title = next(t for t in tabs if t.startswith("Chunk-length"))
+        hdr, rows = tabs[title]
+        assert hdr == ["run", "scale", "quantity", "H [steps of 1/15 s]", "expB", "expA"] and title.endswith(R.SCALE_FREE)
+        assert all(r[4] == r[5] != "-" for r in rows), rows
+        steps_rows = [r for r in rows if r[2] == "counted steps per anchor, median"]
+        assert [r[4] for r in steps_rows] == by_q["counted steps per anchor, median"]
+        assert {r[1] for r in rows if r[2].startswith("rot")} == {"every scale"}
+        assert [r[3] for r in steps_rows] == [f"{h} ({h / 15:.2f} s)" for h in HS]
+        check_comparison_units(tabs)
+        # a recount that does not reproduce the file's anchor counts is not used
+        lab_s = json.load(open(res / "labels_E3@B+Acheck.json"))
+        lab_s["chunk"]["30"]["anchors"] += 1
+        json.dump(lab_s, open(res / "labels_E3@B+Acheck.json", "w"))
+        out = tmp / "exp_bad" / "results"
+        R.run_report(make_job(out, {"main": res}))
+        m = json.load(open(out / "metrics.json"))
+        assert "steps_median" not in m["runs"]["E3"]["chunk"]["B+Acheck"]["30"]
+        assert m["runs"]["E3"]["chunk"]["oracle"]["30"]["steps_median"] == exp_steps["30"]
+        _, rows, _ = section_table((out / "report.md").read_text(), "Chunk-length label error")
+        by_q = {r[1]: r[2:] for r in rows}
+        assert by_q["counted steps per anchor, median, B+Acheck"] == ["-"] * len(HS)
+        assert by_q["counted steps per anchor, median, oracle (tiles)"] == [R._count(exp_steps[str(h)]) for h in HS]
+
+
+def check_comparison_units(tabs):
+    """Every dt column of the comparison tables has its unit in the header or in the values."""
+    n_dt = 0
+    for title, (hdr, rows) in tabs.items():
+        for i, h in enumerate(hdr):
+            if h.split(" ")[0] == "dt":
+                n_dt += 1
+                assert h == "dt [s]" or all(r[i].endswith(" s") or r[i] == "anchors" for r in rows), (title, h)
+    assert n_dt >= 3
 
 
 def test_fail_deg_printed_and_compared():

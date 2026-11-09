@@ -3,6 +3,7 @@
 Override an interpreter with SLAM_PY_<NAME> (e.g. SLAM_PY_SAM3=/path/to/python)."""
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -30,6 +31,11 @@ def is_conda(exe):
     return (Path(exe).parent.parent / "conda-meta").is_dir()
 
 
+def norm(name):
+    """PEP 503 package name, so conda's and pip's spellings of one package match."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 def snapshot(env):
     """{python, executable, kind, packages: {name: version}} of an environment."""
     exe = python(env)
@@ -44,14 +50,14 @@ def snapshot(env):
                            capture_output=True, text=True)
         if r.returncode == 0:
             for p in json.loads(r.stdout):
-                pk[p["name"]] = f"{p['version']} ({p.get('channel', '?')}, {p.get('build_string', '')})"
+                pk[norm(p["name"])] = f"{p['version']} ({p.get('channel', '?')}, {p.get('build_string', '')})"
     else:
         out["kind"] = "venv"
     r = subprocess.run([exe, "-m", "pip", "list", "--format=json", "--disable-pip-version-check"],
                        capture_output=True, text=True)
     if r.returncode == 0:
         for p in json.loads(r.stdout):
-            pk.setdefault(p["name"], p["version"])
+            pk.setdefault(norm(p["name"]), p["version"])
     out["packages"] = dict(sorted(pk.items(), key=lambda kv: kv[0].lower()))
     return out
 

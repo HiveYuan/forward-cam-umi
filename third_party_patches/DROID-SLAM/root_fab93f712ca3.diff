@@ -1,0 +1,30 @@
+diff --git a/droid_slam/modules/corr.py b/droid_slam/modules/corr.py
+index 751ed359fc24e5a1e1b08a91cffba070a354a8ae..b0074e424e6971ebda5135ee09f34889c0ac31bd 100644
+--- a/droid_slam/modules/corr.py
++++ b/droid_slam/modules/corr.py
+@@ -9,8 +9,17 @@ class CorrSampler(torch.autograd.Function):
+     def forward(ctx, volume, coords, radius):
+         ctx.save_for_backward(volume,coords)
+         ctx.radius = radius
+-        corr, = droid_backends.corr_index_forward(volume, coords, radius)
+-        return corr
++        # LOCAL PATCH: the CUDA kernel uses 32-bit accessors, so at high resolution
++        # (e.g. 960x536 -> 67x120 feature grid) a volume with many edges exceeds
++        # int32 numel. Split along the edge dimension; output is identical.
++        per_edge = max(1, volume[0].numel())
++        chunk = max(1, (2**31 - 1) // per_edge)
++        if volume.shape[0] <= chunk:
++            corr, = droid_backends.corr_index_forward(volume, coords, radius)
++            return corr
++        outs = [droid_backends.corr_index_forward(volume[k:k+chunk].contiguous(), coords[k:k+chunk].contiguous(), radius)[0]
++                for k in range(0, volume.shape[0], chunk)]
++        return torch.cat(outs, 0)
+ 
+     @staticmethod
+     def backward(ctx, grad_output):
+diff --git a/thirdparty/lietorch b/thirdparty/lietorch
+--- a/thirdparty/lietorch
++++ b/thirdparty/lietorch
+@@ -1 +1 @@
+-Subproject commit 7f687644fcea81ab337831749445224503c1290d
++Subproject commit 7f687644fcea81ab337831749445224503c1290d-dirty
