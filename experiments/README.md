@@ -106,3 +106,4 @@ New experiments start from these unless they test an alternative to them:
 | exp004_error_decomposition | exp003's E3 label error split into SLAM vs tile rotation x B vs oracle scale (IMU / stereo question) |
 | exp005_session_scale | scale `Bsession`: one ball correction k pooled over the session, vs per-segment B; diagnosis of the long tail |
 | exp006_sam3_v2 | SAM3 masks v2 (`sam3_v2`): leak-filtered text instances attached to the wearer, denser rig prompts, held-block point; DROID E3 |
+| exp007_v2_session_scale | the current defaults: exp006's masks and DROID E3 with scale Bsession + A check; the baseline for later backends |
