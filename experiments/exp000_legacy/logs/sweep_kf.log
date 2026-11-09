@@ -1,0 +1,11 @@
+[   102s] ep00 E1kfB: {"run": "E1kfB", "masks": [], "runtime_s": 99.98625183105469, "peak_gpu_gb": 16.763912677764893, "n_frames": 302, "n_keyframes": 17, "valid_frac": 1.0}
+[   251s] ep10 E1kfB: {"run": "E1kfB", "masks": [], "runtime_s": 146.9352252483368, "peak_gpu_gb": 16.967227935791016, "n_frames": 322, "n_keyframes": 27, "valid_frac": 1.0}
+[   326s] ep11 E1kfB: {"run": "E1kfB", "masks": [], "runtime_s": 74.07880926132202, "peak_gpu_gb": 16.481826305389404, "n_frames": 272, "n_keyframes": 21, "valid_frac": 1.0}
+[   438s] ep14 E1kfB: {"run": "E1kfB", "masks": [], "runtime_s": 109.50609350204468, "peak_gpu_gb": 16.84233045578003, "n_frames": 308, "n_keyframes": 33, "valid_frac": 1.0}
+[   533s] ep21 E1kfB: {"run": "E1kfB", "masks": [], "runtime_s": 93.47234773635864, "peak_gpu_gb": 16.834989547729492, "n_frames": 309, "n_keyframes": 23, "valid_frac": 1.0}
+[   660s] ep27 E1kfB: {"run": "E1kfB", "masks": [], "runtime_s": 125.53702306747437, "peak_gpu_gb": 16.81962537765503, "n_frames": 306, "n_keyframes": 32, "valid_frac": 1.0}
+[   200s] ep00 E1kfC: {"run": "E1kfC", "masks": [], "runtime_s": 198.27175331115723, "peak_gpu_gb": 16.824548721313477, "n_frames": 302, "n_keyframes": 35, "valid_frac": 1.0}
+[   439s] ep10 E1kfC: {"run": "E1kfC", "masks": [], "runtime_s": 237.34038424491882, "peak_gpu_gb": 17.052549839019775, "n_frames": 322, "n_keyframes": 57, "valid_frac": 1.0}
+[   586s] ep11 E1kfC: {"run": "E1kfC", "masks": [], "runtime_s": 145.0342411994934, "peak_gpu_gb": 16.558281421661377, "n_frames": 272, "n_keyframes": 46, "valid_frac": 1.0}
+[   813s] ep14 E1kfC: {"run": "E1kfC", "masks": [], "runtime_s": 225.03915977478027, "peak_gpu_gb": 16.96695899963379, "n_frames": 308, "n_keyframes": 84, "valid_frac": 1.0}
+[   989s] ep21 E1kfC: {"run": "E1kfC", "masks": [], "runtime_s": 173.71504402160645, "peak_gpu_gb": 16.914559841156006, "n_frames": 309, "n_keyframes": 48, "valid_frac": 1.0}

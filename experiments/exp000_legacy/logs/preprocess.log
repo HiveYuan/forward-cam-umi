@@ -1,0 +1,14 @@
+13 of 30 segments to do -> /home/student/yuanliu-hawaii/work/yam_glove7/segments
+[    35s] ep19: frames 15139-15430 (292), in-episode 160, tile poses 247 (>=2 tiles 37), ball 279, full 292
+[    36s] ep17: frames 13973-14270 (298), in-episode 167, tile poses 298 (>=2 tiles 298), ball 286, full 298
+[    37s] ep20: frames 15537-15847 (311), in-episode 180, tile poses 300 (>=2 tiles 125), ball 271, full 309
+[    37s] ep21: frames 16066-16374 (309), in-episode 177, tile poses 309 (>=2 tiles 309), ball 298, full 309
+[    37s] ep23: frames 17170-17486 (317), in-episode 186, tile poses 317 (>=2 tiles 101), ball 287, full 310
+[    39s] ep22: frames 16520-16857 (338), in-episode 206, tile poses 338 (>=2 tiles 70), ball 308, full 337
+[    39s] ep24: frames 17609-17939 (331), in-episode 199, tile poses 321 (>=2 tiles 218), ball 328, full 328
+[    41s] ep18: frames 14529-14876 (348), in-episode 216, tile poses 348 (>=2 tiles 348), ball 335, full 348
+[    59s] ep25: frames 18192-18483 (292), in-episode 161, tile poses 292 (>=2 tiles 122), ball 268, full 292
+[    60s] ep26: frames 18608-18901 (294), in-episode 163, tile poses 284 (>=2 tiles 178), ball 253, full 282
+[    61s] ep29: frames 20322-20615 (294), in-episode 163, tile poses 283 (>=2 tiles 45), ball 260, full 294
+[    61s] ep27: frames 19178-19483 (306), in-episode 175, tile poses 306 (>=2 tiles 306), ball 306, full 306
+[    61s] ep28: frames 19710-20016 (307), in-episode 176, tile poses 304 (>=2 tiles 102), ball 255, full 267

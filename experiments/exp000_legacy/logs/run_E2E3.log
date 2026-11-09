@@ -1,0 +1,61 @@
+[    29s] ep00 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 23.29546022415161, "peak_gpu_gb": 14.476765632629395, "n_frames": 302, "n_keyframes": 10, "valid_frac": 0.867472231388092}
+[    79s] ep01 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 44.54859399795532, "peak_gpu_gb": 16.71233558654785, "n_frames": 298, "n_keyframes": 12, "valid_frac": 0.8745788931846619}
+[   115s] ep02 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 31.250372648239136, "peak_gpu_gb": 14.822163581848145, "n_frames": 278, "n_keyframes": 13, "valid_frac": 0.8943032026290894}
+[   154s] ep03 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 33.399274587631226, "peak_gpu_gb": 15.316121101379395, "n_frames": 270, "n_keyframes": 11, "valid_frac": 0.8705657124519348}
+[   198s] ep04 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 38.70524573326111, "peak_gpu_gb": 16.842443466186523, "n_frames": 312, "n_keyframes": 11, "valid_frac": 0.9031341671943665}
+[   239s] ep05 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 35.26543712615967, "peak_gpu_gb": 15.11736536026001, "n_frames": 310, "n_keyframes": 10, "valid_frac": 0.8923880457878113}
+[   273s] ep06 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 29.247743129730225, "peak_gpu_gb": 16.3518385887146, "n_frames": 259, "n_keyframes": 12, "valid_frac": 0.9011174440383911}
+[   298s] ep07 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 19.94423770904541, "peak_gpu_gb": 14.073827743530273, "n_frames": 261, "n_keyframes": 8, "valid_frac": 0.8974037766456604}
+[   328s] ep08 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 25.27646279335022, "peak_gpu_gb": 14.499288082122803, "n_frames": 243, "n_keyframes": 15, "valid_frac": 0.9161885976791382}
+[   381s] ep09 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 47.301846504211426, "peak_gpu_gb": 15.052791595458984, "n_frames": 303, "n_keyframes": 9, "valid_frac": 0.9009420871734619}
+[   461s] ep10 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 74.6400146484375, "peak_gpu_gb": 16.936132431030273, "n_frames": 322, "n_keyframes": 13, "valid_frac": 0.884883463382721}
+[   509s] ep11 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 41.974507093429565, "peak_gpu_gb": 14.768970489501953, "n_frames": 272, "n_keyframes": 12, "valid_frac": 0.9013448357582092}
+[   578s] ep12 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 63.3990375995636, "peak_gpu_gb": 16.67387866973877, "n_frames": 293, "n_keyframes": 13, "valid_frac": 0.9058317542076111}
+[   641s] ep13 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 58.494133710861206, "peak_gpu_gb": 16.581626415252686, "n_frames": 283, "n_keyframes": 14, "valid_frac": 0.8882042765617371}
+[   708s] ep14 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 60.87865161895752, "peak_gpu_gb": 16.818005561828613, "n_frames": 308, "n_keyframes": 18, "valid_frac": 0.8674399852752686}
+[   748s] ep15 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 34.73224091529846, "peak_gpu_gb": 15.132222175598145, "n_frames": 312, "n_keyframes": 17, "valid_frac": 0.8976619243621826}
+[   786s] ep16 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 32.13376832008362, "peak_gpu_gb": 14.516629695892334, "n_frames": 309, "n_keyframes": 9, "valid_frac": 0.8901048898696899}
+[   832s] ep17 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 40.594205141067505, "peak_gpu_gb": 16.71161651611328, "n_frames": 298, "n_keyframes": 10, "valid_frac": 0.916420042514801}
+[   861s] ep18 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 22.91887664794922, "peak_gpu_gb": 15.183439254760742, "n_frames": 348, "n_keyframes": 8, "valid_frac": 0.9261762499809265}
+[   914s] ep19 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 47.34513545036316, "peak_gpu_gb": 16.07868528366089, "n_frames": 292, "n_keyframes": 11, "valid_frac": 0.9062581062316895}
+[   964s] ep20 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 45.036006689071655, "peak_gpu_gb": 16.254199504852295, "n_frames": 311, "n_keyframes": 11, "valid_frac": 0.8994824886322021}
+[  1008s] ep21 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 37.60831308364868, "peak_gpu_gb": 16.820760250091553, "n_frames": 309, "n_keyframes": 13, "valid_frac": 0.9317457675933838}
+[  1063s] ep22 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 49.326281785964966, "peak_gpu_gb": 17.08349370956421, "n_frames": 338, "n_keyframes": 12, "valid_frac": 0.9039948582649231}
+[  1117s] ep23 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 47.79519534111023, "peak_gpu_gb": 16.896716117858887, "n_frames": 317, "n_keyframes": 16, "valid_frac": 0.8527100086212158}
+[  1182s] ep24 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 59.61879801750183, "peak_gpu_gb": 17.031378269195557, "n_frames": 331, "n_keyframes": 15, "valid_frac": 0.9052813649177551}
+[  1257s] ep25 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 69.08892631530762, "peak_gpu_gb": 16.666090488433838, "n_frames": 292, "n_keyframes": 15, "valid_frac": 0.8753101229667664}
+[  1307s] ep26 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 44.861815214157104, "peak_gpu_gb": 16.097134113311768, "n_frames": 294, "n_keyframes": 14, "valid_frac": 0.8655836582183838}
+[  1382s] ep27 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 69.81686115264893, "peak_gpu_gb": 16.795720100402832, "n_frames": 306, "n_keyframes": 16, "valid_frac": 0.8935278654098511}
+[  1447s] ep28 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 58.672374963760376, "peak_gpu_gb": 16.797276973724365, "n_frames": 307, "n_keyframes": 14, "valid_frac": 0.9092833399772644}
+[  1495s] ep29 E2: {"run": "E2", "masks": ["motion"], "runtime_s": 42.62937521934509, "peak_gpu_gb": 16.684539318084717, "n_frames": 294, "n_keyframes": 19, "valid_frac": 0.8703307509422302}
+[    30s] ep00 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 24.72066307067871, "peak_gpu_gb": 14.452054023742676, "n_frames": 302, "n_keyframes": 10, "valid_frac": 0.8325545191764832}
+[    82s] ep01 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 46.02322578430176, "peak_gpu_gb": 16.71233558654785, "n_frames": 298, "n_keyframes": 12, "valid_frac": 0.8380593061447144}
+[   118s] ep02 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 30.355088472366333, "peak_gpu_gb": 14.822163581848145, "n_frames": 278, "n_keyframes": 12, "valid_frac": 0.8656403422355652}
+[   161s] ep03 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 38.26600122451782, "peak_gpu_gb": 16.455471515655518, "n_frames": 270, "n_keyframes": 13, "valid_frac": 0.8402842283248901}
+[   206s] ep04 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 39.638617515563965, "peak_gpu_gb": 16.842204093933105, "n_frames": 312, "n_keyframes": 11, "valid_frac": 0.8738088607788086}
+[   249s] ep05 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 36.429519176483154, "peak_gpu_gb": 15.685361385345459, "n_frames": 310, "n_keyframes": 10, "valid_frac": 0.8573591709136963}
+[   283s] ep06 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 29.269623517990112, "peak_gpu_gb": 16.35327672958374, "n_frames": 259, "n_keyframes": 12, "valid_frac": 0.8687627911567688}
+[   309s] ep07 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 20.939879655838013, "peak_gpu_gb": 14.073827743530273, "n_frames": 261, "n_keyframes": 8, "valid_frac": 0.8637325763702393}
+[   339s] ep08 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 25.16769289970398, "peak_gpu_gb": 14.499288082122803, "n_frames": 243, "n_keyframes": 15, "valid_frac": 0.8854799866676331}
+[   398s] ep09 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 53.503390073776245, "peak_gpu_gb": 15.619589805603027, "n_frames": 303, "n_keyframes": 9, "valid_frac": 0.856842041015625}
+[   490s] ep10 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 86.37555813789368, "peak_gpu_gb": 16.94284152984619, "n_frames": 322, "n_keyframes": 15, "valid_frac": 0.8477612137794495}
+[   548s] ep11 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 52.13850998878479, "peak_gpu_gb": 16.473201274871826, "n_frames": 272, "n_keyframes": 12, "valid_frac": 0.8697253465652466}
+[   618s] ep12 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 65.14276909828186, "peak_gpu_gb": 16.673638343811035, "n_frames": 293, "n_keyframes": 13, "valid_frac": 0.8732128739356995}
+[   682s] ep13 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 58.07497572898865, "peak_gpu_gb": 16.581865787506104, "n_frames": 283, "n_keyframes": 14, "valid_frac": 0.8598544597625732}
+[   749s] ep14 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 61.516584396362305, "peak_gpu_gb": 16.815608978271484, "n_frames": 308, "n_keyframes": 18, "valid_frac": 0.8377814292907715}
+[   792s] ep15 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 37.39075231552124, "peak_gpu_gb": 15.132222175598145, "n_frames": 312, "n_keyframes": 17, "valid_frac": 0.8533638119697571}
+[   833s] ep16 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 34.922297954559326, "peak_gpu_gb": 14.516629695892334, "n_frames": 309, "n_keyframes": 8, "valid_frac": 0.8369205594062805}
+[   881s] ep17 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 42.872313022613525, "peak_gpu_gb": 16.711856842041016, "n_frames": 298, "n_keyframes": 10, "valid_frac": 0.8674522042274475}
+[   911s] ep18 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 23.747632026672363, "peak_gpu_gb": 15.183439254760742, "n_frames": 348, "n_keyframes": 8, "valid_frac": 0.8898135423660278}
+[   968s] ep19 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 51.20120286941528, "peak_gpu_gb": 16.65626573562622, "n_frames": 292, "n_keyframes": 11, "valid_frac": 0.8631793856620789}
+[  1026s] ep20 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 52.696579933166504, "peak_gpu_gb": 16.83297872543335, "n_frames": 311, "n_keyframes": 12, "valid_frac": 0.8607409000396729}
+[  1071s] ep21 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 38.82004117965698, "peak_gpu_gb": 16.81884241104126, "n_frames": 309, "n_keyframes": 13, "valid_frac": 0.8998156189918518}
+[  1130s] ep22 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 53.60549235343933, "peak_gpu_gb": 17.08469247817993, "n_frames": 338, "n_keyframes": 13, "valid_frac": 0.8805782794952393}
+[  1187s] ep23 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 50.48013210296631, "peak_gpu_gb": 16.90103054046631, "n_frames": 317, "n_keyframes": 16, "valid_frac": 0.8243051171302795}
+[  1258s] ep24 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 64.85408449172974, "peak_gpu_gb": 17.03161859512329, "n_frames": 331, "n_keyframes": 15, "valid_frac": 0.8763591051101685}
+[  1336s] ep25 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 73.38065099716187, "peak_gpu_gb": 16.666329860687256, "n_frames": 292, "n_keyframes": 14, "valid_frac": 0.8336174488067627}
+[  1389s] ep26 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 47.11937928199768, "peak_gpu_gb": 16.097134113311768, "n_frames": 294, "n_keyframes": 14, "valid_frac": 0.8211260437965393}
+[  1465s] ep27 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 69.91200923919678, "peak_gpu_gb": 16.794761657714844, "n_frames": 306, "n_keyframes": 14, "valid_frac": 0.8586296439170837}
+[  1535s] ep28 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 64.7339608669281, "peak_gpu_gb": 16.802550792694092, "n_frames": 307, "n_keyframes": 18, "valid_frac": 0.8728960752487183}
+[  1583s] ep29 E3: {"run": "E3", "masks": ["motion", "tiles"], "runtime_s": 42.39632749557495, "peak_gpu_gb": 16.679508686065674, "n_frames": 294, "n_keyframes": 17, "valid_frac": 0.8311630487442017}
+DONE
