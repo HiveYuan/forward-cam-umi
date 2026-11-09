@@ -149,3 +149,16 @@ GB (ep15), tracker up to 11.0 GB; `gpu_gb` is 14.
 - Fingertip marker cubes and thin slivers along the fingers remain the most frequent small misses.
 - The judges' "held" frames ep20 184, ep26 180, ep28 120 have an open gripper or a closed one at
   rest (widths 0.68, 0.68, 0.20); the images agree with the widths, so they are counted as not held.
+
+## Gallery
+
+`gallery/index.html` (open it in a browser; also published as the private page "glove7 SAM3 v2
+Masks", https://claude.ai/artifact/6qMGM3v2FAMJ9VcxpwctaA). It shows 120 frames, the same frames as
+exp002's gallery: 2 evenly spaced frames and the 2 worst-for-v1 frames per segment. Each image puts
+v1 (left) next to v2 (right), each compared with SAM2:
+- green: both masks;
+- cyan: SAM2 only;
+- magenta: the SAM3 version only.
+
+It also has the region-audit table and the pooled agreement numbers. To rebuild it from the cache:
+`render.py <out>` renders the images, then `page.py <out> stats.json` writes the page.
