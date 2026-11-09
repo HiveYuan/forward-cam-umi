@@ -11,7 +11,10 @@ job.params: {compare: [experiment names], dt_show: [s, ...]}
 Writes into job.out_dir (= experiments/<exp>/results/):
   metrics.json      canonical numbers of the main variant (schema below)
   report.md         short tables (sample sizes n under the head and label tables; rotation
-                    label / chunk rows shown once when they are the same for every scale), a
+                    label / chunk rows shown once when they are the same for every scale), an
+                    'Error decomposition' section per errdecomp_<run>.json (the four rotation x
+                    scale combinations side by side: label error vs dt, chunk H, per head speed
+                    bin, and the checks against the labels files), a
                     'Mask comparison' section per masks_<cand>_vs_<ref>.json (pooled stats, mean
                     and per-part areas, low / worst segments, where the overlay images are), then
                     side by side with every experiment in `compare`; after --repro one line per
@@ -19,7 +22,7 @@ Writes into job.out_dir (= experiments/<exp>/results/):
                     without SLAM runs (no analysis.json: e.g. masks + mask_compare only) gets the
                     mask sections only.
   copies            the main variant's scale_*.json/.md, labels_*.json, eval_*/summary.{json,md},
-                    gt_noise.json, analysis.json, masks_*.json/.md (never pairs.csv, never the
+                    gt_noise.json, analysis.json, masks_*.json/.md, errdecomp_*.json/.md (never pairs.csv, never the
                     overlay images); JSON copies are strict JSON (NaN / Infinity literals -> null;
                     the originals are left as they are)
   repro.json, repro.md   after --repro: headline metric deltas (each with its "run") and
@@ -46,7 +49,8 @@ metrics.json:
                                  + the file's "summary": "frames", "iou", "recall", "precision",
                                  "extra_area", "missed_area", "cells_iou" (mask stats), "area_ref",
                                  "area_cand", "part_area", "segments_iou_median_below_0.8",
-                                 "worst_segments"}}}
+                                 "worst_segments"}},
+   "error_decomp": {run: {"scale_label", "anchors", "speed", "combos", "coupling", "checks"}}   (only if present)}
   stat = slam.evaluate.stats() dict; dt keys are strings as in the legacy summary.json ("0.08",
   "1.0"); scale_name = "oracle" (tile-fitted scale) or the run's scale label ("B+Acheck").
   chunk[scale_name][H] = slam.labels.chunk_stats fields, plus "steps_median" (median number of
@@ -67,6 +71,10 @@ metrics.json:
   "mean"} over frames (fractions; areas as fractions of the frame). The overlay images stay in
   the work run directory (<work>/runs/<exp>/<variant>/overlays/<cand>_vs_<ref>/); report.md
   points to them.
+  error_decomp = one block per error_decomp output errdecomp_<run>.json of the results dir (the
+  file without "segments", "params", "gripper"; impl_error_decomp docstring): combos {name:
+  {"rotation", "scale", "anchors", "by_step", "chunk", "by_speed": {bin: {...}}}}. The key is
+  absent when there is no such file, so experiments without the step keep their metrics.json.
 
 Experiments without metrics.json (exp000_legacy) are read by legacy_metrics(), which builds
 the same structure from the legacy files (results/eval/, results/<label>_eval/).
@@ -245,6 +253,8 @@ def labels_entry(lab):
 
 MASK_PREFIX = "masks_"
 MASK_IOU_LOW = "segments_iou_median_below_0.8"       # key of the mask_compare summary
+ERRDECOMP_PREFIX = "errdecomp_"
+ERRDECOMP_KEYS = ("scale_label", "anchors", "speed", "combos", "coupling", "checks")
 
 
 def mask_files(res):
@@ -266,6 +276,17 @@ def masks_block(mc):
 def masks_metrics(res):
     """{"<cand>_vs_<ref>": masks_block} of a results dir ({} without mask comparisons)."""
     return {name: masks_block(_read(p)) for name, p in mask_files(res).items()}
+
+
+def error_decomp_files(res):
+    """{run: path} of the error_decomp outputs errdecomp_<run>.json in a results dir."""
+    return {p.stem[len(ERRDECOMP_PREFIX):]: p for p in sorted(Path(res).glob(f"{ERRDECOMP_PREFIX}*.json"))
+            if p.is_file()}
+
+
+def error_decomp_metrics(res):
+    """{run: canonical error_decomp block} of a results dir ({} without error_decomp outputs)."""
+    return {run: {k: _read(p).get(k) for k in ERRDECOMP_KEYS} for run, p in error_decomp_files(res).items()}
 
 
 def mask_segments(res):
@@ -373,9 +394,13 @@ def build_metrics(base, index, experiment, variant, scale_reader=scale_block):
         ev = ev or {}
         evaluate = {"fail_deg": _num(ev.get("fail_deg")),
                     "dts": ev.get("dts") if ev.get("dts") is not None else (oracle_any or {}).get("dts")}
-    return _clean({"experiment": experiment, "variant": variant, "n_segments": len(segs),
-                   "runs": runs, "gt_noise": load(index.get("gt_noise")), "evaluate": evaluate,
-                   "masks": masks_metrics(base)})
+    out = {"experiment": experiment, "variant": variant, "n_segments": len(segs),
+           "runs": runs, "gt_noise": load(index.get("gt_noise")), "evaluate": evaluate,
+           "masks": masks_metrics(base)}
+    ed = error_decomp_metrics(base)
+    if ed:                                               # only experiments that ran error_decomp
+        out["error_decomp"] = ed
+    return _clean(out)
 
 
 def results_index(res):
@@ -491,7 +516,7 @@ def load_experiment(root, name):
 
 # ====================================================================== copying
 COPY_PATTERNS = ("scale_*.json", "scale_*.md", "labels_*.json", "gt_noise.json", "analysis.json",
-                 f"{MASK_PREFIX}*.json", f"{MASK_PREFIX}*.md")
+                 f"{MASK_PREFIX}*.json", f"{MASK_PREFIX}*.md", f"{ERRDECOMP_PREFIX}*.json", f"{ERRDECOMP_PREFIX}*.md")
 
 
 def copy_strict(src, dst):
@@ -838,6 +863,168 @@ def render_gt_noise(g):
         rows.append(["tile set changes between the ends", t["n"], f"{_f(t.get('rot_deg_median'))} / {_f(t.get('rot_deg_p95'))}",
                      f"{_f(t.get('trans_mm_median'), '.1f')} / {_f(t.get('trans_mm_p95'), '.1f')}"])
     return L + _table(["pairs", "n", "rot deg median / p95", "trans mm median / p95"], rows)
+
+
+# ---------------------------------------------------------------------- error decomposition
+ED_STANDS_FOR = {("slam", "configured"): "the pipeline", ("slam", "oracle"): "perfect scale ~ stereo",
+                 ("tile", "configured"): "perfect rotation ~ IMU", ("tile", "oracle"): "both"}
+
+
+def _ed_names(b):
+    """{combination: '(i) <rotation> rot + <scale> s'} in the file's order."""
+    label = b.get("scale_label") or "configured"
+    out = {}
+    for i, (c, x) in enumerate((b.get("combos") or {}).items()):
+        rot = "SLAM" if x.get("rotation") == "slam" else "tile"
+        sc = label if x.get("scale") == "configured" else "oracle"
+        out[c] = f"({i + 1}) {rot} rot + {sc} s"
+    return out
+
+
+def _ed_cell(st, key, fmt):
+    return "-" if not st else f"{_f(st.get(key + '_median'), fmt)} / {_f(st.get(key + '_p90'), fmt)}"
+
+
+def _ed_chunk_cell(st, key, fmt):
+    return "-" if not st or not st.get("anchors") else f"{_f(st.get(key + '_mean'), fmt)} / {_f(st.get(key + '_median'), fmt)}"
+
+
+def _ed_check_line(b):
+    """One line on the checks of an errdecomp file: combinations 1 / 2 vs the labels files, and the
+    decomposition with the SLAM rotation vs the label chunks."""
+    names = _ed_names(b)
+    ch = b.get("checks") or {}
+    parts = []
+    for c, x in (ch.get("labels_files") or {}).items():
+        if not x:
+            parts.append(f"{names.get(c, c)}: no labels file to compare")
+            continue
+        what = ("identical (anchors, every step and chunk number)" if x.get("identical") else
+                f"DIFFERENT (anchors {x.get('anchors')}, largest |difference| {_f(x.get('max_abs_diff'), '.3g')})")
+        parts.append(f"{names.get(c, c)} vs `{x.get('file')}`: {what}")
+    for kind, d in (ch.get("decomposition") or {}).items():
+        if d and d.get("pairs"):
+            parts.append(f"cam_t->tool_t decomposition with the SLAM rotation vs the label chunk ({kind} scale, "
+                         f"{d['pairs']} pairs): max |position difference| {_f(d.get('max_pos_mm'), '.1e')} mm, "
+                         f"max |R difference| {_f(d.get('max_rot_frobenius'), '.1e')}")
+    return ("Checks: " + "; ".join(parts) + ".") if parts else ""
+
+
+def error_decomp_tables(run, b, level="###"):
+    """Tables of one error decomposition (errdecomp_<run>.json or its metrics block): the four
+    combinations side by side for position and rotation vs dt, chunk H, and per head speed bin."""
+    combos = b.get("combos") or {}
+    names = _ed_names(b)
+    label = b.get("scale_label") or "configured"
+    steps = _steps(combos.values())
+    hs = _chunk_hs(x.get("chunk") for x in combos.values())
+    sp = b.get("speed") or {}
+    w = sp.get("window_s")
+    bins = list(next(iter(combos.values()), {}).get("by_speed") or {})
+    L = [f"Tool label error on the 15 fps training timeline vs the tile labels (as in the tool label tables), with "
+         f"the head motion cam_t->cam_t+dt of run {run} rebuilt from one rotation source and one scale: rotation from "
+         f"SLAM or from the tile head poses, translation = s x SLAM's (unscaled) translation with s = the configured "
+         f"scale ({label}) or the per-segment tile oracle (`errdecomp_{run}.json`). "
+         + "; ".join(f"{names[c]}: {ED_STANDS_FOR.get((x.get('rotation'), x.get('scale')), '')}"
+                     for c, x in combos.items())
+         + ". What is left in the last one is SLAM's translation direction and its scale drift within a segment.", ""]
+    head = []
+    if "15" in steps:
+        head.append("dt 1.00 s position median: " + ", ".join(
+            f"{names[c]} {_f((x['by_step'].get('15') or {}).get('pos_mm_median'), '.1f')}" for c, x in combos.items()) + " mm")
+    for h in hs:
+        if h == "30":
+            head.append("chunk H=30 position mean: " + ", ".join(
+                f"{names[c]} {_f((x['chunk'].get(h) or {}).get('pos_mm_mean'), '.1f')}" for c, x in combos.items()) + " mm")
+    if head:
+        L += ["; ".join(head) + ".", ""]
+    for key, title, fmt in (("pos_mm", "position error [mm]", ".1f"), ("rot_deg", "rotation error [deg]", ".2f")):
+        L += [f"{level} Error decomposition, {run}: tool_t->tool_t+dt {title}, median / p90", ""]
+        rows, nrows = [], []
+        for c, x in combos.items():
+            by = x.get("by_step") or {}
+            rows.append([names[c], x.get("anchors")] + [_ed_cell(by.get(j), key, fmt) for j in steps])
+            nrows.append((names[c], _ns(by, steps)))
+        L += _table(["combination", "anchors"] + [_step_dt(j) for j in steps], rows)
+        L += _n_note("anchors counting the step", nrows, steps, _step_dt)
+    L += [f"{level} Error decomposition, {run}: chunk-length label error over steps 1..H, mean / median over anchors", ""]
+    rows = []
+    for c, x in combos.items():
+        ch = x.get("chunk") or {}
+        rows.append([names[c], "anchors"] + [_count((ch.get(h) or {}).get("anchors")) for h in hs])
+        rows.append([names[c], "position [mm], mean / median"] + [_ed_chunk_cell(ch.get(h), "pos_mm", ".1f") for h in hs])
+        rows.append([names[c], "rotation [deg], mean / median"] + [_ed_chunk_cell(ch.get(h), "rot_deg", ".2f") for h in hs])
+    L += _table(["combination", "quantity"] + [_h_label(h) for h in hs], rows)
+    if bins:
+        counts = sp.get("anchors") or {}
+        cl = [f"{kind} scale: " + ", ".join(f"{k} {v}" for k, v in cnt.items()) for kind, cnt in counts.items()]
+        L += [f"{level} Error decomposition, {run}: by head rotation speed [deg/s]", "",
+              f"Speed = tile head rotation between the anchor and {_f(w, 'g')} s later, divided by {_f(w, 'g')} s; "
+              f"anchors per bin ({'; '.join(cl)}; unknown = no tile pose within 0.12 s of an end, in no bin).", ""]
+        for key, title, fmt in (("pos_mm", "position [mm]", ".1f"), ("rot_deg", "rotation [deg]", ".2f")):
+            rows = []
+            for bn in bins:
+                for c, x in combos.items():
+                    bb = (x.get("by_speed") or {}).get(bn) or {}
+                    rows.append([bn, names[c], bb.get("anchors")] + [_ed_cell((bb.get("by_step") or {}).get(j), key, fmt)
+                                                                     for j in steps])
+            L += [f"{title}, median / p90:", ""]
+            L += _table(["speed", "combination", "anchors"] + [_step_dt(j) for j in steps], rows)
+        rows = []
+        for bn in bins:
+            for c, x in combos.items():
+                ch = (((x.get("by_speed") or {}).get(bn) or {}).get("chunk")) or {}
+                rows.append([bn, names[c], "anchors"] + [_count((ch.get(h) or {}).get("anchors")) for h in hs])
+                rows.append([bn, names[c], "position [mm], mean / median"]
+                            + [_ed_chunk_cell(ch.get(h), "pos_mm", ".1f") for h in hs])
+                rows.append([bn, names[c], "rotation [deg], mean / median"]
+                            + [_ed_chunk_cell(ch.get(h), "rot_deg", ".2f") for h in hs])
+        L += ["chunk-length label error, mean / median over anchors:", ""]
+        L += _table(["speed", "combination", "quantity"] + [_h_label(h) for h in hs], rows)
+    L += _ed_coupling(run, b, steps, level)
+    chk = _ed_check_line(b)
+    if chk:
+        L += [chk, ""]
+    return L
+
+
+def _ed_coupling(run, b, steps, level):
+    """Table of the rotation / translation parts of the SLAM head-motion error at the tool (coupling)."""
+    cp = b.get("coupling") or {}
+    if not any((x or {}).get("by_step") for x in cp.values()):
+        return []
+    label = b.get("scale_label") or "configured"
+    sname = (lambda kind: label if kind == "configured" else "oracle")
+    L = [f"{level} Error decomposition, {run}: rotation and translation parts of the SLAM head-motion error at the tool", "",
+         "In cam_t the tool after the head motion is at R b + t (b = cam_t+dt->tool_t+dt), so the SLAM label position "
+         "error is about the length of dR b + dt: rotation part dR b = (R_slam - R_tile) b, translation part "
+         "dt = s t_slam - t_tile (lengths in the table). The tile-rotation combinations keep only dt; a cosine near -1 "
+         "means the two parts cancel at the tool's depth, so replacing the rotation alone makes the labels worse.", ""]
+    rows = []
+    kinds = [k for k in cp if (cp[k] or {}).get("by_step")]
+    first = cp[kinds[0]]["by_step"]
+    rows.append(["rotation part dR b [mm], median / p90 (scale-free)"]
+                + [f"{_f((first.get(j) or {}).get('rot_part_mm_median'), '.1f')} / "
+                   f"{_f((first.get(j) or {}).get('rot_part_mm_p90'), '.1f')}" if j in first else "-" for j in steps])
+    for k in kinds:
+        by = cp[k]["by_step"]
+        rows.append([f"translation part dt [mm], {sname(k)} s, median / p90"]
+                    + [f"{_f((by.get(j) or {}).get('trans_part_mm_median'), '.1f')} / "
+                       f"{_f((by.get(j) or {}).get('trans_part_mm_p90'), '.1f')}" if j in by else "-" for j in steps])
+    for k in kinds:
+        by = cp[k]["by_step"]
+        rows.append([f"cos(dR b, dt), {sname(k)} s, median"]
+                    + [_f((by.get(j) or {}).get("cos_median"), ".2f") if j in by else "-" for j in steps])
+    return L + _table(["quantity"] + [_step_dt(j) for j in steps], rows)
+
+
+def render_error_decomp(m):
+    """'Error decomposition' sections of the report (one per errdecomp_<run>.json; none without)."""
+    L = []
+    for run, b in (m.get("error_decomp") or {}).items():
+        L += [f"## Error decomposition, run {run}: SLAM or tile head rotation x configured or oracle scale", ""]
+        L += error_decomp_tables(run, b, "###")
+    return L
 
 
 # ---------------------------------------------------------------------- mask comparison
@@ -1780,6 +1967,7 @@ def run_report(job):
               "(static = head motion identity, no SLAM). Ground truth: tile head poses; "
               "\"oracle (tiles)\" = per-segment scale fitted to the tile poses (evaluation only).", ""]
         L += render_main(metrics, dts, scale_files)
+        L += render_error_decomp(metrics)
     else:
         what = ("mask comparison only: " + ", ".join(f"{b.get('candidate')} vs {b.get('reference')}"
                                                      for b in metrics["masks"].values())

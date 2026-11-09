@@ -41,7 +41,8 @@ Steps and their implementations (`registry.py`; the config picks one per step):
 | slam (named runs) | `droid` (backend interface `slam/backends/base.py`, AMB3R next) | droid | `traj.npz` |
 | depth | `hf_depth` (DA2 metric, Depth Pro) | sam2 | keyframe depth for scale B |
 | mask_compare | `impl_mask_compare.py`: mask sets vs a reference (IoU, recall, precision, extra / missed area, DROID-cell IoU) | venv | `masks_<cand>_vs_<ref>.{json,md}`; overlays in `<work>/runs/<exp>/<variant>/overlays/` |
-| scale | methods of `slam/scale.py`: `none`, `native`, `A`, `B`; primary + checks | venv | per-segment s, flags |
+| error_decomp | `impl_error_decomp.py`: label error with the head rotation and/or scale replaced by the tile GT | venv | `errdecomp_<run>.{json,md}` |
+| scale | methods of `slam/scale.py`: `none`, `native`, `A`, `B`, `Bsession`; primary + checks | venv | per-segment s, flags |
 | labels | `slam/labels.py` | venv | 15 fps tool poses, error vs tiles, chunk metrics |
 | evaluate | `slam/evaluate.py`, `slam/tiles.py noise` | venv | head-motion metrics vs tiles |
 | report | `impl_report.py` | venv | `results/` |
@@ -91,3 +92,6 @@ exp001 (yam_glove7, 30 segments, RTX 3090, driver 580, DROID torch 2.5.1+cu124):
 | exp001_sam2_baseline | exp000's E3 configuration re-run through the framework; reproducibility tolerance |
 | exp002_sam3_masks | SAM3 masks (text: hand/arm/cable + ball-pose points for the rig) vs SAM2; overlay gallery; region audit in `audits/` |
 | exp003_droid_sam3 | DROID E1/E2/E3 with the SAM3 masks, vs exp000/exp001 |
+| exp004_error_decomposition | exp003's E3 label error split into SLAM vs tile rotation x B vs oracle scale (IMU / stereo question) |
+| exp005_session_scale | scale `Bsession`: one ball correction k pooled over the session, vs per-segment B; diagnosis of the long tail |
+| exp006_sam3_v2 | SAM3 masks v2 (`sam3_v2`): leak-filtered text instances attached to the wearer, denser rig prompts, held-block point; DROID E3 |

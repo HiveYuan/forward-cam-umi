@@ -250,7 +250,7 @@ def test_build_errors():
         del c[k]
     order, an = SP.build(c)
     assert len(order) == 6 and an == {"mask_compare": None, "scale": {}, "labels": None, "evaluate": None,
-                                      "report": None}
+                                      "error_decomp": None, "report": None}
 
 
 def _fps(cfg, code_state="abc"):
@@ -1002,6 +1002,25 @@ def test_git_repo_state_ignore_patterns():
         (repo / "experiments" / "a" / "results_old.txt").write_text("x")
         s = RI.git_repo_state(repo, ign)
         assert sorted(s["dirty_files"]) == ["?? experiments/a/results_old.txt", "?? experiments/b/config.yaml"]
+
+
+def test_error_decomp_and_bsession_config_checks():
+    import yaml as _y
+    base = _y.safe_load(open(SP.REPO / "experiments/exp004_error_decomposition/config.yaml"))
+    SP.build(base)
+
+    def bad(mut, match):
+        c = _y.safe_load(open(SP.REPO / "experiments/exp004_error_decomposition/config.yaml"))
+        mut(c)
+        _raises(SP.ConfigError, SP.build, c, match=match)
+    bad(lambda c: c["error_decomp"]["params"].__setitem__("speed_bins_deg_s", [30.0, 10.0]), "strictly increasing")
+    bad(lambda c: c["error_decomp"]["params"].__setitem__("speed_window_s", 0.0), "speed_window_s > 0")
+    bad(lambda c: c["error_decomp"].__setitem__("runs", ["E1"]), "scale block")
+    s5 = _y.safe_load(open(SP.REPO / "experiments/exp005_session_scale/config.yaml"))
+    SP.build(s5)
+    m = s5["scale"]["E3"]["methods"]["Bsession"]
+    m["pool"] = "mean"
+    _raises(SP.ConfigError, SP.build, s5, match="pool")
 
 if __name__ == "__main__":
     for name, f in list(globals().items()):

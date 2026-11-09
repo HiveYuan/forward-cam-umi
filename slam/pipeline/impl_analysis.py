@@ -6,7 +6,10 @@ slam.labels, slam.evaluate and slam.tiles, and write the analysis results contra
 job.out_dir (read by the report):
 
   scale      scale_<run>.json / .md      per SLAM run with a scale block: primary s per segment,
-                                         cross-check flags, errors vs the tile oracle
+                                         cross-check flags, errors vs the tile oracle; with a
+                                         session method (slam.scale.SESSION_METHODS, e.g. Bsession)
+                                         "session": {method: k_session and the per-segment k},
+                                         pooled over every segment before the segments are scaled
   labels     labels_<run>.json           tool labels with the tile-oracle scale vs tile labels
              labels_<run>@<label>.json   the same with the run's configured scale
                                          (check_labels by_step + chunk metrics + kept_episodes,
@@ -107,12 +110,39 @@ def _err_summary(errs):
             "abs_err_p90": st.get("abs_p90"), "bias_median": st.get("bias_median")}
 
 
+def session_inputs(job, run, methods, kw):
+    """Session-level inputs of the session methods among `methods` (slam.scale.SESSION_METHODS),
+    computed over every segment of the run before any segment is estimated:
+    Bsession -> slam.scale.session_k_of_run (the ball samples of all segments pooled with the
+    method's `pool`, using its depth model, correction and min_facing). Returns {method: result};
+    {} when no method is a session method."""
+    from slam import scale as SC
+    out = {}
+    seg_root = C.segments_dir(job.session)
+    for m in methods:
+        if SC.SESSION_METHODS.get(m) != "k_session":
+            continue
+        p = kw[m]
+        out[m] = SC.session_k_of_run([seg_root / s for s in job.segments], run,
+                                     model=p.get("model", SC.DEPTH_MODELS[0]), correction=p["correction"],
+                                     min_facing=p["min_facing"], pool=p["pool"])
+    return out
+
+
 def scale_run(job, run, block):
-    """Per segment: oracle, primary and checks (slam.scale.estimate), cross_check -> result dict."""
+    """Per segment: oracle, primary and checks (slam.scale.estimate), cross_check -> result dict.
+    A session method (primary or check) first gets its session quantity from every segment
+    (session_inputs, e.g. k_session), recorded under "session" in the result."""
     from slam import scale as SC
     primary, checks, thr = block["primary"], list(block["checks"]), block["flag_threshold"]
     methods = [primary] + checks
     kw = {m: method_kwargs(job, run, m, block["methods"].get(m, {})) for m in methods}
+    session = session_inputs(job, run, methods, kw)
+    for m, r in session.items():
+        kw[m][SC.SESSION_METHODS[m]] = r["k_session"]
+        job.log(f"{run} {m}: k_session {r['k_session']:.4f} ({r['pool']}: {r['n_segments']} segments, "
+                f"{r['n_samples']} ball samples; per-segment k p10-p90 {r['k_segment_p10']:.3f}-"
+                f"{r['k_segment_p90']:.3f})")
     seg_root = C.segments_dir(job.session)
     rows = []
     for name in job.segments:
@@ -141,8 +171,11 @@ def scale_run(job, run, block):
                "both": [r["segment"] for r in rows if r["ok"] and all(c["ok"] for c in r["checks"].values())],
                "without_flagged": _err_summary([r["err"] for r in rows if not r["flagged"]]),
                "methods": meth}
-    return _clean({"run": run, "label": scale_label(block), "primary": primary, "checks": checks,
-                   "flag_threshold": thr, "methods": block["methods"], "rows": rows, "summary": summary})
+    res = {"run": run, "label": scale_label(block), "primary": primary, "checks": checks,
+           "flag_threshold": thr, "methods": block["methods"], "rows": rows, "summary": summary}
+    if session:                                  # only then: other runs' files keep their keys
+        res["session"] = session
+    return _clean(res)
 
 
 def scale_md(res, session):
@@ -178,7 +211,39 @@ def scale_md(res, session):
     L += ["", f"Flagged: {len(s['flagged'])}" + (f" ({', '.join(s['flagged'])})" if s["flagged"] else "") +
           f". Primary and every check succeeded on {len(s['both'])}" +
           (f" ({', '.join(s['both'])})" if s["both"] else "") + "."]
+    L += session_md(res)
     return "\n".join(L) + "\n"
+
+
+def session_md(res):
+    """Markdown lines on the session quantities of a scale result (none without a session method):
+    k_session per session method; for a session primary, per segment the segment's own k and
+    the scale it would give (s_own_k, = method B with fit scale and the same parameters) next to s."""
+    if not res.get("session"):
+        return []
+    pct = (lambda v, f="+.1f": "-" if v is None else format(100 * v, f))
+    num = (lambda v, f=".4f": "-" if v is None else format(v, f))
+    L = []
+    for m, r in res["session"].items():
+        L += ["", f"## Session ball correction ({m})", "",
+              f"k_session = {num(r['k_session'])} (pool {r['pool']}: {r['n_segments']} segments with ball samples, "
+              f"{r['n_samples']} samples); per-segment k p10 / p25 / p75 / p90 = "
+              f"{' / '.join(num(r[f'k_segment_p{q}'], '.3f') for q in (10, 25, 75, 90))}."]
+    if res["primary"] not in res["session"]:
+        return L
+    ks = res["session"][res["primary"]]["k_session"]
+    L += ["", f"Per segment: own k (ball samples), s with the own k (= B) and with k_session (= {res['primary']}), "
+          "errors vs the tile oracle:", "",
+          "| segment | own k | ball samples | k/k_session - 1 % | s own k | err own k % | s | err % |",
+          "|---|---|---|---|---|---|---|---|"]
+    for r in res["rows"]:
+        p, so = r["primary"], r["oracle_s"]
+        k, s_own = p.get("k_ball"), p.get("s_own_k")
+        e_own = s_own / so - 1 if s_own is not None and so is not None else None
+        L.append(f"| {r['segment']} | {num(k, '.3f')} | {p.get('ball_samples', '-')} | "
+                 f"{pct(k / ks - 1 if k is not None and ks else None)} | {num(s_own)} | {pct(e_own)} | "
+                 f"{num(r['s'])} | {pct(r['err'])} |")
+    return L
 
 
 def run_scale(job):

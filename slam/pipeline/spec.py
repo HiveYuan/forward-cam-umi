@@ -30,10 +30,10 @@ CALIB = REPO / "calib"
 DATA_KEYS = ("session", "episodes", "head_stem", "intrinsics", "glove", "tile_layout",
              "raw_dir", "det_cache_dir", "gt_dir")
 TOP_KEYS = {"experiment", "description", "data", "preprocess", "tiles", "masks", "slam", "depth",
-            "mask_compare", "scale", "labels", "evaluate", "report", "exec"}
+            "mask_compare", "scale", "labels", "evaluate", "error_decomp", "report", "exec"}
 FREEFORM_PARAMS = {"prompts", "point_prompts"}           # dict-valued params whose keys are user content
 # scale-method keyword arguments filled in by the framework, not by the config
-SCALE_FRAMEWORK_KW = {"model", "mask_names", "mask_dilate_px"}
+SCALE_FRAMEWORK_KW = {"model", "mask_names", "mask_dilate_px", "k_session"}
 
 
 class ConfigError(ValueError):
@@ -114,7 +114,8 @@ def normalize_params(defaults, given, where="params"):
     return {k: _coerce(f"{where}.{k}", defaults[k], given[k]) for k in defaults}
 
 
-SCALE_CHOICES = {"B": {"correction": ("faces", "disk"), "fit": ("scale", "affine")}}
+SCALE_CHOICES = {"B": {"correction": ("faces", "disk"), "fit": ("scale", "affine")},
+                 "Bsession": {"correction": ("faces", "disk"), "pool": ("segments", "samples")}}
 
 
 def labels_fixed():
@@ -297,7 +298,8 @@ def _analysis(cfg, nodes):
     for n in nodes.values():
         if n.step == "depth":
             depth_for[(n.deps["slam"].split(".", 1)[1], n.name)] = n
-    out = {"mask_compare": None, "scale": {}, "labels": None, "evaluate": None, "report": None}
+    out = {"mask_compare": None, "scale": {}, "labels": None, "evaluate": None, "error_decomp": None,
+           "report": None}
     defaults = scale_method_defaults()
     for run, block in (cfg.get("scale") or {}).items():
         w = f"scale.{run}"
@@ -343,7 +345,7 @@ def _analysis(cfg, nodes):
                 mp[m]["_depth_node"] = dn.id
         out["scale"][run] = {"primary": primary, "checks": checks,
                              "flag_threshold": float(thr) if thr is not None else None, "methods": mp}
-    for step in ("mask_compare", "labels", "evaluate", "report"):
+    for step in ("mask_compare", "labels", "evaluate", "error_decomp", "report"):
         if step not in cfg:
             continue
         impl = R.get(step, "default")
@@ -366,6 +368,13 @@ def _analysis(cfg, nodes):
             sel = _need(block, "runs", step, list)
             if any(r not in runs for r in sel):
                 raise ConfigError(f"{step}.runs: list of slam runs {runs}")
+            if step == "error_decomp" and any(r not in out["scale"] for r in sel):
+                raise ConfigError("error_decomp.runs: every run needs a scale block (its configured scale)")
+            if step == "error_decomp":
+                b = params["speed_bins_deg_s"]
+                if not b or b[0] < 0 or any(y <= x for x, y in zip(b, b[1:])) or params["speed_window_s"] <= 0:
+                    raise ConfigError("error_decomp.params: speed_bins_deg_s strictly increasing from >= 0, "
+                                      "speed_window_s > 0")
         if step == "labels":
             fixed = labels_fixed()
             bad = {k: (params[k], v) for k, v in fixed.items() if params[k] != v}

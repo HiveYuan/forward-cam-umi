@@ -205,6 +205,11 @@ def test_registry_composites_and_framework_kwargs():
     import inspect
     p = inspect.signature(SC.scale_depth_ball).parameters
     assert p["mask_names"].default is None and p["mask_dilate_px"].default == 8
+    # session method: k_session comes from the framework (slam.tests.test_session_scale has the rest)
+    assert SC.SESSION_METHODS == {"Bsession": "k_session"} and "Bsession" in SC.TAKES_MODEL
+    assert d["Bsession"]["depth"] == "" and "k_session" not in d["Bsession"] and d["Bsession"]["pool"] == "segments"
+    assert not {"model", "mask_names", "mask_dilate_px", "k_session"} & set(d["Bsession"])
+    assert set(d["B"]) - {"fit", "min_affine_range"} == set(d["Bsession"]) - {"pool"}     # same B parameters
 
 
 def test_provenance_of_mask_kwargs():

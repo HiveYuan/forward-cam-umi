@@ -703,6 +703,94 @@ def test_rotation_shown_once_only_when_scale_free():
                                  "rotation [deg], B+Acheck, mean / median"]
 
 
+ED_COMBOS = (("R_slam+s_configured", "slam", "configured"), ("R_slam+s_oracle", "slam", "oracle"),
+             ("R_tile+s_configured", "tile", "configured"), ("R_tile+s_oracle", "tile", "oracle"))
+ED_BINS = ("0-10", "10-30", "30+")
+
+
+def fake_errdecomp(rng, run="E3", label="B+Acheck"):
+    """errdecomp_<run>.json of the error_decomp contract (impl_error_decomp docstring), random numbers."""
+    def by_step():
+        return {str(j): {"dt_s": j / 15, "n": 90 - j // 2, "pos_mm_median": float(rng.uniform(1, 9)), "pos_mm_p90": 20.0,
+                         "rot_deg_median": float(rng.uniform(0.1, 1)), "rot_deg_p90": 2.0} for j in STEPS}
+
+    def chunk(n=80):
+        return {str(h): {"anchors": n, "pos_mm_mean": float(rng.uniform(2, 8)), "pos_mm_median": 3.0, "pos_mm_p90": 9.0,
+                         "rot_deg_mean": float(rng.uniform(0.2, 0.8)), "rot_deg_median": 0.4, "rot_deg_p90": 1.0,
+                         "pooled_pos_mm_mean": 4.0, "pooled_rot_deg_mean": 0.5} for h in HS}
+    combos = {}
+    for name, rot, kind in ED_COMBOS:
+        combos[name] = {"rotation": rot, "scale": kind, "anchors": 100, "by_step": by_step(), "chunk": chunk(),
+                        "by_speed": {b: {"anchors": 30 + i, "by_step": by_step() if b != "30+" else {},
+                                         "chunk": chunk(30 + i if b != "30+" else 0)} for i, b in enumerate(ED_BINS)}}
+    cp = {k: {"by_step": {str(j): {"n": 90, "rot_part_mm_median": 4.6, "rot_part_mm_p90": 16.4,
+                                   "trans_part_mm_median": 7.7 + (k == "configured"), "trans_part_mm_p90": 25.4,
+                                   "cos_median": -0.92} for j in STEPS}} for k in ("configured", "oracle")}
+    lf = {"R_slam+s_configured": {"file": f"labels_{run}@{label}.json", "identical": True, "anchors": [100, 100],
+                                  "by_step_identical": True, "chunk_identical": True, "max_abs_diff": 0.0,
+                                  "compared": {"steps": [str(j) for j in STEPS], "chunk_H": [str(h) for h in HS]}},
+          "R_slam+s_oracle": None}
+    return {"run": run, "scale_label": label, "gripper": "wrist", "params": {"horizon": 100},
+            "combos": combos, "anchors": {"configured": 100, "oracle": 100},
+            "speed": {"window_s": 0.5, "bins_deg_s": [0.0, 10.0, 30.0],
+                      "anchors": {k: {"0-10": 30, "10-30": 31, "30+": 0, "unknown": 39} for k in ("configured", "oracle")}},
+            "coupling": cp, "segments": {"ep00": {"s": 0.5, "oracle_s": 0.52, "flagged": False}},
+            "checks": {"decomposition": {k: {"pairs": 5000, "max_pos_mm": 4e-13, "max_rot_frobenius": 8e-16}
+                                         for k in ("configured", "oracle")}, "labels_files": lf}}
+
+
+def test_error_decomp_section():
+    """An errdecomp_<run>.json adds metrics["error_decomp"][run] (the file without segments / params /
+    gripper), its copies and an 'Error decomposition' section; everything else in metrics.json and
+    report.md is unchanged, and an experiment without the file has neither."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        rng = np.random.default_rng(3)
+        res0 = make_results(tmp / "main0")
+        res1 = make_results(tmp / "main1")
+        ed = fake_errdecomp(rng)
+        (res1 / "errdecomp_E3.json").write_text(json.dumps(ed))
+        (res1 / "errdecomp_E3.md").write_text("# Error decomposition\n")
+        out0, out1 = tmp / "e0" / "results", tmp / "e1" / "results"
+        r0 = R.run_report(make_job(out0, {"main": res0}))
+        r1 = R.run_report(make_job(out1, {"main": res1}))
+        m0, m1 = json.load(open(out0 / "metrics.json")), json.load(open(out1 / "metrics.json"))
+        md0, md1 = (out0 / "report.md").read_text(), (out1 / "report.md").read_text()
+        copied = {p.name for p in out1.iterdir()} - {p.name for p in out0.iterdir()}
+    assert "error_decomp" not in m0 and r0["copied"] == 10
+    assert r1["copied"] == 12 and copied == {"errdecomp_E3.json", "errdecomp_E3.md"}
+    b = m1.pop("error_decomp")
+    assert m1 == m0                                        # nothing else changes
+    assert list(b) == ["E3"] and set(b["E3"]) == set(R.ERRDECOMP_KEYS)
+    assert b["E3"]["combos"] == ed["combos"] and b["E3"]["coupling"] == ed["coupling"] and b["E3"]["checks"] == ed["checks"]
+    head = "## Error decomposition, run E3: SLAM or tile head rotation x configured or oracle scale"
+    assert head in md1 and "Error decomposition" not in md0
+    i = md1.index(head)
+    nxt = md1.find("\n## ", i)                             # the section ends at the next '## ' heading
+    assert md1[:i] + (md1[nxt + 1:] if nxt >= 0 else "") == md0
+    sec = [md1[i + len(head):nxt if nxt >= 0 else len(md1)]]
+    tabs = md_tables(sec[0])
+    names = ["(1) SLAM rot + B+Acheck s", "(2) SLAM rot + oracle s", "(3) tile rot + B+Acheck s", "(4) tile rot + oracle s"]
+    (hp, rp), (hr, rr), (hc, rc), (hsp, rsp), (hsr, rsr), (hsc, rsc), (hcp, rcp) = tabs
+    assert hp == ["combination", "anchors"] + [f"{j / 15:.2f} s" for j in STEPS] and hr == hp
+    assert [r[0] for r in rp] == names and [r[0] for r in rr] == names
+    c1 = ed["combos"]["R_slam+s_configured"]["by_step"]["15"]
+    assert rp[0][2 + STEPS.index(15)] == f"{c1['pos_mm_median']:.1f} / 20.0"
+    assert rr[0][2 + STEPS.index(15)] == f"{c1['rot_deg_median']:.2f} / 2.00"
+    assert hc == ["combination", "quantity"] + [f"H={h} ({h / 15:.2f} s)" for h in HS] and len(rc) == 12
+    assert rc[1][0] == names[0] and rc[1][2] == f"{ed['combos']['R_slam+s_configured']['chunk']['15']['pos_mm_mean']:.1f} / 3.0"
+    assert hsp[:3] == ["speed", "combination", "anchors"] and len(rsp) == len(rsr) == 12 and len(rsc) == 36
+    assert [r[0] for r in rsp[::4]] == list(ED_BINS) and rsp[8][3:] == ["-"] * len(STEPS)       # empty 30+ bin
+    assert hcp[0] == "quantity" and [r[0].split(" [")[0] for r in rcp] == [
+        "rotation part dR b", "translation part dt", "translation part dt", "cos(dR b, dt), B+Acheck s, median",
+        "cos(dR b, dt), oracle s, median"]
+    assert rcp[1][0] == "translation part dt [mm], B+Acheck s, median / p90" and rcp[1][1] == "8.7 / 25.4"
+    assert "dt 1.00 s position median: (1) SLAM rot + B+Acheck s" in sec[0]
+    assert "configured scale: 0-10 30, 10-30 31, 30+ 0, unknown 39" in sec[0]
+    assert "vs `labels_E3@B+Acheck.json`: identical" in sec[0] and "(2) SLAM rot + oracle s: no labels file" in sec[0]
+    assert "5000 pairs" in sec[0]
+
+
 def make_label_view(view, session, segs, rng, names=("E3", "E3@B+Acheck")):
     """Label files of an analysis view, <view>/<session>/segments/epNN/labels/{tiles,<name>}.npz:
     15 fps grids with gaps; the scaled file is the oracle one with translations x1.1 (same

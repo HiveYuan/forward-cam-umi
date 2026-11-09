@@ -32,6 +32,15 @@ slam.labels --scale, slam.evaluate --scale, slam.report):
          small, near ball relative to the background (depth-dependent error in this white scene),
          so k and s come out ~5% low with DA2 (~17% with Depth Pro).
 
+  Bsession  B with a session-level ball correction (exp005): k_session = median over the session's
+         segments of each segment's k (session_k, pool="segments"; or the median over all pooled
+         ball samples, pool="samples"), then s = median(k_session D_net / z_slam) per segment as in
+         B. The framework computes k_session over every segment of the run first and passes it as
+         the keyword k_session (SESSION_METHODS). Removes the per-segment error of k (few ball
+         samples, a ball seen at an unusual depth), not the segment-to-segment variation of the
+         network's scale on the background (exp005: glove7 E3 |err| p90 20.1 -> 17.7%, median
+         5.4 -> 6.3%, bias -5.0 -> -5.9%; labels 1 s 5.7 -> 4.8 mm).
+
   B+Acheck  decision of 2026-11-08: B is the method, A only cross-checks. s = B's result on
          every segment; where A also succeeds, the relative difference s_A/s_B - 1 is recorded
          and |diff| > threshold (10%) flags the segment. Flags are informational only: they
@@ -177,39 +186,37 @@ def ball_faces(session):
     return P, P / np.linalg.norm(P, axis=1, keepdims=True)
 
 
-def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="faces", min_facing=0.7,
-                     fit="scale", min_affine_range=0.15, depth_window=None, z_max=4.0, min_cells=200,
-                     mask_names=None, mask_dilate_px=8, **_):
-    """fit: "scale" = corrected depth k d (one factor from the ball), "affine" = a d + b fitted
-    (Theil-Sen) to the ball samples across keyframes, falling back to "scale" if the ball's depth
-    range is below min_affine_range [m]. Background cells: valid under the masks mask_names
-    (None = the masks recorded in the run's meta) dilated by mask_dilate_px. Keyframes without a
-    finite SLAM pose (their frame's T_slam_cam row, or kf_pose_cw where saved) are left out of
-    the background ratio; non-finite inverse depth cells never count."""
+def _depth_inputs(seg, run, model):
+    """Inputs of the metric-depth methods for one segment: (ctx, None), or (None, failed result).
+    ctx: depth (n_kf, H, W) network depth, S (slam.evaluate segment: ball poses T_cb), z / meta
+    (SLAM run), fj (frames.json), K, size (W, H), kf_t, disp (inverse depth on the 1/8 grid)."""
     dp = seg / "depth" / f"{run}_{model}.npz"
     if not dp.exists():
-        return {"s": float("nan"), "ok": False, "error": f"missing {dp} (run slam.depth)"}
+        return None, {"s": float("nan"), "ok": False, "error": f"missing {dp} (run slam.depth)"}
     D = np.load(dp)
     S = _segment(seg)
     z, meta = _run(seg, run)
     fj = json.load(open(seg / "frames.json"))
-    K = np.array(fj["K"])
-    W, H = fj["size"]
     kf_t, disp = z["kf_t"], z["kf_disp"].astype(float)
     if not np.array_equal(D["kf_t"], kf_t):
-        return {"s": float("nan"), "ok": False, "error": "depth cache is for other keyframes"}
-    T_sc = z["T_slam_cam"]
-    kf_ok = np.isfinite(T_sc[kf_t]).all((1, 2))                # keyframes with a SLAM pose
-    if "kf_pose_cw" in z.files:
-        kf_ok &= np.isfinite(z["kf_pose_cw"]).all(1)
-    names = meta.get("masks", []) if mask_names is None else list(mask_names)
-    valid = _valid_cells(seg, names, len(fj["frames"]), (W, H), mask_dilate_px)
+        return None, {"s": float("nan"), "ok": False, "error": "depth cache is for other keyframes"}
+    return {"depth": D["depth"], "S": S, "z": z, "meta": meta, "fj": fj, "K": np.array(fj["K"]),
+            "size": tuple(fj["size"]), "kf_t": kf_t, "disp": disp}, None
+
+
+def ball_depth_pairs(ctx, correction="faces", min_facing=0.7):
+    """Ball samples of method B on the keyframes: [(network depth, metric depth, frame index)].
+    correction="faces": the face centres facing the camera (cos >= min_facing), network depth =
+    median of the 3x3 pixels at the projected centre; "disk": a disk at the projected ball centre
+    vs the depth of the ball's front (centre depth - BALL_R)."""
+    S, K, kf_t, depth = ctx["S"], ctx["K"], ctx["kf_t"], ctx["depth"]
+    W, H = ctx["size"]
     pairs = []                                                  # (network depth, metric depth)
-    faces = ball_faces(fj["session"]) if correction == "faces" else None
+    faces = ball_faces(ctx["fj"]["session"]) if correction == "faces" else None
     for j, i in enumerate(kf_t):
         if not np.isfinite(S["T_cb"][i, 0, 0]):
             continue
-        dn = D["depth"][j].astype(float)                       # network depth, (H, W) metres
+        dn = depth[j].astype(float)                            # network depth, (H, W) metres
         Tcb = S["T_cb"][i]
         if faces is not None:
             Pc = (Tcb[:3, :3] @ faces[0].T).T + Tcb[:3, 3]     # face centres in the camera
@@ -229,6 +236,61 @@ def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="face
                 yy, xx = np.mgrid[0:H, 0:W]
                 disk = (xx - u) ** 2 + (yy - v) ** 2 <= r ** 2
                 pairs.append((np.median(dn[disk]), b[2] - BALL_R, int(i)))
+    return pairs
+
+
+def background_ratios(ctx, valid, alpha, beta=0.0, z_max=4.0, min_cells=200, depth_window=None):
+    """Corrected network depth alpha * d + beta over DROID's keyframe depth on the background:
+    cells valid under the masks (valid: (T, H/8, W/8)), finite, 0.1 < corrected depth < z_max,
+    inverse depth > 1e-3, not on the grid border, optionally within depth_window of the ball's
+    depth. Keyframes without a finite SLAM pose (their frame's T_slam_cam row, or kf_pose_cw
+    where saved) and keyframes with fewer than min_cells such cells are left out.
+    Returns (ratios: one array per used keyframe, per-keyframe medians)."""
+    S, z, kf_t, disp, depth = ctx["S"], ctx["z"], ctx["kf_t"], ctx["disp"], ctx["depth"]
+    W, H = ctx["size"]
+    T_sc = z["T_slam_cam"]
+    kf_ok = np.isfinite(T_sc[kf_t]).all((1, 2))                # keyframes with a SLAM pose
+    if "kf_pose_cw" in z.files:
+        kf_ok &= np.isfinite(z["kf_pose_cw"]).all(1)
+    z_ball = {int(i): float(S["T_cb"][i, 2, 3]) for i in kf_t if np.isfinite(S["T_cb"][i, 0, 0])}
+    zb_med = float(np.median(list(z_ball.values()))) if z_ball else np.nan
+    ratios, per_kf = [], []
+    for j, i in enumerate(kf_t):
+        if not kf_ok[j]:
+            continue
+        d8 = depth[j].astype(float).reshape(H // 8, 8, W // 8, 8).mean((1, 3))   # DROID's 1/8 grid
+        zc = alpha * d8 + beta                                  # corrected (metric) network depth
+        zs = 1.0 / np.clip(disp[j], 1e-6, None)
+        m = valid[i] & np.isfinite(zc) & (zc > 0.1) & (zc < z_max) & (disp[j] > 1e-3) & np.isfinite(disp[j])
+        if depth_window:                                       # compare only near the ball's depth
+            m &= np.abs(zc / z_ball.get(int(i), zb_med) - 1) <= depth_window
+        m[:1], m[-1:], m[:, :1], m[:, -1:] = False, False, False, False
+        if m.sum() < min_cells:
+            continue
+        per_kf.append(depth_ratio_scale(1.0, zc, zs, m))
+        ratios.append(zc[m] / zs[m])
+    return ratios, per_kf
+
+
+def _run_valid_cells(seg, ctx, mask_names, mask_dilate_px):
+    names = ctx["meta"].get("masks", []) if mask_names is None else list(mask_names)
+    return _valid_cells(seg, names, len(ctx["fj"]["frames"]), ctx["size"], mask_dilate_px)
+
+
+def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="faces", min_facing=0.7,
+                     fit="scale", min_affine_range=0.15, depth_window=None, z_max=4.0, min_cells=200,
+                     mask_names=None, mask_dilate_px=8, **_):
+    """fit: "scale" = corrected depth k d (one factor from the ball), "affine" = a d + b fitted
+    (Theil-Sen) to the ball samples across keyframes, falling back to "scale" if the ball's depth
+    range is below min_affine_range [m]. Background cells: valid under the masks mask_names
+    (None = the masks recorded in the run's meta) dilated by mask_dilate_px. Keyframes without a
+    finite SLAM pose (their frame's T_slam_cam row, or kf_pose_cw where saved) are left out of
+    the background ratio; non-finite inverse depth cells never count."""
+    ctx, err = _depth_inputs(seg, run, model)
+    if err is not None:
+        return err
+    valid = _run_valid_cells(seg, ctx, mask_names, mask_dilate_px)
+    pairs = ball_depth_pairs(ctx, correction, min_facing)
     if not pairs:
         return {"s": float("nan"), "ok": False, "error": "ball never visible in a keyframe"}
     pr = np.array([(d, zt) for d, zt, _ in pairs])
@@ -241,28 +303,114 @@ def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="face
         alpha = float(np.median((pr[jj, 1] - pr[ii, 1])[ok] / dd[ok]))
         beta = float(np.median(pr[:, 1] - alpha * pr[:, 0]))
         fit_used = "affine"
-    z_ball = {int(i): float(S["T_cb"][i, 2, 3]) for i in kf_t if np.isfinite(S["T_cb"][i, 0, 0])}
-    zb_med = float(np.median(list(z_ball.values()))) if z_ball else np.nan
-    ratios, per_kf = [], []
-    for j, i in enumerate(kf_t):
-        if not kf_ok[j]:
-            continue
-        d8 = D["depth"][j].astype(float).reshape(H // 8, 8, W // 8, 8).mean((1, 3))   # DROID's 1/8 grid
-        zc = alpha * d8 + beta                                  # corrected (metric) network depth
-        zs = 1.0 / np.clip(disp[j], 1e-6, None)
-        m = valid[i] & np.isfinite(zc) & (zc > 0.1) & (zc < z_max) & (disp[j] > 1e-3) & np.isfinite(disp[j])
-        if depth_window:                                       # compare only near the ball's depth
-            m &= np.abs(zc / z_ball.get(int(i), zb_med) - 1) <= depth_window
-        m[:1], m[-1:], m[:, :1], m[:, -1:] = False, False, False, False
-        if m.sum() < min_cells:
-            continue
-        per_kf.append(depth_ratio_scale(1.0, zc, zs, m))
-        ratios.append(zc[m] / zs[m])
+    ratios, per_kf = background_ratios(ctx, valid, alpha, beta, z_max, min_cells, depth_window)
     if not per_kf:
         return {"s": float("nan"), "ok": False, "error": "no keyframe with enough valid background"}
     s = float(np.median(np.concatenate(ratios)))
     return {"s": s, "ok": True, "k_ball": k, "ball_samples": len(pr), "ball_depth_range_m": float(np.ptp(pr[:, 1])),
             "fit": fit_used, "alpha": alpha, "beta": beta, "s_per_keyframe": per_kf, "model": model,
+            "correction": correction, "depth_window": depth_window}
+
+
+# ------------------------------------------------------------------ session-level ball correction
+SESSION_POOLS = ("segments", "samples")
+
+
+def ball_samples(seg, run, model="da2-metric-indoor-large", correction="faces", min_facing=0.7):
+    """Method B's ball samples of one segment (for pooling over a session): {ok, pairs (n, 2)
+    [network depth, metric depth], frames (n,), k (median metric / network, NaN if none), n,
+    error}. The same samples scale_depth_ball takes its k_ball from."""
+    ctx, err = _depth_inputs(seg, run, model)
+    if err is not None:
+        return {"ok": False, "pairs": np.zeros((0, 2)), "frames": np.zeros(0, int), "k": float("nan"), "n": 0,
+                "error": err["error"]}
+    pairs = ball_depth_pairs(ctx, correction, min_facing)
+    pr = np.array([(d, zt) for d, zt, _ in pairs]).reshape(-1, 2)
+    k = float(np.median(pr[:, 1] / pr[:, 0])) if len(pr) else float("nan")
+    return {"ok": bool(len(pr)), "pairs": pr, "frames": np.array([i for *_, i in pairs], int), "k": k,
+            "n": int(len(pr)), "error": None if len(pr) else "ball never visible in a keyframe"}
+
+
+def session_k(samples, pool="segments"):
+    """Session-level ball correction from per-segment ball samples {segment: (n, 2) array of
+    [network depth, metric depth]} (segments without samples: empty array).
+      pool="segments": k_session = median over segments with samples of the segment's
+                       k = median(metric / network) (each segment counts once, as many
+                       keyframes and visible faces as it has)
+      pool="samples":  k_session = median of metric / network over all samples pooled
+    Returns {k_session, pool, n_segments, n_samples, k_segment_p10/p25/p75/p90 (spread of the
+    per-segment k), per_segment: {segment: {k, n}}}; k_session NaN when no segment has samples."""
+    if pool not in SESSION_POOLS:
+        raise ValueError(f"pool: one of {SESSION_POOLS}, got {pool!r}")
+    per, ks, allr = {}, [], []
+    for name, pr in samples.items():
+        pr = np.asarray(pr, float).reshape(-1, 2)
+        r = pr[:, 1] / pr[:, 0]
+        k = float(np.median(r)) if len(r) else float("nan")
+        per[name] = {"k": k, "n": int(len(r))}
+        if len(r):
+            ks.append(k)
+            allr.append(r)
+    if not ks:
+        k_sess = float("nan")
+    elif pool == "segments":
+        k_sess = float(np.median(ks))
+    else:
+        k_sess = float(np.median(np.concatenate(allr)))
+    pct = {f"k_segment_p{q}": float(np.percentile(ks, q)) if ks else float("nan") for q in (10, 25, 75, 90)}
+    return {"k_session": k_sess, "pool": pool, "n_segments": len(ks), "n_samples": int(sum(len(r) for r in allr)),
+            **pct, "per_segment": per}
+
+
+def session_k_of_run(segs, run, model="da2-metric-indoor-large", correction="faces", min_facing=0.7,
+                     pool="segments"):
+    """session_k over the ball samples of every segment directory in segs (one SLAM run)."""
+    return session_k({seg.name: ball_samples(seg, run, model, correction, min_facing)["pairs"] for seg in segs},
+                     pool)
+
+
+def scale_depth_ball_session(seg, run, k_session=None, model="da2-metric-indoor-large", correction="faces",
+                             min_facing=0.7, pool="segments", depth_window=None, z_max=4.0, min_cells=200,
+                             mask_names=None, mask_dilate_px=8, **_):
+    """Method B with the session's ball correction: s = median(k_session D_net / z_slam) over the
+    same background cells and keyframes as scale_depth_ball (fit="scale"). k_session is pooled
+    over every segment of the session (session_k with `pool`, the framework passes it; the
+    segment's own ball is not needed, so segments where the ball never shows in a keyframe get a
+    scale too). correction / min_facing / pool say how k_session was pooled (recorded here).
+    Diagnostics: the segment's own k_ball (NaN without ball samples) and s_own_k, the scale with
+    it (= method B with fit="scale" and the same parameters)."""
+    if pool not in SESSION_POOLS:
+        raise ValueError(f"pool: one of {SESSION_POOLS}, got {pool!r}")
+    if correction not in ("faces", "disk"):
+        raise ValueError(f"correction: 'faces' or 'disk', got {correction!r}")
+    if k_session is None:
+        return {"s": float("nan"), "ok": False, "k_session": None,
+                "error": "Bsession needs k_session, pooled over all segments by the framework "
+                         "(slam.pipeline.impl_analysis.scale_run); the legacy CLI does not pool it"}
+    if not np.isfinite(k_session) or k_session <= 0:
+        return {"s": float("nan"), "ok": False, "k_session": k_session,
+                "error": "no segment of the run had ball samples to pool k_session from"}
+    ctx, err = _depth_inputs(seg, run, model)
+    if err is not None:
+        return err
+    if depth_window and not any(np.isfinite(ctx["S"]["T_cb"][i, 0, 0]) for i in ctx["kf_t"]):
+        return {"s": float("nan"), "ok": False, "k_session": float(k_session),
+                "error": "depth_window keeps background near this segment's own ball depth, but the "
+                         "ball is in no keyframe"}
+    valid = _run_valid_cells(seg, ctx, mask_names, mask_dilate_px)
+    ratios, per_kf = background_ratios(ctx, valid, float(k_session), 0.0, z_max, min_cells, depth_window)
+    if not per_kf:
+        return {"s": float("nan"), "ok": False, "k_session": k_session,
+                "error": "no keyframe with enough valid background"}
+    s = float(np.median(np.concatenate(ratios)))
+    pr = np.array([(d, zt) for d, zt, _ in ball_depth_pairs(ctx, correction, min_facing)]).reshape(-1, 2)
+    k_own, s_own = float("nan"), float("nan")
+    if len(pr):
+        k_own = float(np.median(pr[:, 1] / pr[:, 0]))
+        r_own, _ = background_ratios(ctx, valid, k_own, 0.0, z_max, min_cells, depth_window)
+        s_own = float(np.median(np.concatenate(r_own))) if r_own else float("nan")
+    return {"s": s, "ok": True, "k_session": float(k_session), "pool": pool, "k_ball": k_own,
+            "ball_samples": int(len(pr)), "s_own_k": s_own, "s_per_keyframe": per_kf, "model": model,
             "correction": correction, "depth_window": depth_window}
 
 
@@ -296,9 +444,12 @@ def scale_b_with_a_check(seg, run, model="da2-metric-indoor-large", threshold=0.
 
 
 METHODS = {"none": scale_none, "native": scale_native, "tiles": scale_tiles, "A": scale_static_ball,
-           "B": scale_depth_ball, "B+Acheck": scale_b_with_a_check}
-TAKES_MODEL = ("B", "B+Acheck")
+           "B": scale_depth_ball, "B+Acheck": scale_b_with_a_check, "Bsession": scale_depth_ball_session}
+TAKES_MODEL = ("B", "B+Acheck", "Bsession")
 COMPOSITE_METHODS = ("B+Acheck",)        # built from other methods; not a config-level method
+# methods that need a session-level quantity computed over every segment first (keyword -> what):
+# the caller (slam.pipeline.impl_analysis.scale_run) pools it with session_k_of_run and passes it
+SESSION_METHODS = {"Bsession": "k_session"}
 # keyword arguments added after CACHE_VERSION 2 caches were written: left out of the provenance
 # while at their default, so those caches stay valid (same result)
 _LATE_KW_DEFAULTS = {"mask_names": None, "mask_dilate_px": 8}

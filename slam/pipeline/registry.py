@@ -20,7 +20,7 @@ What else enters an implementation's cache key (orchestrator.Runner.fingerprints
 from dataclasses import dataclass, field
 
 PRODUCER_STEPS = ("preprocess", "tiles", "masks", "slam", "depth")
-ANALYSIS_STEPS = ("mask_compare", "scale", "labels", "evaluate", "report")
+ANALYSIS_STEPS = ("mask_compare", "scale", "labels", "evaluate", "error_decomp", "report")
 
 DROID_ROOT = "/home/student/yuanliu-hawaii/third_party/DROID-SLAM"
 
@@ -91,6 +91,26 @@ _IMPLS = [
          env_packages=TORCH_PKGS + ("kernels",), choices={"dtype": ("bfloat16", "float16", "float32")},
          doc="slam.masks_sam3: SAM3 text prompts (body parts) + SAM3 tracker points from the ball pose "
              "(rig, held object), union"),
+    Impl("masks", "sam3_v2", "sam3", "slam.pipeline.impl_masks_sam3v2:run_sam3_v2",
+         {"model": "facebook/sam3", "revision": "3c879f39826c281e95690f02c7821c4de09afae7",
+          "dtype": "bfloat16", "text_prompts": ["hand", "arm", "cable"], "seed_prompts": ["hand", "arm"],
+          "attach_px": 8, "border_px": -1, "leak_ratio": 3.0, "split_components": True,
+          "rig_points": ["ball", [-0.0852, -0.0324, 0.0655], [-0.0623, -0.0177, 0.1004], [-0.0865, -0.0568, 0.0937]],
+          "rig_negative_points": [],
+          "hand_points": [[-0.141, -0.0026, 0.1014], [-0.141, 0.0574, 0.1314]],
+          "held_points": [[-0.0943, -0.1071, 0.0855]], "held_width_max": 0.45, "held_after_open": True,
+          "width_tol_s": 0.12,
+          "prompt_every": 10, "require_postprocess": True},
+         gpu_gb=14.0, data_inputs=("handeye", "gt_gripper_wrist"),
+         code_files=("slam/masks_sam3v2.py", "slam/masks_sam3.py", "slam/masks.py",
+                     "slam/pipeline/impl_masks_sam3v2.py", "slam/pipeline/impl_masks.py", "slam/geometry.py"),
+         binaries=("/home/student/.cache/huggingface/hub/kernels--kernels-community--cv-utils/snapshots/*/build/"
+                   "*-x86_64-linux/*.so",),
+         env_packages=TORCH_PKGS + ("kernels",), choices={"dtype": ("bfloat16", "float16", "float32")},
+         doc="slam.masks_sam3v2: SAM3 text instances minus masklet leaks (area > leak_ratio x the masklet's lower "
+             "quartile), kept only if attached to the wearer (tracked rig / hand / held object; plus border-touching "
+             "seed prompts when border_px >= 0); SAM3 tracker for rig, hand and held object "
+             "(fingertip point while the gripper width <= held_width_max), every prompt_every frames"),
     Impl("masks", "tile_geometry", "venv", "slam.pipeline.impl_tiles:run_tile_geometry",
          {"margin_mm": 10.0, "max_gap_s": 0.5, "grow_mm_per_s": 100.0, "slam_fallback": None,
           "slam_margin_mm": 25.0},
@@ -141,6 +161,11 @@ _IMPLS = [
     Impl("evaluate", "default", "venv", "slam.pipeline.impl_analysis:run_evaluate",
          {"dts": [0.08, 0.25, 0.5, 1.0, 2.0, 4.0, 6.67], "fail_deg": 2.0, "gt_noise": True},
          doc="slam.evaluate (head motion vs tiles), slam.tiles noise (GT noise floor)"),
+    Impl("error_decomp", "default", "venv", "slam.pipeline.impl_error_decomp:run_error_decomp",
+         {"label_steps": [1, 2, 4, 8, 15, 30, 60, 100], "horizon": 100, "chunk_H": [15, 30, 50, 100],
+          "speed_bins_deg_s": [0.0, 10.0, 30.0], "speed_window_s": 0.5},
+         doc="label error with each part of the head motion cam_t->cam_t+dt replaced by the tile GT: "
+             "SLAM or tile rotation x configured or tile-oracle scale (what perfect rotation / scale buys)"),
     Impl("report", "default", "venv", "slam.pipeline.impl_report:run_report",
          {"compare": [], "dt_show": [0.08, 0.5, 1.0, 2.0, 6.67]},
          doc="results/metrics.json + report.md, side by side with other experiments"),
