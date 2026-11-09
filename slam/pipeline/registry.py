@@ -20,7 +20,7 @@ What else enters an implementation's cache key (orchestrator.Runner.fingerprints
 from dataclasses import dataclass, field
 
 PRODUCER_STEPS = ("preprocess", "tiles", "masks", "slam", "depth")
-ANALYSIS_STEPS = ("scale", "labels", "evaluate", "report")
+ANALYSIS_STEPS = ("mask_compare", "scale", "labels", "evaluate", "report")
 
 DROID_ROOT = "/home/student/yuanliu-hawaii/third_party/DROID-SLAM"
 
@@ -79,6 +79,18 @@ _IMPLS = [
          code_files=("slam/masks.py", "slam/pipeline/impl_masks.py", "slam/geometry.py"),
          env_packages=TORCH_PKGS, choices={"dtype": ("bfloat16", "float16", "float32")},
          doc="slam.masks: SAM2 video propagation from body-frame points projected with the ball pose"),
+    Impl("masks", "sam3_text_points", "sam3", "slam.pipeline.impl_masks_sam3:run_sam3_text_points",
+         {"model": "facebook/sam3", "revision": "3c879f39826c281e95690f02c7821c4de09afae7",
+          "dtype": "bfloat16", "text_prompts": ["hand", "arm", "cable"],
+          "point_prompts": {"glove": ["ball", "flange"]}, "prompt_every": 30, "require_postprocess": True},
+         gpu_gb=12.0, data_inputs=("handeye",),
+         code_files=("slam/masks_sam3.py", "slam/masks.py", "slam/pipeline/impl_masks_sam3.py",
+                     "slam/pipeline/impl_masks.py", "slam/geometry.py"),
+         binaries=("/home/student/.cache/huggingface/hub/kernels--kernels-community--cv-utils/snapshots/*/build/"
+                   "*-x86_64-linux/*.so",),
+         env_packages=TORCH_PKGS + ("kernels",), choices={"dtype": ("bfloat16", "float16", "float32")},
+         doc="slam.masks_sam3: SAM3 text prompts (body parts) + SAM3 tracker points from the ball pose "
+             "(rig, held object), union"),
     Impl("masks", "tile_geometry", "venv", "slam.pipeline.impl_tiles:run_tile_geometry",
          {"margin_mm": 10.0, "max_gap_s": 0.5, "grow_mm_per_s": 100.0, "slam_fallback": None,
           "slam_margin_mm": 25.0},
@@ -113,6 +125,10 @@ _IMPLS = [
          env_packages=TORCH_PKGS, choices={"model": ("da2-metric-indoor-large", "depth-pro")},
          doc="slam.depth: transformers metric depth on the SLAM run's keyframes (scale method B)"),
     # ------------------------------------------------------------------ analysis
+    Impl("mask_compare", "default", "venv", "slam.pipeline.impl_mask_compare:run_mask_compare",
+         {"reference": "", "candidates": [""], "dilate_px": 8, "overlays_per_segment": 4},
+         doc="mask sets vs a reference mask set: per-frame IoU, coverage, extra area, DROID-cell "
+             "agreement after dilation; overlay images in the run directory"),
     Impl("scale", "default", "venv", "slam.pipeline.impl_analysis:run_scale", {},
          doc="per SLAM run: primary scale method + cross-checks (slam.scale); s is always the primary's"),
     Impl("labels", "default", "venv", "slam.pipeline.impl_analysis:run_labels",

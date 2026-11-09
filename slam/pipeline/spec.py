@@ -30,8 +30,8 @@ CALIB = REPO / "calib"
 DATA_KEYS = ("session", "episodes", "head_stem", "intrinsics", "glove", "tile_layout",
              "raw_dir", "det_cache_dir", "gt_dir")
 TOP_KEYS = {"experiment", "description", "data", "preprocess", "tiles", "masks", "slam", "depth",
-            "scale", "labels", "evaluate", "report", "exec"}
-FREEFORM_PARAMS = {"prompts"}           # dict-valued params whose keys are user content
+            "mask_compare", "scale", "labels", "evaluate", "report", "exec"}
+FREEFORM_PARAMS = {"prompts", "point_prompts"}           # dict-valued params whose keys are user content
 # scale-method keyword arguments filled in by the framework, not by the config
 SCALE_FRAMEWORK_KW = {"model", "mask_names", "mask_dilate_px"}
 
@@ -297,7 +297,7 @@ def _analysis(cfg, nodes):
     for n in nodes.values():
         if n.step == "depth":
             depth_for[(n.deps["slam"].split(".", 1)[1], n.name)] = n
-    out = {"scale": {}, "labels": None, "evaluate": None, "report": None}
+    out = {"mask_compare": None, "scale": {}, "labels": None, "evaluate": None, "report": None}
     defaults = scale_method_defaults()
     for run, block in (cfg.get("scale") or {}).items():
         w = f"scale.{run}"
@@ -343,18 +343,26 @@ def _analysis(cfg, nodes):
                 mp[m]["_depth_node"] = dn.id
         out["scale"][run] = {"primary": primary, "checks": checks,
                              "flag_threshold": float(thr) if thr is not None else None, "methods": mp}
-    for step in ("labels", "evaluate", "report"):
+    for step in ("mask_compare", "labels", "evaluate", "report"):
         if step not in cfg:
             continue
         impl = R.get(step, "default")
         block = cfg[step]
-        allowed = {"params"} if step == "report" else {"runs", "params"}
+        allowed = {"params"} if step in ("report", "mask_compare") else {"runs", "params"}
         if not isinstance(block, dict) or set(block) - allowed:
             raise ConfigError(f"{step}: a mapping with keys {sorted(allowed)}")
         params = normalize_params(impl.params, block.get("params"), f"{step}.params")
         _check_choices(impl, params, step)
         sel = []
-        if step != "report":
+        if step == "mask_compare":
+            masks = [n.name for n in nodes.values() if n.step == "masks"]
+            names = [params["reference"]] + list(params["candidates"])
+            if not params["candidates"] or any(m not in masks for m in names) or len(set(names)) != len(names):
+                raise ConfigError(f"mask_compare.params: reference and candidates must be distinct mask names "
+                                  f"from {masks}, got {names}")
+            if params["dilate_px"] < 0 or params["overlays_per_segment"] < 0:
+                raise ConfigError("mask_compare.params: dilate_px and overlays_per_segment must be >= 0")
+        elif step != "report":
             sel = _need(block, "runs", step, list)
             if any(r not in runs for r in sel):
                 raise ConfigError(f"{step}.runs: list of slam runs {runs}")

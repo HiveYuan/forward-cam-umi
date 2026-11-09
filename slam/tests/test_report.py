@@ -193,6 +193,102 @@ def legacy_to_contract(src, dst, label="B+Acheck"):
     return dst
 
 
+MASK_SEGS = ["ep00", "ep01", "ep02", "ep03"]
+MASK_PARTS = ["hand", "arm", "cable", "glove"]
+MASK_QKEYS = ("iou", "recall", "precision", "extra_area", "missed_area", "cells_iou")
+
+
+def mask_stat(x):
+    """Mask stat of the mask_compare contract over the finite values (NaN entries when n = 0,
+    as json.dump writes them)."""
+    x = np.asarray([v for v in x if np.isfinite(v)], float)
+    if not len(x):
+        return {"n": 0, "median": float("nan"), "p10": float("nan"), "p90": float("nan"), "mean": float("nan")}
+    return {"n": int(len(x)), "median": float(np.median(x)), "p10": float(np.percentile(x, 10)),
+            "p90": float(np.percentile(x, 90)), "mean": float(np.mean(x))}
+
+
+def make_mask_results(res, seed=0, cand="sam3", ref="sam2", dilate_px=8, parts=MASK_PARTS, per_seg=4,
+                      empty_seg="ep02"):
+    """mask_compare outputs (CONTRACT) of a variant results dir: masks_<cand>_vs_<ref>.json/.md in
+    `res`, overlays in res/../overlays/<cand>_vs_<ref>/ (index.json + jpg stubs). Per-frame values
+    are random; in `empty_seg` the candidate is empty in every frame (IoU 0, precision undefined:
+    its precision stat has n 0 and NaN values, written as NaN literals)."""
+    rng = np.random.default_rng(seed)
+    res = Path(res)
+    res.mkdir(parents=True, exist_ok=True)
+    name = f"{cand}_vs_{ref}"
+    segs, pooled = {}, {k: [] for k in MASK_QKEYS + ("area_ref", "area_cand")}
+    pooled_parts = {p: [] for p in parts}
+    for s_i, seg in enumerate(MASK_SEGS):
+        n = 20 + 5 * s_i
+        area_ref = rng.uniform(0.05, 0.2, n)
+        if seg == empty_seg:
+            v = {"iou": np.zeros(n), "recall": np.zeros(n), "precision": np.full(n, np.nan),
+                 "extra_area": np.zeros(n), "missed_area": area_ref, "cells_iou": np.zeros(n)}
+            area_cand, part = np.zeros(n), {p: np.zeros(n) for p in parts}
+        else:
+            iou = np.clip(rng.normal(0.9 - 0.1 * s_i, 0.05, n), 0, 1)
+            v = {"iou": iou, "recall": np.clip(iou + 0.05, 0, 1), "precision": np.clip(iou + 0.02, 0, 1),
+                 "extra_area": rng.uniform(0, 0.02, n), "missed_area": rng.uniform(0, 0.01, n),
+                 "cells_iou": np.clip(iou + 0.03, 0, 1)}
+            part = {p: rng.uniform(0, 0.05, n) for p in parts}
+            area_cand = area_ref + v["extra_area"] - v["missed_area"]
+        order = np.argsort(v["iou"], kind="stable")[:5]
+        segs[seg] = {"frames": n, **{k: mask_stat(v[k]) for k in MASK_QKEYS},
+                     "area_ref": float(area_ref.mean()), "area_cand": float(area_cand.mean()),
+                     "part_area": {p: float(part[p].mean()) for p in parts},
+                     "worst_frames": [[int(i), float(v["iou"][i])] for i in order]}
+        for k in MASK_QKEYS:
+            pooled[k] += list(v[k])
+        pooled["area_ref"] += list(area_ref)
+        pooled["area_cand"] += list(area_cand)
+        for p in parts:
+            pooled_parts[p] += list(part[p])
+    med = {s: segs[s]["iou"]["median"] for s in MASK_SEGS}
+    summ = {"frames": sum(x["frames"] for x in segs.values()), **{k: mask_stat(pooled[k]) for k in MASK_QKEYS},
+            "area_ref": float(np.mean(pooled["area_ref"])), "area_cand": float(np.mean(pooled["area_cand"])),
+            "part_area": {p: float(np.mean(pooled_parts[p])) for p in parts},
+            "segments_iou_median_below_0.8": [s for s in MASK_SEGS if med[s] < 0.8],
+            "worst_segments": [[s, med[s]] for s in sorted(MASK_SEGS, key=lambda s: med[s])[:5]]}
+    mc = {"reference": ref, "candidate": cand, "dilate_px": dilate_px, "parts": list(parts), "segments": segs,
+          "summary": summ}
+    with open(res / f"masks_{name}.json", "w") as f:
+        json.dump(mc, f, indent=1)                                  # NaN literals, as json.dump writes them
+    (res / f"masks_{name}.md").write_text(f"# {name}\n")
+    ov = res.parent / "overlays" / name
+    ov.mkdir(parents=True, exist_ok=True)
+    idx = []
+    for seg in MASK_SEGS:
+        n = segs[seg]["frames"]
+        worst = [i for i, _ in segs[seg]["worst_frames"]]
+        even = [i for i in np.linspace(0, n - 1, per_seg // 2).astype(int) if i not in worst[:per_seg // 2]]
+        for kind, frames in (("even", even), ("worst", worst[:per_seg - len(even)])):
+            for i in frames:
+                f = f"{seg}_{i:06d}.jpg"
+                (ov / f).write_bytes(b"\xff\xd8\xff\xd9")
+                idx.append({"file": f, "segment": seg, "i": int(i), "iou": 0.5, "kind": kind})
+    json.dump(idx, open(ov / "index.json", "w"))
+    return mc
+
+
+def md_section(md, heading_start):
+    """Text of the first '## ' section whose heading starts with heading_start (no heading line)."""
+    return next(b for b in md.split("\n## ")[1:] if b.startswith(heading_start)).split("\n", 1)[1].lstrip("\n")
+
+
+def md_tables(text):
+    """[(header, rows)] of every markdown table in a text."""
+    out, cur = [], []
+    for ln in text.splitlines() + [""]:
+        if ln.startswith("|"):
+            cur.append([c.strip() for c in ln.strip().strip("|").split(" | ")])
+        elif cur:
+            out.append((cur[0], cur[2:]))
+            cur = []
+    return out
+
+
 def comparison_tables(md):
     """{title: (header, rows)} of the tables in the report's comparison section."""
     sec = md.split("## Comparison with other experiments", 1)[1]
@@ -244,8 +340,9 @@ def test_metrics_schema_synthetic():
         out = tmp / "exp" / "results"
         r = R.run_report(make_job(out, {"main": res}))
         m = json.load(open(out / "metrics.json"))
-        assert set(m) == {"experiment", "variant", "runs", "n_segments", "gt_noise", "evaluate"}
+        assert set(m) == {"experiment", "variant", "runs", "n_segments", "gt_noise", "evaluate", "masks"}
         assert m["experiment"] == "expT" and m["variant"] == "main" and m["n_segments"] == 4
+        assert m["masks"] == {} and "Mask comparison" not in (out / "report.md").read_text()
         assert m["evaluate"] == {"fail_deg": 2.0, "dts": DTS}
         assert list(m["runs"]) == ["static", "E1", "E3"]
         S = json.load(open(res / "eval_oracle" / "summary.json"))
@@ -780,6 +877,167 @@ def test_repro_tables_nothing_compared():
             assert all(c in ("-", "- / -") for c in row[1:]), (title, row)
         # finite values only: a NaN/None next to a finite value does not hide it
         assert R._max_finite([None, float("nan"), 0.25, 0.1]) == 0.25 and R._max_finite([None]) is None
+
+
+def _mask_cells(st, fmt):
+    """Expected report cells of a mask stat: n, median, p10, p90, mean."""
+    f = (lambda v: f"{100 * v:.2f}%") if fmt == "area" else (lambda v: f"{v:.3f}")
+    return [str(st["n"])] + [f(st[g]) for g in ("median", "p10", "p90", "mean")]
+
+
+def test_mask_only_experiment():
+    """An experiment without SLAM runs (masks + mask_compare only, no analysis.json): metrics.json
+    with runs {}, evaluate / gt_noise null and the mask summary block; report.md with the mask
+    section only; masks_*.json/.md copied (strict JSON); the overlays pointed to, not copied."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        work = tmp / "work"
+        res = work / "runs" / "expM" / "main" / "results"
+        mc = make_mask_results(res)
+        out = tmp / "experiments" / "expM" / "results"
+        r = R.run_report(make_job(out, {"main": res}, name="expM", work=work))      # job segments: ep00 only
+        m = strict_json(out / "metrics.json")
+        summ = mc["summary"]
+        block = {"reference": "sam2", "candidate": "sam3", "dilate_px": 8, "parts": MASK_PARTS, "n_segments": 4,
+                 **summ}
+        assert m == {"experiment": "expM", "variant": "main", "n_segments": 4, "runs": {}, "gt_noise": None,
+                     "evaluate": None, "masks": {"sam3_vs_sam2": block}}
+        n_all = sum(mc["segments"][s]["frames"] for s in MASK_SEGS)
+        assert summ["frames"] == n_all and summ["iou"]["n"] == n_all
+        assert summ["precision"]["n"] == n_all - mc["segments"]["ep02"]["frames"]      # empty candidate in ep02
+        # copies: the mask files only (strict JSON: ep02's NaN precision -> null), no overlay images
+        assert sorted(p.name for p in out.rglob("*")) == ["masks_sam3_vs_sam2.json", "masks_sam3_vs_sam2.md",
+                                                          "metrics.json", "report.md"]
+        assert r["copied"] == 2
+        assert "NaN" in (res / "masks_sam3_vs_sam2.json").read_text()
+        cp = strict_json(out / "masks_sam3_vs_sam2.json")
+        assert cp["segments"]["ep02"]["precision"] == {"n": 0, "median": None, "p10": None, "p90": None, "mean": None}
+        assert cp["summary"] == summ and cp["segments"]["ep01"] == mc["segments"]["ep01"]
+        # report.md: header, the mask section, nothing about SLAM
+        md = (out / "report.md").read_text()
+        assert md.splitlines()[:3] == ["# expM: report (variant main)", "",
+                                       "4 segments. No SLAM runs (no head-motion evaluation); mask comparison only: "
+                                       "sam3 vs sam2."]
+        for title in ("Head rotation", "Head translation", "Tracking", "Scale error", "Tool labels", "Chunk-length",
+                      "noise floor", "Comparison"):
+            assert title not in md, title
+        sec = md_section(md, "Mask comparison: sam3 vs sam2 (reference)")
+        assert sec.startswith(f"{n_all} frames of 4 segments. Per frame") and "`masks_sam3_vs_sam2.md`" in sec
+        (hdr, rows), (phdr, prows) = md_tables(sec)
+        assert hdr == ["quantity", "n", "median", "p10", "p90", "mean"]
+        assert rows == [["IoU"] + _mask_cells(summ["iou"], "share"),
+                        ["recall (share of the reference covered by the candidate)"] + _mask_cells(summ["recall"], "share"),
+                        ["precision (share of the candidate inside the reference)"] + _mask_cells(summ["precision"], "share"),
+                        ["extra area: candidate only [% of frame]"] + _mask_cells(summ["extra_area"], "area"),
+                        ["missed area: reference only [% of frame]"] + _mask_cells(summ["missed_area"], "area"),
+                        ["DROID-cell IoU (masks dilated by 8 px)"] + _mask_cells(summ["cells_iou"], "share")]
+        assert phdr == ["sam3 part", "mean area [% of frame]"]
+        assert prows == [[p, f"{100 * summ['part_area'][p]:.2f}%"] for p in MASK_PARTS]
+        lines = sec.splitlines()
+        assert (f"Mean masked area [% of frame]: sam2 (reference) {100 * summ['area_ref']:.2f}%, "
+                f"sam3 (candidate) {100 * summ['area_cand']:.2f}%.") in lines
+        low = summ["segments_iou_median_below_0.8"]
+        assert "ep02" in low and "ep00" not in low
+        assert f"Segments with IoU median < 0.8: {', '.join(low)} ({len(low)} of 4)." in lines
+        worst = ", ".join(f"{s} {v:.3f}" for s, v in summ["worst_segments"])
+        assert f"Worst segments (IoU median): {worst}." in lines and worst.startswith("ep02 0.000, ")
+        idx = json.load(open(res.parent / "overlays" / "sam3_vs_sam2" / "index.json"))
+        ne = sum(e["kind"] == "even" for e in idx)
+        ov = next(ln for ln in lines if ln.startswith("Overlay images"))
+        assert ov.startswith("Overlay images (not copied into results/): `main/overlays/sam3_vs_sam2/` in the "
+                             f"experiment's work run directory `<work>/runs/expM/` (<work> = `{work}`), "
+                             f"{len(idx)} images: {ne} evenly spaced, {len(idx) - ne} lowest-IoU; "), ov
+        assert len(idx) == 16 and 0 < ne < 16
+        # overlays missing: said so; nothing else changes
+        shutil.rmtree(res.parent / "overlays")
+        out2 = tmp / "experiments" / "expM2" / "results"
+        R.run_report(make_job(out2, {"main": res}, name="expM", work=work))
+        md2 = (out2 / "report.md").read_text()
+        assert ("Overlay images: not found (mask_compare writes them to `main/overlays/sam3_vs_sam2/` in the "
+                "experiment's work run directory `<work>/runs/expM/`") in md2
+        assert [ln for ln in md2.splitlines() if not ln.startswith("Overlay")] == \
+            [ln for ln in md.splitlines() if not ln.startswith("Overlay")]
+        # nothing at all in the results: still metrics.json and report.md (segments of the job)
+        empty = tmp / "work" / "runs" / "expE" / "main" / "results"
+        empty.mkdir(parents=True)
+        out3 = tmp / "experiments" / "expE" / "results"
+        R.run_report(make_job(out3, {"main": empty}, name="expE", segments=MASK_SEGS[:3]))
+        assert strict_json(out3 / "metrics.json") == {"experiment": "expE", "variant": "main", "n_segments": 3,
+                                                       "runs": {}, "gt_noise": None, "evaluate": None, "masks": {}}
+        assert "3 segments. No SLAM runs (no head-motion evaluation); no analysis results." in \
+            (out3 / "report.md").read_text()
+
+
+def test_mask_compare_side_by_side():
+    """Comparison with other experiments: the mask table has every experiment's comparisons side by
+    side ('-' where an experiment has none, e.g. exp001's metrics.json without a masks block); a
+    mask-only experiment shows no SLAM tables; a SLAM experiment's report and metrics only gain
+    the mask section / block."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        work, exps = tmp / "work", tmp / "experiments"
+        e1 = exps / "exp001_sam2_baseline" / "results"
+        e1.mkdir(parents=True)
+        shutil.copy(REPO / "experiments" / "exp001_sam2_baseline" / "results" / "metrics.json", e1)
+        assert "masks" not in json.load(open(e1 / "metrics.json"))
+        mcs = {}
+        for name, seed, parts, compare in (("expA", 0, MASK_PARTS[:3], []),
+                                           ("expB", 1, MASK_PARTS, ["expA", "exp001_sam2_baseline"])):
+            res = work / "runs" / name / "main" / "results"
+            mcs[name] = make_mask_results(res, seed=seed, parts=parts)
+            R.run_report(make_job(exps / name / "results", {"main": res}, compare=compare, name=name,
+                                  experiments_root=exps, work=work))
+        md = (exps / "expB" / "results" / "report.md").read_text()
+        assert "- runs only in exp001_sam2_baseline (not shown): static, E1, E3" in md
+        assert "This experiment has no SLAM runs: the SLAM tables are left out." in md
+        tabs = comparison_tables(md)
+        title = "Mask comparison (per frame, pooled over every frame of every segment)"
+        assert list(tabs) == [title]
+        hdr, rows = tabs[title]
+        assert hdr == ["comparison", "quantity", "expB", "expA", "exp001_sam2_baseline"]
+        assert all(r[0] == "sam3_vs_sam2" and r[4] == "-" for r in rows)
+        by_q = {r[1]: r[2:4] for r in rows}
+        assert list(by_q)[:3] == ["reference / candidate", "dilate [px]", "segments / frames"]
+        assert list(by_q)[-2:] == ["segments with IoU median < 0.8", "worst segments (IoU median)"]
+        for i, name in enumerate(("expB", "expA")):
+            s = mcs[name]["summary"]
+            assert by_q["reference / candidate"][i] == "sam2 / sam3" and by_q["dilate [px]"][i] == "8"
+            assert by_q["segments / frames"][i] == f"4 / {s['frames']}"
+            assert by_q["IoU median / p10"][i] == f"{s['iou']['median']:.3f} / {s['iou']['p10']:.3f}"
+            assert by_q["DROID-cell IoU median / p10"][i] == f"{s['cells_iou']['median']:.3f} / {s['cells_iou']['p10']:.3f}"
+            assert by_q["extra area (candidate only) median / p90 [% of frame]"][i] == \
+                f"{100 * s['extra_area']['median']:.2f}% / {100 * s['extra_area']['p90']:.2f}%"
+            assert by_q["mean area reference / candidate [% of frame]"][i] == \
+                f"{100 * s['area_ref']:.2f}% / {100 * s['area_cand']:.2f}%"
+            assert by_q["part area: hand [% of frame]"][i] == f"{100 * s['part_area']['hand']:.2f}%"
+            low = s["segments_iou_median_below_0.8"]
+            assert by_q["segments with IoU median < 0.8"][i] == f"{len(low)}: {', '.join(low)}"
+            assert by_q["worst segments (IoU median)"][i] == ", ".join(f"{a} {v:.3f}" for a, v in s["worst_segments"])
+        assert by_q["part area: glove [% of frame]"] == [f"{100 * mcs['expB']['summary']['part_area']['glove']:.2f}%", "-"]
+        # SLAM experiments: P without masks, T = the same results plus a mask comparison
+        res_p = make_results(work / "runs" / "expP" / "main" / "results")
+        res_t = make_results(work / "runs" / "expT" / "main" / "results")
+        mc_t = make_mask_results(res_t, seed=3)
+        for res, name in ((res_p, "expP"), (res_t, "expT")):
+            R.run_report(make_job(exps / name / "results", {"main": res}, name="expX", work=work))
+        mp = json.load(open(exps / "expP" / "results" / "metrics.json"))
+        mt = json.load(open(exps / "expT" / "results" / "metrics.json"))
+        assert mp["masks"] == {} and mt["masks"]["sam3_vs_sam2"]["iou"] == mc_t["summary"]["iou"]
+        assert {k: v for k, v in mt.items() if k != "masks"} == {k: v for k, v in mp.items() if k != "masks"}
+        md_p = (exps / "expP" / "results" / "report.md").read_text()
+        md_t = (exps / "expT" / "results" / "report.md").read_text()
+        assert md_t.startswith(md_p) and md_t[len(md_p):].startswith("## Mask comparison: sam3 vs sam2 (reference)\n")
+        assert {p.name for p in (exps / "expT" / "results").iterdir()} - \
+            {p.name for p in (exps / "expP" / "results").iterdir()} == {"masks_sam3_vs_sam2.json", "masks_sam3_vs_sam2.md"}
+        # a SLAM experiment compared with a mask-only one: its SLAM tables as before, then the mask table
+        R.run_report(make_job(exps / "expS" / "results", {"main": res_p}, compare=["expA"], name="expS",
+                              experiments_root=exps, work=work))
+        tabs = comparison_tables((exps / "expS" / "results" / "report.md").read_text())
+        assert len(tabs) == 9 and list(tabs)[-1] == title and list(tabs)[0].startswith("Head rotation error")
+        hdr, rows = tabs[title]
+        assert hdr == ["comparison", "quantity", "expS", "expA"] and all(r[2] == "-" != r[3] for r in rows)
+        hdr, rows = tabs["Head rotation error [deg], n = frame pairs"]
+        assert all(c == "-" for r in rows for c in r[5:]) and all(c != "-" for r in rows for c in r[2:5])
 
 
 if __name__ == "__main__":

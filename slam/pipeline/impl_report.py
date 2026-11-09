@@ -11,12 +11,17 @@ job.params: {compare: [experiment names], dt_show: [s, ...]}
 Writes into job.out_dir (= experiments/<exp>/results/):
   metrics.json      canonical numbers of the main variant (schema below)
   report.md         short tables (sample sizes n under the head and label tables; rotation
-                    label / chunk rows shown once when they are the same for every scale), then
+                    label / chunk rows shown once when they are the same for every scale), a
+                    'Mask comparison' section per masks_<cand>_vs_<ref>.json (pooled stats, mean
+                    and per-part areas, low / worst segments, where the overlay images are), then
                     side by side with every experiment in `compare`; after --repro one line per
-                    repro variant (bit-identical segments, largest metric delta)
+                    repro variant (bit-identical segments, largest metric delta). An experiment
+                    without SLAM runs (no analysis.json: e.g. masks + mask_compare only) gets the
+                    mask sections only.
   copies            the main variant's scale_*.json/.md, labels_*.json, eval_*/summary.{json,md},
-                    gt_noise.json, analysis.json (never pairs.csv); JSON copies are strict JSON
-                    (NaN / Infinity literals -> null; the originals are left as they are)
+                    gt_noise.json, analysis.json, masks_*.json/.md (never pairs.csv, never the
+                    overlay images); JSON copies are strict JSON (NaN / Infinity literals -> null;
+                    the originals are left as they are)
   repro.json, repro.md   after --repro: headline metric deltas (each with its "run") and
                     trajectory differences of every recomputed SLAM node vs main, plus
                     "runs_recomputed" (the runs depending on the recomputed node); repro.md starts
@@ -36,7 +41,12 @@ metrics.json:
                   "labels": {scale_name: {"anchors", "by_step": {j: {...}}}},
                   "chunk": {scale_name: {H: {...}}}}},
    "gt_noise": {...} | null,
-   "evaluate": {"fail_deg": float|null, "dts": [s, ...]|null}}
+   "evaluate": {"fail_deg": float|null, "dts": [s, ...]|null} | null,
+   "masks": {"<cand>_vs_<ref>": {"reference", "candidate", "dilate_px", "parts", "n_segments",
+                                 + the file's "summary": "frames", "iou", "recall", "precision",
+                                 "extra_area", "missed_area", "cells_iou" (mask stats), "area_ref",
+                                 "area_cand", "part_area", "segments_iou_median_below_0.8",
+                                 "worst_segments"}}}
   stat = slam.evaluate.stats() dict; dt keys are strings as in the legacy summary.json ("0.08",
   "1.0"); scale_name = "oracle" (tile-fitted scale) or the run's scale label ("B+Acheck").
   chunk[scale_name][H] = slam.labels.chunk_stats fields, plus "steps_median" (median number of
@@ -49,6 +59,14 @@ metrics.json:
   track_fail_frac (analysis.json "evaluate"; 2.0 for the legacy adapter; null = unknown, a
   results dir without it), dts the evaluated pair intervals. The report prints the threshold
   and marks comparisons between experiments evaluated with different (or unknown) fail_deg.
+  evaluate is null when nothing was evaluated (no analysis.json and no eval_oracle/: an
+  experiment without SLAM runs; runs is then {}, gt_noise null, and n_segments counts the
+  segments of the mask comparisons, else the report job's segments).
+  masks = one block per mask_compare output masks_<cand>_vs_<ref>.json of the results dir ({}
+  when there is none, e.g. every SLAM-only experiment); mask stat = {"n", "median", "p10", "p90",
+  "mean"} over frames (fractions; areas as fractions of the frame). The overlay images stay in
+  the work run directory (<work>/runs/<exp>/<variant>/overlays/<cand>_vs_<ref>/); report.md
+  points to them.
 
 Experiments without metrics.json (exp000_legacy) are read by legacy_metrics(), which builds
 the same structure from the legacy files (results/eval/, results/<label>_eval/).
@@ -225,6 +243,39 @@ def labels_entry(lab):
     return {"anchors": lab.get("anchors"), "by_step": {str(j): v for j, v in (lab.get("by_step") or {}).items()}}
 
 
+MASK_PREFIX = "masks_"
+MASK_IOU_LOW = "segments_iou_median_below_0.8"       # key of the mask_compare summary
+
+
+def mask_files(res):
+    """{"<cand>_vs_<ref>": path} of the mask_compare outputs masks_<cand>_vs_<ref>.json in a
+    results dir (file name order)."""
+    return {p.stem[len(MASK_PREFIX):]: p for p in sorted(Path(res).glob(f"{MASK_PREFIX}*_vs_*.json"))
+            if p.is_file()}
+
+
+def masks_block(mc):
+    """masks_<cand>_vs_<ref>.json (mask_compare contract) -> canonical metrics block: what was
+    compared (reference, candidate, dilate_px, parts, n_segments) and the file's pooled summary."""
+    out = {"reference": mc.get("reference"), "candidate": mc.get("candidate"), "dilate_px": mc.get("dilate_px"),
+           "parts": list(mc.get("parts") or []), "n_segments": len(mc.get("segments") or {})}
+    out.update(mc.get("summary") or {})
+    return out
+
+
+def masks_metrics(res):
+    """{"<cand>_vs_<ref>": masks_block} of a results dir ({} without mask comparisons)."""
+    return {name: masks_block(_read(p)) for name, p in mask_files(res).items()}
+
+
+def mask_segments(res):
+    """Segments of the mask comparisons of a results dir (union, sorted)."""
+    segs = set()
+    for p in mask_files(res).values():
+        segs |= set(_read(p).get("segments") or {})
+    return sorted(segs)
+
+
 def _summary_path(base, rel):
     if not rel:
         return None
@@ -236,7 +287,8 @@ def _summary_path(base, rel):
 
 def discover_index(res):
     """analysis.json-shaped index of a results dir that has no analysis.json (file names of
-    the analysis contract)."""
+    the analysis contract). Without eval_oracle/ nothing was evaluated: "evaluate" is None and
+    the segments are those of the mask comparisons (an experiment without SLAM runs)."""
     res = Path(res)
     o = res / "eval_oracle" / "summary.json"
     S = _read(o) if o.exists() else {"runs": {}, "segments": {}}
@@ -246,8 +298,9 @@ def discover_index(res):
         if name not in runs and name != "tiles":
             runs.append(name)
     idx = {"runs": {}, "gt_noise": "gt_noise.json" if (res / "gt_noise.json").exists() else None,
-           "segments": sorted(S.get("segments", {})),
-           "evaluate": {"fail_deg": S.get("fail_deg"), "dts": S.get("dts")}}     # fail_deg: unknown
+           "segments": sorted(S.get("segments", {})) or mask_segments(res),
+           "evaluate": {"fail_deg": S.get("fail_deg"), "dts": S.get("dts")}     # fail_deg: unknown
+           if o.exists() else None}
     for run in runs:
         sc = res / f"scale_{run}.json"
         label = _read(sc).get("label") if sc.exists() else None
@@ -312,12 +365,17 @@ def build_metrics(base, index, experiment, variant, scale_reader=scale_block):
                 chunk[name] = {str(h): v for h, v in lab["chunk"].items()}
         runs[run] = {"head": head_block(evals, run), "track_fail_frac": _num(tf), "slam": slam,
                      "scale": scale_reader(sc) if sc else None, "labels": labs, "chunk": chunk}
-    segs = index.get("segments") or sorted((oracle_any or {}).get("segments", {}))
-    ev = index.get("evaluate") or {}
-    evaluate = {"fail_deg": _num(ev.get("fail_deg")),
-                "dts": ev.get("dts") if ev.get("dts") is not None else (oracle_any or {}).get("dts")}
+    segs = index.get("segments") or sorted((oracle_any or {}).get("segments", {})) or mask_segments(base)
+    ev = index.get("evaluate")
+    if ev is None and "evaluate" in index and oracle_any is None:
+        evaluate = None                                  # nothing evaluated (discover_index)
+    else:
+        ev = ev or {}
+        evaluate = {"fail_deg": _num(ev.get("fail_deg")),
+                    "dts": ev.get("dts") if ev.get("dts") is not None else (oracle_any or {}).get("dts")}
     return _clean({"experiment": experiment, "variant": variant, "n_segments": len(segs),
-                   "runs": runs, "gt_noise": load(index.get("gt_noise")), "evaluate": evaluate})
+                   "runs": runs, "gt_noise": load(index.get("gt_noise")), "evaluate": evaluate,
+                   "masks": masks_metrics(base)})
 
 
 def results_index(res):
@@ -432,7 +490,8 @@ def load_experiment(root, name):
 
 
 # ====================================================================== copying
-COPY_PATTERNS = ("scale_*.json", "scale_*.md", "labels_*.json", "gt_noise.json", "analysis.json")
+COPY_PATTERNS = ("scale_*.json", "scale_*.md", "labels_*.json", "gt_noise.json", "analysis.json",
+                 f"{MASK_PREFIX}*.json", f"{MASK_PREFIX}*.md")
 
 
 def copy_strict(src, dst):
@@ -781,6 +840,114 @@ def render_gt_noise(g):
     return L + _table(["pairs", "n", "rot deg median / p95", "trans mm median / p95"], rows)
 
 
+# ---------------------------------------------------------------------- mask comparison
+# (stat key, row label, format): "share" = fraction shown as 0.853, "area" = fraction of the frame in %
+MASK_QS = (("iou", "IoU", "share"),
+           ("recall", "recall (share of the reference covered by the candidate)", "share"),
+           ("precision", "precision (share of the candidate inside the reference)", "share"),
+           ("extra_area", "extra area: candidate only [% of frame]", "area"),
+           ("missed_area", "missed area: reference only [% of frame]", "area"),
+           ("cells_iou", "DROID-cell IoU (masks dilated by {d} px)", "share"))
+MASK_NOTE = ("Per frame, then pooled over every frame of every segment. IoU = intersection / union (1 when both "
+             "masks are empty); recall = share of the reference pixels the candidate covers; precision = share "
+             "of the candidate pixels inside the reference; extra / missed area = candidate-only / reference-only "
+             "pixels as a share of the frame; DROID-cell IoU = IoU of the 1/8-resolution cells DROID ignores, each "
+             "mask dilated by {d} px at full resolution first (a cell is ignored when any of its pixels is "
+             "masked: slam.droid_masked.valid_grid). An empty denominator counts 1 (two empty masks: IoU 1; empty "
+             "reference: recall 1; empty candidate: precision 1), so n = frames.")
+
+
+def _mstat(st, key, kind):
+    if not st or not st.get("n"):
+        return "-"
+    return _pct(st.get(key), ".2f") if kind == "area" else _f(st.get(key), ".3f")
+
+
+def _worst_list(worst):
+    """[[segment, IoU median], ...] -> 'ep05 0.612, ep12 0.701'."""
+    return ", ".join("{} {}".format(w[0], _f(w[1], ".3f")) for w in worst or [] if len(w) >= 2) or "-"
+
+
+def _parts_of(b):
+    """Part names of a masks block: the declared parts, then any other part with an area."""
+    out = list(b.get("parts") or [])
+    return out + [p for p in (b.get("part_area") or {}) if p not in out]
+
+
+def overlay_info(variant_results, name, work=None):
+    """Where mask_compare wrote the overlay images of a comparison: <variant>/overlays/<name>/
+    next to the variant's results/ (never copied into the experiment's results/).
+    {"dir": path relative to the run dir (<work>/runs/<exp>/), "run_dir", "exists", "images",
+    "kinds": {kind: count}} from its index.json (else the *.jpg files)."""
+    vdir = Path(variant_results).parent
+    d, run_dir = vdir / "overlays" / name, vdir.parent
+    shown = str(run_dir)
+    if work:
+        try:
+            shown = "<work>/" + run_dir.resolve().relative_to(Path(work).resolve()).as_posix()
+        except ValueError:
+            pass
+    out = {"dir": f"{vdir.name}/overlays/{name}/", "run_dir": shown, "exists": d.is_dir(), "images": None, "kinds": {}}
+    if (d / "index.json").is_file():
+        idx = _read(d / "index.json")
+        if isinstance(idx, dict):                        # tolerate {"images": [...]} as well as [...]
+            idx = next((v for v in idx.values() if isinstance(v, list)), [])
+        out["images"] = len(idx)
+        for e in idx:
+            k = e.get("kind") if isinstance(e, dict) else None
+            out["kinds"][k or "?"] = out["kinds"].get(k or "?", 0) + 1
+    elif d.is_dir():
+        out["images"] = len(list(d.glob("*.jpg")))
+    return out
+
+
+def _overlay_line(o, work=None, parts=True):
+    where = f"`{o['dir']}` in the experiment's work run directory `{o['run_dir']}/`"
+    if work and o["run_dir"].startswith("<work>/"):
+        where += f" (<work> = `{work}`)"
+    if not o["exists"]:
+        return f"Overlay images: not found (mask_compare writes them to {where})."
+    n = "?" if o["images"] is None else str(o["images"])
+    kinds = o.get("kinds") or {}
+    what = ""
+    if kinds:
+        what = ": " + ", ".join(f"{c} {'evenly spaced' if k == 'even' else 'lowest-IoU' if k == 'worst' else k}"
+                                for k, c in kinds.items())
+    return (f"Overlay images (not copied into results/): {where}, {n} images{what}; candidate "
+            f"{'parts filled in distinct colours' if parts else 'filled in colour'}, reference outlined in white; "
+            "`index.json` lists file, segment, frame i, IoU and kind.")
+
+
+def render_masks(m, overlays=None, work=None):
+    """'Mask comparison' section per masks block of canonical metrics. overlays: {name:
+    overlay_info()} (the pointer line is left out for a name without one)."""
+    overlays = overlays or {}
+    L = []
+    for name, b in (m.get("masks") or {}).items():
+        ref, cand, d = b.get("reference"), b.get("candidate"), b.get("dilate_px")
+        L += [f"## Mask comparison: {cand} vs {ref} (reference)", "",
+              f"{_count(b.get('frames'))} frames of {b.get('n_segments')} segments. " + MASK_NOTE.format(d=_deg(d))
+              + f" Per segment: `{MASK_PREFIX}{name}.md`.", ""]
+        rows = []
+        for key, label, kind in MASK_QS:
+            st = b.get(key) or {}
+            rows.append([label.format(d=_deg(d)), _n_cell(st)] + [_mstat(st, g, kind) for g in ("median", "p10", "p90", "mean")])
+        L += _table(["quantity", "n", "median", "p10", "p90", "mean"], rows)
+        L += [f"Mean masked area [% of frame]: {ref} (reference) {_pct(b.get('area_ref'), '.2f')}, "
+              f"{cand} (candidate) {_pct(b.get('area_cand'), '.2f')}.", ""]
+        parts = _parts_of(b)
+        if parts:
+            pa = b.get("part_area") or {}
+            L += _table([f"{cand} part", "mean area [% of frame]"], [[p, _pct(pa.get(p), ".2f")] for p in parts])
+            L += ["Parts may overlap; their union is the candidate mask.", ""]
+        low = list(b.get(MASK_IOU_LOW) or [])
+        L += [f"Segments with IoU median < 0.8: {', '.join(low) or 'none'} ({len(low)} of {b.get('n_segments')}).", "",
+              f"Worst segments (IoU median): {_worst_list(b.get('worst_segments'))}.", ""]
+        if name in overlays:
+            L += [_overlay_line(overlays[name], work, bool(parts)), ""]
+    return L
+
+
 # ====================================================================== comparison tables
 def _ctable(title, key_cols, groups, keys, exps, cell, show=None):
     """Side-by-side table: one row per key (tuple of key cells, displayed through show()),
@@ -818,10 +985,10 @@ def _n_cell(st):
 
 
 def render_compare(exps, dts, sources):
-    """exps: [(name, metrics)], the first is this experiment. sources: {name: description}."""
+    """exps: [(name, metrics)], the first is this experiment. sources: {name: description}.
+    The SLAM tables only when this experiment has runs; the mask table when any experiment has
+    a mask comparison."""
     me = exps[0][1]
-    runs = list(me["runs"])
-    slam_runs = [r for r in runs if r != "static"]
     L = ["## Comparison with other experiments", ""]
     for name, _ in exps[1:]:
         L.append(f"- {name}: {sources.get(name, '')}")
@@ -829,8 +996,21 @@ def render_compare(exps, dts, sources):
     for name, rr in only.items():
         if rr:
             L.append(f"- runs only in {name} (not shown): {', '.join(rr)}")
-    L += ["", "Rows: what this experiment has. \"configured\" = each experiment's own scale method "
-          "(labels in the scale table); \"-\" = not available.", ""]
+    if me["runs"]:
+        L += ["", "Rows: what this experiment has. \"configured\" = each experiment's own scale method "
+              "(labels in the scale table); \"-\" = not available.", ""]
+        L += _compare_slam(exps, dts)
+    else:
+        L += ["", "This experiment has no SLAM runs: the SLAM tables are left out. \"-\" = not available.", ""]
+    return L + _compare_masks(exps)
+
+
+def _compare_slam(exps, dts):
+    """The SLAM tables of render_compare (rows: this experiment's runs)."""
+    me = exps[0][1]
+    runs = list(me["runs"])
+    slam_runs = [r for r in runs if r != "static"]
+    L = []
 
     def head(metric, kind, groups):
         def cell(m, k):
@@ -1009,6 +1189,66 @@ def render_compare(exps, dts, sources):
         L += _ctable("Ground-truth noise floor", ["pairs", "dt [s]"], ["n", "rot deg med / p95", "trans mm med / p95"],
                      gkeys, exps, g_cell)
     return L
+
+
+MASK_CMP_QS = (("pair", "reference / candidate"), ("dilate", "dilate [px]"), ("size", "segments / frames"),
+               ("iou", "IoU median / p10"), ("recall", "recall median / p10"),
+               ("precision", "precision median / p10"),
+               ("extra_area", "extra area (candidate only) median / p90 [% of frame]"),
+               ("missed_area", "missed area (reference only) median / p90 [% of frame]"),
+               ("cells_iou", "DROID-cell IoU median / p10"), ("area", "mean area reference / candidate [% of frame]"),
+               ("low", "segments with IoU median < 0.8"), ("worst", "worst segments (IoU median)"))
+
+
+def _compare_masks(exps):
+    """Side-by-side mask comparison table: rows = every comparison (<cand>_vs_<ref>) of any
+    experiment, this experiment's first; per-part areas after the pooled stats."""
+    names = []
+    for _, m in exps:
+        for n in (m or {}).get("masks") or {}:
+            if n not in names:
+                names.append(n)
+    if not names:
+        return []
+    parts = {n: [] for n in names}
+    for _, m in exps:
+        for n, b in ((m or {}).get("masks") or {}).items():
+            parts[n] += [p for p in _parts_of(b) if p not in parts[n]]
+    keys = []
+    for n in names:
+        qs = [q for q, _ in MASK_CMP_QS]
+        keys += [(n, q) for q in qs[:-2]] + [(n, ("part", p)) for p in parts[n]] + [(n, q) for q in qs[-2:]]
+    label = dict(MASK_CMP_QS)
+
+    def cell(m, k):
+        b = ((m or {}).get("masks") or {}).get(k[0])
+        if not b:
+            return ["-"]
+        q = k[1]
+        if isinstance(q, tuple):
+            v = (b.get("part_area") or {}).get(q[1])
+            return [_pct(v, ".2f")]
+        if q in ("iou", "recall", "precision", "cells_iou"):
+            st = b.get(q) or {}
+            return [f"{_mstat(st, 'median', 'share')} / {_mstat(st, 'p10', 'share')}"]
+        if q in ("extra_area", "missed_area"):
+            st = b.get(q) or {}
+            return [f"{_mstat(st, 'median', 'area')} / {_mstat(st, 'p90', 'area')}"]
+        low = list(b.get(MASK_IOU_LOW) or [])
+        return [{"pair": f"{b.get('reference')} / {b.get('candidate')}", "dilate": _deg(b.get("dilate_px")),
+                 "size": f"{b.get('n_segments')} / {_count(b.get('frames'))}",
+                 "area": f"{_pct(b.get('area_ref'), '.2f')} / {_pct(b.get('area_cand'), '.2f')}",
+                 "low": f"{len(low)}: {', '.join(low)}" if low else "0",
+                 "worst": _worst_list(b.get("worst_segments"))}[q]]
+
+    def show(k):
+        q = k[1]
+        return (k[0], f"part area: {q[1]} [% of frame]" if isinstance(q, tuple) else label[q])
+    tab = _ctable("Mask comparison (per frame, pooled over every frame of every segment)", ["comparison", "quantity"],
+                  [""], keys, exps, cell, show)
+    tab[1:1] = ["", "Rows: the mask comparisons of every experiment (<candidate>_vs_<reference>); details in each "
+                "experiment's report.md and masks_*.md."]
+    return tab
 
 
 # ====================================================================== reproducibility
@@ -1509,6 +1749,8 @@ def run_report(job):
     exp = job.experiment.get("name") or out.parent.name
 
     metrics = variant_metrics(main_dir, exp, "main")
+    if not metrics["n_segments"]:                       # nothing in the results names its segments
+        metrics["n_segments"] = len(job.segments)
     add_chunk_steps(metrics, main_dir, main_dir.parent / "view", job.session, job.log)
     _write_json(out / "metrics.json", metrics)
     copied = copy_small_files(main_dir, out)
@@ -1530,11 +1772,20 @@ def run_report(job):
         job.log(f"compare {name}: {src}")
 
     rep = build_repro(job, metrics, dts)
-    L = [f"# {exp}: report (variant main)", "",
-         f"{metrics['n_segments']} segments. Runs: {', '.join(r for r in metrics['runs'] if r != 'static')} "
-         "(static = head motion identity, no SLAM). Ground truth: tile head poses; "
-         "\"oracle (tiles)\" = per-segment scale fitted to the tile poses (evaluation only).", ""]
-    L += render_main(metrics, dts, scale_files)
+    work = job.spec.get("work")
+    overlays = {name: overlay_info(main_dir, name, work) for name in metrics["masks"]}
+    L = [f"# {exp}: report (variant main)", ""]
+    if metrics["runs"]:
+        L += [f"{metrics['n_segments']} segments. Runs: {', '.join(r for r in metrics['runs'] if r != 'static')} "
+              "(static = head motion identity, no SLAM). Ground truth: tile head poses; "
+              "\"oracle (tiles)\" = per-segment scale fitted to the tile poses (evaluation only).", ""]
+        L += render_main(metrics, dts, scale_files)
+    else:
+        what = ("mask comparison only: " + ", ".join(f"{b.get('candidate')} vs {b.get('reference')}"
+                                                     for b in metrics["masks"].values())
+                if metrics["masks"] else "no analysis results")
+        L += [f"{metrics['n_segments']} segments. No SLAM runs (no head-motion evaluation); {what}.", ""]
+    L += render_masks(metrics, overlays, work)
     if rep:
         L += ["## Reproducibility", "",
               f"{rep['node']} recomputed {len(rep['variants'])} time(s), every step downstream of it rerun; "

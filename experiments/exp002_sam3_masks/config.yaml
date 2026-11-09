@@ -1,0 +1,52 @@
+# exp002_sam3_masks: SAM3 motion masks (text prompts for hand, arm, cable; SAM3-tracker points from
+# the ball pose for the glove rig and the held object) compared with the SAM2 masks of exp001 on yam_glove7.
+# Run:  python -m slam.run experiments/exp002_sam3_masks/config.yaml
+experiment: exp002_sam3_masks
+
+data:
+  session: yam_glove7
+  episodes: all
+  head_stem: yam_glove7_b0587b
+  intrinsics: B0587b_f3_intrinsics.json          # calib/
+  glove: yosub
+  tile_layout: workspace_tiles_pilot_v3.json      # calib/
+  raw_dir: /home/student/yuanliu-hawaii/head-cam-umi/data/raw
+  det_cache_dir: /home/student/yuanliu-hawaii/head-cam-umi/calib
+  gt_dir: /home/student/yuanliu-hawaii/work/yam_glove7/gt
+
+preprocess:
+  impl: undistort_crop
+  params: {preroll_s: 5.0, width: 960, alpha: 0.0, jpg_quality: 95}
+
+masks:
+  sam2:
+    impl: sam2_points
+    params:
+      model: facebook/sam2.1-hiera-large
+      revision: 665f8e2ad61cf5f53d65644ff27c8ee525124610
+      dtype: bfloat16
+      prompt_every: 30
+      prompts:                                    # glove body-frame points, projected with the ball pose
+        glove: [ball, flange]
+        hand: [[-0.141, -0.0026, 0.1014]]
+  sam3:
+    impl: sam3_text_points
+    params:
+      model: facebook/sam3
+      revision: 3c879f39826c281e95690f02c7821c4de09afae7
+      dtype: bfloat16
+      text_prompts: [hand, arm, cable]              # open-vocabulary body parts
+      point_prompts:                                # glove body-frame points, projected with the ball pose:
+        glove: [ball, flange]                       # rig (ball, handle, fingers) and the held object
+      prompt_every: 30
+      require_postprocess: true                     # SAM3 hole filling / NMS kernel (kernels-community/cv-utils)
+
+slam: {}
+
+mask_compare:
+  params: {reference: sam2, candidates: [sam3], dilate_px: 8, overlays_per_segment: 4}
+
+report:
+  params: {compare: [], dt_show: [0.08, 0.5, 1.0, 2.0, 6.67]}
+
+exec: {jobs: 8}

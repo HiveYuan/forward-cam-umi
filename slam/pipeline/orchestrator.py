@@ -35,7 +35,7 @@ from slam.pipeline import view as V
 
 REPO = SP.REPO
 WORK = Path(os.environ.get("SLAM_WORK", "/home/student/yuanliu-hawaii/work"))
-ANALYSIS_ORDER = ("scale", "labels", "evaluate")
+ANALYSIS_ORDER = ("mask_compare", "scale", "labels", "evaluate")
 RECORDED_ENV_VARS = ("SLAM_WORK", "HEADCAM_DATA_REPO", "CUDA_VISIBLE_DEVICES", "PYTORCH_CUDA_ALLOC_CONF",
                      "HF_HOME", "HF_HUB_CACHE", "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_TOKEN_PATH",
                      "CONDA_ROOT", "SLAM_PY_VENV", "SLAM_PY_DROID", "SLAM_PY_SAM2", "SLAM_PY_SAM3",

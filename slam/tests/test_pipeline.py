@@ -249,7 +249,8 @@ def test_build_errors():
     for k in ("scale", "labels", "evaluate", "report", "depth"):
         del c[k]
     order, an = SP.build(c)
-    assert len(order) == 6 and an == {"scale": {}, "labels": None, "evaluate": None, "report": None}
+    assert len(order) == 6 and an == {"mask_compare": None, "scale": {}, "labels": None, "evaluate": None,
+                                      "report": None}
 
 
 def _fps(cfg, code_state="abc"):

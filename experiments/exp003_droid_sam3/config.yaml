@@ -1,0 +1,157 @@
+# exp003_droid_sam3: exp001 with the SAM3 motion masks of exp002. Masked DROID-SLAM E1 (no masks; tile-mask
+# fallback, same as exp001), E2 (motion masks) and E3 (motion + tile masks); scale B with an A cross-check.
+# Run:  python -m slam.run experiments/exp003_droid_sam3/config.yaml
+experiment: exp003_droid_sam3
+
+data:
+  session: yam_glove7
+  episodes: all
+  head_stem: yam_glove7_b0587b
+  intrinsics: B0587b_f3_intrinsics.json          # calib/
+  glove: yosub
+  tile_layout: workspace_tiles_pilot_v3.json      # calib/
+  raw_dir: /home/student/yuanliu-hawaii/head-cam-umi/data/raw
+  det_cache_dir: /home/student/yuanliu-hawaii/head-cam-umi/calib
+  gt_dir: /home/student/yuanliu-hawaii/work/yam_glove7/gt
+
+preprocess:
+  impl: undistort_crop
+  params: {preroll_s: 5.0, width: 960, alpha: 0.0, jpg_quality: 95}
+
+tiles:
+  impl: apriltag_36h11
+  params: {detect_scale: 0.5, subpix_win: 5}
+
+masks:
+  motion:
+    impl: sam3_text_points
+    params:
+      model: facebook/sam3
+      revision: 3c879f39826c281e95690f02c7821c4de09afae7
+      dtype: bfloat16
+      text_prompts: [hand, arm, cable]              # open-vocabulary body parts
+      point_prompts:                                # glove body-frame points, projected with the ball pose:
+        glove: [ball, flange]                       # rig (ball, handle, fingers) and the held object
+      prompt_every: 30
+      require_postprocess: true                     # SAM3 hole filling / NMS kernel (kernels-community/cv-utils)
+  tiles:
+    impl: tile_geometry
+    params: {margin_mm: 10.0, max_gap_s: 0.5, grow_mm_per_s: 100.0, slam_fallback: E1, slam_margin_mm: 25.0}
+
+slam:
+  E1:
+    impl: droid
+    masks: []
+    params:
+      weights:
+        path: /home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth
+        sha256: 46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526
+      dilate_px: 8
+      buffer: 0                                   # 0 = frames + 32
+      beta: 0.3
+      filter_thresh: 2.4
+      warmup: 8
+      keyframe_thresh: 4.0
+      frontend_thresh: 16.0
+      frontend_window: 25
+      frontend_radius: 2
+      frontend_nms: 1
+      backend_thresh: 22.0
+      backend_radius: 2
+      backend_nms: 3
+      seed: 0
+  E2:
+    impl: droid
+    masks: [motion]
+    params:
+      weights:
+        path: /home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth
+        sha256: 46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526
+      dilate_px: 8
+      buffer: 0
+      beta: 0.3
+      filter_thresh: 2.4
+      warmup: 8
+      keyframe_thresh: 4.0
+      frontend_thresh: 16.0
+      frontend_window: 25
+      frontend_radius: 2
+      frontend_nms: 1
+      backend_thresh: 22.0
+      backend_radius: 2
+      backend_nms: 3
+      seed: 0
+
+  E3:
+    impl: droid
+    masks: [motion, tiles]
+    params:
+      weights:
+        path: /home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth
+        sha256: 46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526
+      dilate_px: 8
+      buffer: 0
+      beta: 0.3
+      filter_thresh: 2.4
+      warmup: 8
+      keyframe_thresh: 4.0
+      frontend_thresh: 16.0
+      frontend_window: 25
+      frontend_radius: 2
+      frontend_nms: 1
+      backend_thresh: 22.0
+      backend_radius: 2
+      backend_nms: 3
+      seed: 0
+
+depth:
+  da2:
+    impl: hf_depth
+    runs: [E2, E3]
+    params:
+      model: da2-metric-indoor-large
+      repo: depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf
+      revision: d2fc6a93601aabb1139a3bf0ebfcb4e89c67817f
+
+scale:
+  E3:
+    primary: B
+    checks: [A]
+    flag_threshold: 0.10
+    methods:
+      A: {window_s: 1.0, step_s: 0.25, res_max_mm: 5.0, min_baseline_mm: 20.0, min_frames: 10}
+      B: {depth: da2, correction: faces, min_facing: 0.7, fit: scale, min_affine_range: 0.15,
+          depth_window: null, z_max: 4.0, min_cells: 200}
+
+  E2:
+    primary: B
+    checks: [A]
+    flag_threshold: 0.10
+    methods:
+      A: {window_s: 1.0, step_s: 0.25, res_max_mm: 5.0, min_baseline_mm: 20.0, min_frames: 10}
+      B: {depth: da2, correction: faces, min_facing: 0.7, fit: scale, min_affine_range: 0.15,
+          depth_window: null, z_max: 4.0, min_cells: 200}
+labels:
+  runs: [E2, E3]
+  params:
+    fps: 15.0                                     # fixed in slam.labels (build_dataset rules)
+    label_tol_s: 0.12
+    min_coverage: 0.7
+    bridge_s: 0.5
+    min_episode_s: 1.0
+    gripper: wrist                                # gt/gripper_wrist.npz (slam.wrist_width)
+    label_steps: [1, 2, 4, 8, 15, 30, 60, 100]    # j: tool_t -> tool_t+j error vs tile labels
+    horizon: 100
+    chunk_H: [15, 30, 50, 100]                    # mean error over chunk steps 1..H
+
+evaluate:
+  runs: [E1, E2, E3]
+  params:
+    dts: [0.08, 0.25, 0.5, 1.0, 2.0, 4.0, 6.67]
+    fail_deg: 2.0                                 # tracking failure: dt 0.08 s rotation error > 2 deg
+    gt_noise: true
+
+report:
+  params: {compare: [exp000_legacy, exp001_sam2_baseline], dt_show: [0.08, 0.5, 1.0, 2.0, 6.67]}
+
+exec: {jobs: 8}

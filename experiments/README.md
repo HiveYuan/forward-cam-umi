@@ -37,9 +37,10 @@ Steps and their implementations (`registry.py`; the config picks one per step):
 |---|---|---|---|
 | preprocess | `undistort_crop` | venv | frames, per-segment GT slices |
 | tiles | `apriltag_36h11` | venv | tile detections (evaluation GT) |
-| masks (named) | `sam2_points`, `tile_geometry` (SAM3 in exp002) | sam2 / venv | `masked.npz` |
+| masks (named) | `sam2_points`, `sam3_text_points`, `tile_geometry` | sam2 / sam3 / venv | `masked.npz` |
 | slam (named runs) | `droid` (backend interface `slam/backends/base.py`, AMB3R next) | droid | `traj.npz` |
 | depth | `hf_depth` (DA2 metric, Depth Pro) | sam2 | keyframe depth for scale B |
+| mask_compare | `impl_mask_compare.py`: mask sets vs a reference (IoU, recall, precision, extra / missed area, DROID-cell IoU) | venv | `masks_<cand>_vs_<ref>.{json,md}`; overlays in `<work>/runs/<exp>/<variant>/overlays/` |
 | scale | methods of `slam/scale.py`: `none`, `native`, `A`, `B`; primary + checks | venv | per-segment s, flags |
 | labels | `slam/labels.py` | venv | 15 fps tool poses, error vs tiles, chunk metrics |
 | evaluate | `slam/evaluate.py`, `slam/tiles.py noise` | venv | head-motion metrics vs tiles |
