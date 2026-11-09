@@ -1,1 +1,10 @@
-{"audit": {"sam2": [40, 1, "0.11"], "v1": [40, 73, "0.03"], "v2": [54, 10, "0.98-0.99"]}, "global": {"SAM3 v1 (exp002)": {"iou_median": 0.9317674824932642, "iou_p10": 0.715073084148088, "recall_median": 0.9686101985343327, "precision_median": 0.9700297716418188, "cells_median": 0.967741935483871, "cells_p10": 0.6880344751421893, "area": 0.07592785838314281}, "SAM3 v2 (exp006)": {"iou_median": 0.9419137607377404, "iou_p10": 0.8754200452271467, "recall_median": 0.9688393200506644, "precision_median": 0.9786987122462613, "cells_median": 0.9793539506693604, "cells_p10": 0.8880444271094519, "area": 0.0718672439134161}}, "note": "SAM2 itself masks 7.2% of the frame on average. DROID with v2 masks (exp006, E3): head rotation 0.52 deg median at 1 s (v1 0.52, SAM2 0.53), tracking failure 0.17% (v1 0.21%, SAM2 0.34%)."}
+{
+ "_source": "audit: experiments/exp006_sam3_v2/README.md 'Audit-set numbers' (audit_eval.py); agreement: results/masks_motion_vs_sam2.md pooled summary; droid: exp006 results (SAM3, E3) and exp001 results (SAM2, E3)",
+ "audit": {
+  "sam2": {"moving": "40 (61%)", "static": "1 (0.2%)", "held": "0–42%"},
+  "sam3": {"moving": "54 (69%)", "static": "10 (22%)", "held": "98–99%"}
+ },
+ "agreement": {"frames": 8972, "iou_median": 0.942, "iou_p10": 0.875, "cells_median": 0.979, "cells_p10": 0.888,
+               "area_sam3": 0.072, "area_sam2": 0.072},
+ "droid": {"rot_1s_sam3": 0.52, "rot_1s_sam2": 0.53, "fail_sam3": "0.17%", "fail_sam2": "0.34%"}
+}

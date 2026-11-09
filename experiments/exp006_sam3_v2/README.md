@@ -152,13 +152,9 @@ GB (ep15), tracker up to 11.0 GB; `gpu_gb` is 14.
 
 ## Gallery
 
-`gallery/index.html` (open it in a browser; also published as the private page "glove7 SAM3 v2
-Masks", https://claude.ai/artifact/6qMGM3v2FAMJ9VcxpwctaA). It shows 120 frames, the same frames as
-exp002's gallery: 2 evenly spaced frames and the 2 worst-for-v1 frames per segment. Each image puts
-v1 (left) next to v2 (right), each compared with SAM2:
-- green: both masks;
-- cyan: SAM2 only;
-- magenta: the SAM3 version only.
-
-It also has the region-audit table and the pooled agreement numbers. To rebuild it from the cache:
-`render.py <out>` renders the images, then `page.py <out> stats.json` writes the page.
+[`gallery/README.md`](gallery/README.md) ("glove7 SAM3 v2 Masks", rendered by GitHub): 120 frames of
+SAM2 (exp001) against SAM3 (this experiment's `sam3_v2` masks), 4 per segment. Two are evenly spaced
+(the typical frames of exp002's gallery). The other two are the frames where SAM3 and SAM2 disagree
+most (lowest IoU, at least 15 frames apart). Colours: green = both, cyan = SAM2 only, magenta = SAM3
+only. The page also gives the mask setups, the region-audit table and the agreement over all frames.
+Rebuild it from the cache with `make_gallery.py`; its table numbers come from `stats.json`.
