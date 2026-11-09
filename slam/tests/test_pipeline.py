@@ -976,6 +976,33 @@ def test_check_previous_refuses_completed_elsewhere():
         write({**done, "config_sha256": "c0", "status": "failed"})
         _raises(SP.ConfigError, O.Runner.check_previous, me, keys, match="different config")
 
+
+def test_git_repo_state_ignore_patterns():
+    """Run outputs of any experiment (results/, run.json) are ignored via patterns; other files are not."""
+    with tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "repo"
+        (repo / "experiments" / "a").mkdir(parents=True)
+
+        def git(*a):
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com",
+                            "-c", "commit.gpgsign=false", *a], check=True, capture_output=True)
+        git("init", "-q")
+        (repo / "experiments" / "a" / "config.yaml").write_text("a: 1\n")
+        git("add", ".")
+        git("commit", "-q", "-m", "init")
+        ign = ["experiments/*/results", "experiments/*/run.json", "experiments/*/.results.tmp"]
+        for e in ("a", "b"):
+            (repo / "experiments" / e / "results").mkdir(parents=True, exist_ok=True)
+            (repo / "experiments" / e / "results" / "m.json").write_text("{}")
+            (repo / "experiments" / e / "run.json").write_text("{}")
+        (repo / "experiments" / "b" / ".results.tmp").mkdir()
+        (repo / "experiments" / "b" / ".results.tmp" / "x.md").write_text("x")
+        assert RI.git_repo_state(repo, ign)["clean"]
+        (repo / "experiments" / "b" / "config.yaml").write_text("b: 1\n")          # a new config is not output
+        (repo / "experiments" / "a" / "results_old.txt").write_text("x")
+        s = RI.git_repo_state(repo, ign)
+        assert sorted(s["dirty_files"]) == ["?? experiments/a/results_old.txt", "?? experiments/b/config.yaml"]
+
 if __name__ == "__main__":
     for name, f in list(globals().items()):
         if name.startswith("test_"):

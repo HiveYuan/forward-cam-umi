@@ -401,7 +401,9 @@ class Runner:
     def main(self):
         a = self.args
         rel = self.exp_dir.relative_to(REPO) if self.in_repo else None
-        ignore = [f"{rel}/results", f"{rel}/run.json"] if rel else []
+        # run outputs of any experiment (this one, or one running alongside) are not code
+        ignore = (["experiments/*/results", "experiments/*/run.json", "experiments/*/.results.tmp"]
+                  if rel else [])
         self.git = RI.git_repo_state(REPO, ignore)
         self.tags, self.repro_info, self.variant = {}, None, "main"
         order = self.plan()

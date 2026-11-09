@@ -11,7 +11,9 @@ from slam.pipeline import hashing as H
 
 def git_repo_state(repo, ignore=()):
     """Commit, branch, and whether the work tree is clean. Paths under `ignore` (repo-relative
-    prefixes, e.g. the experiment's results/) do not count as dirty."""
+    prefixes, e.g. the experiment's results/, or fnmatch patterns such as
+    'experiments/*/run.json') do not count as dirty."""
+    import fnmatch
     def git(*a):
         return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True,
                               check=True).stdout
@@ -20,7 +22,8 @@ def git_repo_state(repo, ignore=()):
     dirty = []
     for line in git("status", "--porcelain", "--untracked-files=all").splitlines():
         path = line[3:].split(" -> ")[-1].strip('"')
-        if not any(path == p.rstrip("/") or path.startswith(p.rstrip("/") + "/") for p in ignore):
+        if not any(path == p.rstrip("/") or path.startswith(p.rstrip("/") + "/")
+                   or fnmatch.fnmatch(path, p) or fnmatch.fnmatch(path, p.rstrip("/") + "/*") for p in ignore):
             dirty.append(line)
     return {"commit": commit, "branch": branch, "clean": not dirty, "dirty_files": dirty,
             "describe": git("describe", "--always", "--tags", "--dirty").strip()}
