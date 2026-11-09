@@ -68,3 +68,15 @@ Chunk H = 30 means: 7.0 / 6.4 / 12.6 / 12.1 mm.
 - **A perfect scale would not remove most of the error.** With the oracle scale, the label error is
   still 3.9 mm at 1 s and 9.1 mm at H = 100. That remainder is SLAM's motion and the tile GT's own
   noise.
+
+## Error sources (post-hoc analysis)
+
+[`error_sources/README.md`](error_sources/README.md) splits Bsession's scale error, with independent
+checks. About half of the squared error is a bias of about -8%: the ball correction is measured at
+about 0.5 m but applied to background at about 0.8 m, and DA2's correction grows with distance. A
+one-off calibration would give |err| median about 5% and p90 about 13% (leave-one-out). The other
+half is episode-to-episode spread, sd about 9%. A large part of it follows DA2's background scale
+changing per episode, which the ball does not see, but the share cannot be cleanly separated. Two
+thirds of the spread come from 9 episodes whose keyframes rarely see the tiles, and there the
+reference itself is uncertain. In ep29 the oracle is 1.25 with six 2-tile frames and 0.77 without
+them.
