@@ -89,3 +89,5 @@ exp001 (yam_glove7, 30 segments, RTX 3090, driver 580, DROID torch 2.5.1+cu124):
 |---|---|
 | exp000_legacy | archive of the pre-framework results (SAM2 + DROID E1/E2/E3, scale modes), tag `legacy-sam2` |
 | exp001_sam2_baseline | exp000's E3 configuration re-run through the framework; reproducibility tolerance |
+| exp002_sam3_masks | SAM3 masks (text: hand/arm/cable + ball-pose points for the rig) vs SAM2; overlay gallery; region audit in `audits/` |
+| exp003_droid_sam3 | DROID E1/E2/E3 with the SAM3 masks, vs exp000/exp001 |

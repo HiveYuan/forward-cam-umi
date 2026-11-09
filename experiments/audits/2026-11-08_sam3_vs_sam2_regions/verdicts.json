@@ -1,0 +1,2504 @@
+[
+ {
+  "batch": 0,
+  "judge": 1,
+  "frames": [
+   {
+    "segment": "ep00",
+    "i": 18,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thin sliver along glove cable / forearm edge"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "second hand (fingers) in foreground"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep03",
+    "i": 28,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black gripper fingers/handle with markers (glove rig)"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "finger marker cube at gripper fingertip"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep06",
+    "i": 25,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black top bar/frame of glove rig handle (plus marker at top-left corner)"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "orange part and marker on left side of rig handle"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "patches on the dark side of the rig handle"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "lower-left edge of rig body near thumb"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep09",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "right part of red block held at the rig (blurred with rig, fixed position on rig)"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "blue block on floor next to fingertip marker (same world spot in i=172)"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white left wall/floor strip"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "sliver along glove cable"
+     },
+     {
+      "region": 5,
+      "verdict": "moving",
+      "what": "glove cable along forearm"
+     },
+     {
+      "region": 6,
+      "verdict": "static",
+      "what": "edge (black outline + white margin) of AprilTag tile peeking from under the arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep12",
+    "i": 169,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "sliver between thumb and gripper finger/marker"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark grey bin/box at left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep15",
+    "i": 119,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white wall/floor strip at left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep18",
+    "i": 178,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "fingertip marker cube and thumb band"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "bin left wall / pink tab at left edge"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "cable from static PCB/electronics on stand"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "AprilTag tile at left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep21",
+    "i": 0,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black gripper finger with marker"
+     },
+     {
+      "region": 2,
+      "verdict": "unclear",
+      "what": "blue+grey patch in gap between gripper base and thumb; could be held item/rig part or a floor block seen through the gap"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "red/white wires on background shelf"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "cable from static PCB on stand"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep24",
+    "i": 189,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thumb band and fingertip marker cube"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "cable from static PCB on stand"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep27",
+    "i": 281,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white left wall"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall between glove cable loop and hand"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ },
+ {
+  "batch": 0,
+  "judge": 2,
+  "frames": [
+   {
+    "segment": "ep00",
+    "i": 18,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thin sliver along the glove-rig cable running down the arm"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "second hand (blurred fingers/palm) reaching in at the bottom-left"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep03",
+    "i": 28,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black gripper fingers/handle of the glove rig with square markers, close to the camera"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "marker cube on the finger ring of the gripper, next to the thumb"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep06",
+    "i": 25,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black handle bar of the rig going to the marker ball (ball face at the top-left corner)"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "rig part at the left edge: tag border, gray strip and orange part on the handle"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "gray patch on the black gripper body"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "black gripper body beside the finger marker, above the hand"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep09",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "red block resting on the floor behind the gripper (not held; still in the same place when the gripper lifts by frame 180)"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "mostly (~70% blue pixels) the top of a blue block on the floor, not held, plus thin slivers around the fingertip marker cube and thumb"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white side wall of the workspace along the left edge"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "glove-rig cable to the left of the forearm"
+     },
+     {
+      "region": 5,
+      "verdict": "moving",
+      "what": "glove-rig cable lying over the forearm at the bottom"
+     },
+     {
+      "region": 6,
+      "verdict": "static",
+      "what": "black interior, white margin and black border of a floor AprilTag tile next to the forearm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep12",
+    "i": 169,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thumb tip with tape ring holding the gripper"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "gray bin/box wall at the left edge of the frame"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep15",
+    "i": 119,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white workspace side wall along the left edge (with pink strip)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep18",
+    "i": 178,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "marker cube on the gripper fingertip and its connector"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "pink corner bracket on the floor at the left edge"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "desk cable from the electronics board on the static robot, hanging down"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "AprilTag tile on the floor at the left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep21",
+    "i": 0,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black gripper finger with marker, and finger marker cube"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "dark lower gripper part / hand edge at the bottom of the frame"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "small red-white cable/connector in the dark background beyond the wall"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "desk cable from the electronics board on the static robot"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep24",
+    "i": 189,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "marker cube on the gripper fingertip"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "desk cable from the electronics board on the static robot"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep27",
+    "i": 281,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white side wall of the workspace on the left"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "background floor/wall seen between the rig cable loop and the finger"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ },
+ {
+  "batch": 1,
+  "judge": 1,
+  "frames": [
+   {
+    "segment": "ep00",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig: dodecahedron ball, handle, fingers, marker cubes, plus the red block held in the gripper"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable running along the forearm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep03",
+    "i": 150,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig: ball, handle, gripper fingers, marker cubes"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "thin sliver of glove cable along the forearm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "cable from the blurry PCB mounted on the static robot/electronics (bottom right)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep06",
+    "i": 240,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove cable along the forearm"
+     }
+    ],
+    "missed_by_both": "red block held in the gripper above the bin (~x260,y134), released a few frames later; covered by neither mask (SAM3 ~9%)"
+   },
+   {
+    "segment": "ep09",
+    "i": 172,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large patch of white workspace wall on the left"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep12",
+    "i": 255,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thin sliver along the gripper finger/handle edge and the thumb tape"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark storage bin on the left"
+     }
+    ],
+    "missed_by_both": "red block held in the gripper beside the handle (~x426,y277); both masks cover about 1-2% of it"
+   },
+   {
+    "segment": "ep15",
+    "i": 301,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle/fingers with marker cubes above the thumb"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "black glove cable sliver along the arm's left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep18",
+    "i": 347,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle/fingers with marker cubes above the thumb"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "connector and cable of the PCB mounted on the static robot (bottom right)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep21",
+    "i": 241,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "dark blue block on the floor behind the ball (stays on the floor across frames as the rig moves)"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "red block held in the gripper (carried to the bin by ~frame 290)"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "gripper finger marker cube"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "blue block on the floor at the left image edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep24",
+    "i": 210,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper finger, marker cube and taped thumb edge"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable along the forearm"
+     }
+    ],
+    "missed_by_both": "none (the nearby red block is still on the floor, not yet grasped)"
+   },
+   {
+    "segment": "ep27",
+    "i": 297,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large patch of white wall on the left"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall seen inside the loop of the glove cable"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white wall between the cable and the hand/wrist"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "floor between the forearm and the AprilTag tile"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ },
+ {
+  "batch": 1,
+  "judge": 2,
+  "frames": [
+   {
+    "segment": "ep00",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle, ball, finger markers, plus the red block held in the gripper (strip of frames 255-285 shows it held, then dropped into the bin by 300)"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "black glove cable running along the forearm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep03",
+    "i": 150,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle body, gripper fingers and finger marker cubes"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable along the arm's left edge (thin sliver)"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "black/red cable hanging from the blurry foreground PCB on the static robot/electronics (bottom right); its image position changes between episodes, so it is fixed in the world, not on the head"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep06",
+    "i": 240,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black glove cable running along the forearm"
+     }
+    ],
+    "missed_by_both": "red block held in the gripper at the top right of the handle (about 255,135): neither mask covers it (SAM3 gets about 83 of 920 red px). Frames 210-255 show it carried, then dropped into the bin"
+   },
+   {
+    "segment": "ep09",
+    "i": 172,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large area of white workspace wall and floor on the left side of the frame, left of the arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep12",
+    "i": 255,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper fingertip and finger marker cube near the thumb"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark gray bin/box on the left"
+     }
+    ],
+    "missed_by_both": "red block held at the top right of the handle (about 425,275): neither mask covers it (about 715 red px uncovered). Frames 225-270 show it carried with the gripper"
+   },
+   {
+    "segment": "ep15",
+    "i": 301,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle, gripper fingers and fingertip marker cube above the thumb"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "black glove cable along the left side of the forearm (visible after contrast boost)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep18",
+    "i": 347,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle, fingers and finger marker cubes at the top left"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "black/red cable from the blurry foreground PCB on the static robot/electronics (bottom right)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep21",
+    "i": 241,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "blue block on the floor, partly hidden behind the marker ball. Nearby frames show its position relative to the gripper changing, and the gripper is holding the red block, so it is not held"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "red block held at the right side of the gripper body, plus the body edge (held from frame 180 to 262)"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "left finger marker cube of the glove rig"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "blue block lying on the floor at the left image edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep24",
+    "i": 210,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "fingertip marker cube and thumb tip with white tape"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "black glove cable along the forearm"
+     }
+    ],
+    "missed_by_both": "red block at the fingertips (about 320,325) is uncovered by both masks. At frame 210 the gripper is closing on it, and it is carried from about 213 on, so it is borderline here"
+   },
+   {
+    "segment": "ep27",
+    "i": 297,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large area of white side wall on the left, left of the arm and cable"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall seen through the gap enclosed by the cable loop, ball, handle and left finger marker"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white wall background between the cable and the hand/handle, below the left finger marker"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "floor and bin edge between the forearm and the AprilTag tile at the bottom"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ },
+ {
+  "batch": 2,
+  "judge": 1,
+  "frames": [
+   {
+    "segment": "ep01",
+    "i": 93,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "black glove-rig cable curving from the handle down past the arm (plus white finger ring)"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "pink tile holder at left frame edge"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "AprilTag tile on floor at left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep04",
+    "i": 275,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle/fingers with markers holding a red block"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "rig cable along forearm at bottom-left"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep07",
+    "i": 175,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "small square marker cube on rig near cable/ball"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "cable from PCB mounted on static black robot arm (right side)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep10",
+    "i": 273,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "dark grey bin/box at bottom-left"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep13",
+    "i": 252,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white workspace wall at left"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "cable from PCB on static robot arm (right)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep16",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper rig handle/fingers with markers holding red block"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "rig cable sliver along left edge of forearm"
+     }
+    ],
+    "missed_by_both": "part of the held red block (red pixels in gripper jaws left uncovered) and the white finger ring on the thumb"
+   },
+   {
+    "segment": "ep19",
+    "i": 8,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "rig cable and left marker cube on handle"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "finger marker cube on gripper"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white rope handle of a bag in dark background"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep22",
+    "i": 177,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "sliver of thumb/finger marker cube on gripper"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall at top-left edge"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "dark bin corner at left edge"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "white floor at left edge"
+     }
+    ],
+    "missed_by_both": "lower finger marker cube mostly uncovered; red block just under the thumb may be held by gripper (unclear) and is uncovered"
+   },
+   {
+    "segment": "ep25",
+    "i": 150,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "finger marker cube and thumb edge"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall strip at left frame edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep28",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "rig cable running along forearm"
+     }
+    ],
+    "missed_by_both": "red block in the gripper jaws (appears held) left uncovered by both; small part of white finger ring"
+   }
+  ]
+ },
+ {
+  "batch": 2,
+  "judge": 2,
+  "frames": [
+   {
+    "segment": "ep01",
+    "i": 93,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "rig cable running from handle down along the arm"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "pink corner tab on the workspace wall"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "AprilTag tile on the floor at left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep04",
+    "i": 275,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper body, finger marker cubes and the red block held in its jaws"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "rig cable running along the forearm at bottom-left"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep07",
+    "i": 175,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "left side of a small marker cube on the handle, next to the cable"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "cable from the PCB mounted on the static black robot arm"
+     }
+    ],
+    "missed_by_both": "none (red block beside the gripper is resting on the table, not held)"
+   },
+   {
+    "segment": "ep10",
+    "i": 273,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "dark bin/box in the lower-left corner"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep13",
+    "i": 252,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white foam wall along the left side of the workspace"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "cable from the PCB on the static robot arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep16",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper body, fingers, marker squares and the held red block"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "thin sliver along the edge of the arm and its cable"
+     }
+    ],
+    "missed_by_both": "part of the red block held in the gripper jaws is left as red speckles that neither mask fully covers"
+   },
+   {
+    "segment": "ep19",
+    "i": 8,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "rig cable along the handle and the left marker cube"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "small marker cube on a gripper finger"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white rope handle of a bag in the background"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep22",
+    "i": 177,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper fingertip, thumb ring and finger marker cube"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall at the top-left edge"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "corner of the dark bin at the left edge"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "wall/floor strip at the left edge"
+     }
+    ],
+    "missed_by_both": "possibly the red block under the fingers; it looks like it is on the table and not clearly held"
+   },
+   {
+    "segment": "ep25",
+    "i": 150,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "edge of the gripper finger and its marker cube"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall strip at the left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep28",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "rig cable running along the forearm"
+     }
+    ],
+    "missed_by_both": "red block in the gripper jaw next to the handle, likely held, is not covered by either mask"
+   }
+  ]
+ },
+ {
+  "batch": 3,
+  "judge": 1,
+  "frames": [
+   {
+    "segment": "ep01",
+    "i": 128,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove-rig cable running along the arm up to the handle"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "pink wall tile and AprilTag on the left wall"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep04",
+    "i": 290,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper handle, dodecahedron marker ball, fingers with marker cubes, and a red block held in the jaws"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove-rig cable along the arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep07",
+    "i": 240,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper finger marker cubes and edges of the gripper body"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove-rig cable along the arm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "edge of the dark, out-of-focus static robot/electronics column at bottom right"
+     }
+    ],
+    "missed_by_both": "red block at the gripper jaws (looks held) is left unmasked by both"
+   },
+   {
+    "segment": "ep10",
+    "i": 321,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "thin strip of the white left wall along the frame edge"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin interior/back wall right of the gripper"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "left part of the dark bin beside the arm (maybe a few slivers along the cable edge)"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "right/front part of the dark bin (red block lying inside the bin, not held)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep13",
+    "i": 282,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large area of the white left wall"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall visible between the rig cable loop and the handle"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white wall visible between the cable and the hand"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "cable coming from the static electronics board on the robot, not the rig cable"
+     },
+     {
+      "region": 5,
+      "verdict": "static",
+      "what": "white floor between the arm edge and the AprilTag/bin"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep16",
+    "i": 300,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove-rig cable along the arm up to the handle"
+     }
+    ],
+    "missed_by_both": "the whole gripper handle body, fingers and finger marker cubes (top center) are not covered by either mask; only the hand/arm is covered"
+   },
+   {
+    "segment": "ep19",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove-rig cable along the arm"
+     }
+    ],
+    "missed_by_both": "red block in the gripper jaws (looks held) is only partly covered (small SAM3-only patch); its upper part is unmasked"
+   },
+   {
+    "segment": "ep22",
+    "i": 330,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper fingers, finger marker cubes and edges of the gripper body"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove-rig cable along the arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep25",
+    "i": 180,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thin sliver along the lower gripper finger/marker cube next to the thumb"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall left of the arm (upper left)"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white floor/wall with pink tape strip right of the arm at the bottom"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep28",
+    "i": 300,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove-rig cable along the arm"
+     }
+    ],
+    "missed_by_both": "the gripper handle body, fingers and finger marker cubes (top center) are not covered by either mask; only the hand/arm is covered"
+   }
+  ]
+ },
+ {
+  "batch": 3,
+  "judge": 2,
+  "frames": [
+   {
+    "segment": "ep01",
+    "i": 128,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig cable along the arm (black cable from handle down the forearm)"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "pink tile holder and AprilTag tile on floor at left edge"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep04",
+    "i": 290,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig handle, marker ball, gripper fingers/markers and the held red block"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove rig cable running along the arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep07",
+    "i": 240,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper finger marker cubes and jaw edge slivers"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove rig cable along the arm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "black cable hanging from the static robot's camera/electronics board (bottom right, also visible in ep07 i=175)"
+     }
+    ],
+    "missed_by_both": "red block under the gripper jaw (appears held) is covered by neither mask"
+   },
+   {
+    "segment": "ep10",
+    "i": 321,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white wall strip along the left image border"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin interior/rim right of the gripper handle"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "dark bin wall left of the arm/cable"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "dark bin side and interior (incl. resting red block) right of the hand"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep13",
+    "i": 282,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large white wall area on the left side"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall visible in gap between cable loop and gripper handle"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white wall visible in gap between cable and hand"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "black cable hanging from the static robot's electronics board (bottom right)"
+     },
+     {
+      "region": 5,
+      "verdict": "static",
+      "what": "floor/tile strip between forearm and AprilTag tile"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep16",
+    "i": 300,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig cable along the arm and up to the handle"
+     }
+    ],
+    "missed_by_both": "whole glove rig body at top of frame: black handle, electronics, gripper fingers and their marker cubes (only the hand/finger ring is masked)"
+   },
+   {
+    "segment": "ep19",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig cable along the arm"
+     }
+    ],
+    "missed_by_both": "upper part of the red block held in the gripper jaw is uncovered (only its lower part has a small SAM3-only patch)"
+   },
+   {
+    "segment": "ep22",
+    "i": 330,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "hand/gripper handle area (rig body and finger markers near the hand)"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove rig cable along the arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep25",
+    "i": 180,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper finger and marker cube slivers below the gripper"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall above the forearm at left image border"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "floor/wall strip right of the forearm near bottom-left (pink tile edge nearby)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep28",
+    "i": 300,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig cable along the arm"
+     }
+    ],
+    "missed_by_both": "glove rig body at top of frame: black handle, electronics, gripper fingers and marker cubes are uncovered (only the hand and finger ring are masked)"
+   }
+  ]
+ },
+ {
+  "batch": 4,
+  "judge": 1,
+  "frames": [
+   {
+    "segment": "ep02",
+    "i": 245,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "red block held in gripper jaws (moves with the gripper over frames 230-260), plus thin slivers on the gripper edge"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable from handle to left edge"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "glove cable running down beside the forearm"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "red/black wire hanging from PCB on static robot arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep05",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig: marker ball, handle, gripper body and finger markers (small bin-interior fringe at edge)"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable along the forearm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "wire from PCB on static robot arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep08",
+    "i": 183,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "left gripper finger marker cube"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "right finger marker cube and its bar"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "wire from static PCB down the robot arm, loop on desk"
+     },
+     {
+      "region": 4,
+      "verdict": "unclear",
+      "what": "red block inside gripper jaws; stationary in world at this frame (fixed vs blue block 175-200), lifted ~frame 203; grasp in progress"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep11",
+    "i": 235,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "red block held in gripper (carried to bin), finger marker cube, rig edge slivers"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin/box"
+     }
+    ],
+    "missed_by_both": "none (blue block behind ball is static on table)"
+   },
+   {
+    "segment": "ep14",
+    "i": 292,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "left white workspace wall"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin under the hand"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "bin interior/wall seen through gap between glove cable and handle"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "bin wall in gap between glove cable and forearm (plus thin cable-edge slivers)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep17",
+    "i": 115,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "red block on table in front of open gripper; fixed vs blue block frames 75-220, lifted only ~230"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "wire hanging from PCB on static robot arm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "desk cable loop in dark area near keyboard"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep20",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "right gripper finger marker cube and bar"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "left white workspace wall"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "glove cable lying along the forearm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep23",
+    "i": 0,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "patch on a face of the dodecahedron marker ball"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove rig handle, gripper fingers and markers"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "slivers along black handle shaft edge"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "white cable dangling near camera; moves independently of scene (frames 0-16), gone by 24; likely head/rig cable"
+     },
+     {
+      "region": 5,
+      "verdict": "static",
+      "what": "wire from PCB on static robot arm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep26",
+    "i": 73,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "left white workspace wall"
+     }
+    ],
+    "missed_by_both": "none (red block next to gripper is uncovered but still resting on table: fixed vs blue block frames 45-125)"
+   },
+   {
+    "segment": "ep29",
+    "i": 0,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig gripper fingers, handle and markers"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable along the forearm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "wire from PCB on static robot arm"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ },
+ {
+  "batch": 4,
+  "judge": 2,
+  "frames": [
+   {
+    "segment": "ep02",
+    "i": 245,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "red block held between the gripper jaws, plus slivers along the gripper edge"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable leaving the handle toward the left edge"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "glove cable at the left frame edge beside the arm"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "connector and red/black wire of the PCB on the static electronics post"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep05",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig: dodecahedron ball, gripper body and finger markers"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable running down beside the forearm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "PCB wire/cable on the static electronics post"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep08",
+    "i": 183,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "left gripper-finger marker cube"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "right gripper-finger marker cube and its rod"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "PCB connector and cable down the static post, plus a desk cable loop"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "red block held in the gripper (it is dropped into the bin by i=230)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep11",
+    "i": 235,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "red block held in the gripper, plus the gripper edge, finger marker cube and thumb edge"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin/box at the left"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep14",
+    "i": 292,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white workspace wall at the left"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin interior to the right of the hand"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "bin interior seen through the cable loop between cable and gripper body (only thin edge slivers of the cable/gripper)"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "shadowed bin interior in the gap between the cable and the wrist (seen in a contrast-stretched view; cable stays in the shared mask)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep17",
+    "i": 115,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "red block held in the gripper (still in the gripper at i=270)"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "PCB cable running down the static electronics post"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "thin desk cable loop near the keyboard"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep20",
+    "i": 120,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "right gripper-finger marker cube and its rod"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white wall at the left"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "glove cable running along the forearm"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep23",
+    "i": 0,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "face of the dodecahedron marker ball"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "gripper body, fingers and finger markers"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "black handle stem"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "white dangling cable near the camera: it changes shape over frames 0-10 and leaves the view by frame 20 while the scene stays, so it is not static (likely the head camera's own cable)"
+     },
+     {
+      "region": 5,
+      "verdict": "static",
+      "what": "PCB wire running down the static black post"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep26",
+    "i": 73,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "white wall at the left"
+     }
+    ],
+    "missed_by_both": "none (the red block next to the gripper sits on the table: it stays fixed relative to the blue blocks over frames 55-110)"
+   },
+   {
+    "segment": "ep29",
+    "i": 0,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper body and fingers with marker cubes"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove cable along the forearm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "PCB connector and wire on the static electronics post"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ },
+ {
+  "batch": 5,
+  "judge": 1,
+  "frames": [
+   {
+    "segment": "ep02",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thin sliver along the lower edge of the gripper finger / finger marker cube next to the thumb"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove rig cable running from the handle down along the left of the arm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "cable plugged into the static green electronics board on the post (desk cable)"
+     }
+    ],
+    "missed_by_both": "upper part of the red block held in the gripper jaws (it was carried in the gripper at i=245); only slivers of its lower part are covered (magenta)"
+   },
+   {
+    "segment": "ep05",
+    "i": 300,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper body, fingers and finger marker cubes, including most of the red block held between the fingers"
+     }
+    ],
+    "missed_by_both": "small tip of the held red block at the right edge of the gripper fingers"
+   },
+   {
+    "segment": "ep08",
+    "i": 230,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "sliver on the right face of the finger marker cube / fingertip at the gripper edge"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "red block lying on the bin floor, released and not in contact with the open gripper"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "glove rig cable beside the forearm (upper part)"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "cable running from the static green electronics board down the post"
+     },
+     {
+      "region": 5,
+      "verdict": "moving",
+      "what": "glove rig cable crossing the forearm (lower part)"
+     },
+     {
+      "region": 6,
+      "verdict": "static",
+      "what": "desk cable loop on the dark equipment at the bottom of the frame"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep11",
+    "i": 250,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "dark bin left side and interior under the hand; a thin strip of glove cable falls inside it, but the region is mostly bin"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin right side and interior beside the hand"
+     }
+    ],
+    "missed_by_both": "the lower glove cable along the wrist and forearm is only partly covered (thin slivers)"
+   },
+   {
+    "segment": "ep14",
+    "i": 307,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large white left workspace wall"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin interior to the right of the handle and camera board, perhaps with a sliver of the handle edge"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "dark bin wall and interior to the right of the hand"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "thin strip where the glove cable runs against the left edge of the wrist, plus small blobs in the dark gap between the cable loop and the hand"
+     }
+    ],
+    "missed_by_both": "possibly a narrow dark strip at the cable/wrist junction (it may be bin shadow); otherwise none"
+   },
+   {
+    "segment": "ep17",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove rig cable running along the forearm"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "mostly speckle on the dark bin interior and rim to the right of the gripper; its top edge also catches the red block held in the jaws and the thumb tip (moving), which is only a small part of it"
+     }
+    ],
+    "missed_by_both": "none apart from mask-edge slivers"
+   },
+   {
+    "segment": "ep20",
+    "i": 184,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "finger marker cube at the right gripper finger, plus a fingertip sliver"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "large white left workspace wall"
+     }
+    ],
+    "missed_by_both": "red block at the gripper jaws, not covered by either mask; it was held at i=120 and may still be held or just being released (unclear)"
+   },
+   {
+    "segment": "ep23",
+    "i": 15,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper body, fingers and finger marker cubes of the glove rig"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "blurry white cable loop right in front of the camera at the right edge; it changes shape from i=0 (S-curve) to i=15 (loop) while the scene barely shifts, so it is likely a cable hanging from the head rig that sways, not a static desk cable"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "cable from the static green electronics board on the post"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep26",
+    "i": 180,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "small marker cube on the left side of the gripper handle, next to the cable"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "thumb tip with the white ring and the finger marker cube at the gripper fingers"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "large white left workspace wall"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "glove rig cable along the forearm"
+     }
+    ],
+    "missed_by_both": "red block touching the gripper fingertip, not covered by either mask; it may be in the act of being grasped (unclear)"
+   },
+   {
+    "segment": "ep29",
+    "i": 18,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper fingers and finger marker cubes in front of the thumb"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white left workspace wall at the frame edge"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ },
+ {
+  "batch": 5,
+  "judge": 2,
+  "frames": [
+   {
+    "segment": "ep02",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "thumb tip and edge of the finger marker cube at the gripper fingertip"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "glove rig's black cable running from the handle down along the arm"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "desk cable from the static green electronics board down the black stand"
+     }
+    ],
+    "missed_by_both": "held red block in the gripper: its upper half, above the finger, is outside both masks; it is held at i=254-270 and released into the bin by i=277"
+   },
+   {
+    "segment": "ep05",
+    "i": 300,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper body and fingers with square markers, plus the held red block between the fingers (slight bleed onto the dark bin interior at the right edge)"
+     }
+    ],
+    "missed_by_both": "none (only a thin red edge of the held block lies just outside region 1)"
+   },
+   {
+    "segment": "ep08",
+    "i": 230,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "finger marker cube (white cube with square markers) on the gripper finger"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "red block just released and falling into the bin (y=165 at i=229, 197 at i=230, 225 at i=231), so it is in motion, not resting"
+     },
+     {
+      "region": 3,
+      "verdict": "moving",
+      "what": "glove cable along the forearm (left edge, middle)"
+     },
+     {
+      "region": 4,
+      "verdict": "static",
+      "what": "cable from the static green electronics board down the black stand"
+     },
+     {
+      "region": 5,
+      "verdict": "moving",
+      "what": "glove cable along the forearm (bottom-left)"
+     },
+     {
+      "region": 6,
+      "verdict": "static",
+      "what": "black cable loop lying on the desk/robot base (static desk cable)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep11",
+    "i": 250,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "mostly the dark bin interior and wall left of the hand (static); it also takes in a thin strip of the glove cable where it crosses the bin to the wrist, about 10% of the area"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "bin inner wall right of the hand/thumb"
+     }
+    ],
+    "missed_by_both": "none (the glove-cable segment over the bin is only in the SAM3 bin blob)"
+   },
+   {
+    "segment": "ep14",
+    "i": 307,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "static",
+      "what": "large white workspace wall left of the arm and cable"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "dark bin interior between the gripper's top board and the finger marker"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "bin interior and front wall right of the hand"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "glove cable bend beside the wrist, plus the dark shadow pocket between the cable and the wrist"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep17",
+    "i": 270,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "glove cable running from the handle down the forearm"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "mostly the dark bin interior below/right of the gripper (static, speckled); it also includes the held red block at its top-left and a sliver of the thumb tip (moving, small part)"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep20",
+    "i": 184,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper finger edge, finger marker cube and thumb-tip slivers"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white workspace side wall at the left edge"
+     }
+    ],
+    "missed_by_both": "red block held in the gripper (it stays with the fingers over i=170-206) is entirely outside both masks"
+   },
+   {
+    "segment": "ep23",
+    "i": 15,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper handle body and fingers with marker cubes"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "blurry white cable loop very close to the camera, probably the head rig's cable; it changes shape and swings out of view (i=0-19) while the scene barely shifts"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "cable from the static green electronics board down the black stand"
+     }
+    ],
+    "missed_by_both": "none"
+   },
+   {
+    "segment": "ep26",
+    "i": 180,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "side marker cube on the handle and the cable junction next to it"
+     },
+     {
+      "region": 2,
+      "verdict": "moving",
+      "what": "sliver along the gripper/thumb boundary, thumb tip and finger marker cube"
+     },
+     {
+      "region": 3,
+      "verdict": "static",
+      "what": "white workspace side wall at the left edge"
+     },
+     {
+      "region": 4,
+      "verdict": "moving",
+      "what": "glove cable along the forearm"
+     }
+    ],
+    "missed_by_both": "red block between the gripper fingers (being grasped at i=180 and carried at i=188-196) is entirely outside both masks"
+   },
+   {
+    "segment": "ep29",
+    "i": 18,
+    "regions": [
+     {
+      "region": 1,
+      "verdict": "moving",
+      "what": "gripper fingers, finger marker cube and thumb tip"
+     },
+     {
+      "region": 2,
+      "verdict": "static",
+      "what": "white workspace wall at the left edge above the arm"
+     }
+    ],
+    "missed_by_both": "none"
+   }
+  ]
+ }
+]

@@ -22,3 +22,13 @@ object-specific rules.
 ```
 HF_TOKEN_PATH=~/.config/yuanliu/hf_token $V -m slam.run experiments/exp002_sam3_masks/config.yaml
 ```
+
+**Result (2026-11-08, commit 3e1c086).**
+- Over 8972 frames: IoU with SAM2 median 0.93 (p10 0.72), SAM2 pixels covered 0.97, DROID-cell
+  IoU 0.97 (p10 0.69).
+- Agreement is not accuracy. The region-by-region audit of the 60 most-disagreeing frames
+  (`experiments/audits/2026-11-08_sam3_vs_sam2_regions/`) shows where SAM3 goes wrong:
+  - it misses the glove rig, or its fine parts, where its tracker loses it;
+  - `cable` and `hand`/`arm` cover static things: desk cables, walls, tiles, the bin.
+- SAM3 does cover the glove cable and a second hand better.
+- Neither method reliably covers a block while it is held.
