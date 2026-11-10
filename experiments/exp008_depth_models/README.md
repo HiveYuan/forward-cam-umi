@@ -84,3 +84,73 @@ pip install "numpy>=2,<2.3" einops huggingface-hub safetensors timm opencv-pytho
   `third_party_patches/Metric3D/`. Its old `xformers.components` API is missing in this xformers,
   so it uses plain attention.
 - The exact package versions are in `run.json`.
+
+## Results
+
+The run took 20.2 min: 7 depth nodes (about 1-3 min each), then the analysis of 8 aliases. Run at
+b113213. run.json records a change during the run: `compare.py` (post-hoc, untracked, not executed
+by the run) was written meanwhile.
+
+The DA2 alias reproduces exp007 exactly: Bsession |err| median 7.84%, labels 4.5 / 15.0 mm at 1 s.
+Full tables are in [`compare.md`](compare.md) (`compare.py`, read only on the run's results and
+view).
+
+**Scale error vs the tile oracle, 22 episodes with >= 3 tile-visible keyframes** (|err| median /
+p90, bias = signed median, spread = sd of log(1 + err); Bsession and Bnet differ only by the
+constant k_session, so they share the spread):
+
+| network | Bsession (ball, pooled) | Bnet (no ball) | spread | k_session |
+|---|---|---|---|---|
+| DA2 metric indoor (exp007) | 6.9 / 11.4%, -5.5% | 66.9 / 77.3%, +66.9% | 6.6% | 0.566 |
+| **DA3 metric + K** | 17.6 / 21.0%, -17.6% | **3.1 / 6.9%, +0.8%** | **4.9%** | 0.817 |
+| MoGe-2 (fov from K) | 18.8 / 24.4%, -18.8% | 4.2 / 10.2%, +3.2% | 6.2% | 0.787 |
+| Metric3D v2 + K | 6.7 / 11.4%, -6.2% | 9.0 / 13.9%, +9.0% | 5.3% | 0.861 |
+| UniDepth V2 + K | 9.4 / 12.6%, -9.4% | 6.5 / 16.1%, +6.5% | 5.6% | 0.851 |
+| UniDepth V2, own camera | 8.8 / 11.9%, -8.6% | 4.6 / 16.3%, +4.6% | 6.1% | 0.873 |
+| Depth Pro + K | 14.6 / 23.1%, -14.6% | 10.2 / 19.5%, +10.2% | 7.5% | 0.775 |
+| Depth Pro, own FOV | 15.8 / 22.9%, -15.8% | 16.8 / 26.1%, +16.8% | 9.0% | 0.722 |
+
+On all 28 episodes: DA3 + K with Bnet gives 3.1 / 9.4% and bias -0.1%, against 7.8 / 17.4% for
+exp007's default.
+
+**Without SLAM: true / network depth on tile cells** (keyframes with a strict tile pose; 1 = metric):
+
+| network | pooled median | spread over episodes (sd log, 22) | log-log slope vs depth | at 0.35-0.55 / 0.9-1.2 m |
+|---|---|---|---|---|
+| DA2 | 0.586 | 10.4% | +0.35 | 0.44 / 0.64 |
+| DA3 metric + K | 0.957 | 7.5% | +0.28 | 0.97 / 1.02 |
+| MoGe-2 | 0.919 | 8.4% | +0.28 | 0.74 / 0.95 |
+| Metric3D v2 + K | 0.918 | 5.7% | +0.26 | 0.76 / 0.97 |
+| UniDepth V2 + K | 0.925 | 3.2% | +0.07 | 0.85 / 0.95 |
+| Depth Pro + K | 0.905 | 8.3% | +0.01 | 0.87 / 0.91 |
+
+**Focal estimated by the networks themselves** (fx of K = 598.3 px):
+- UniDepth: median 576, p10-p90 548-639, sd 6.9%.
+- Depth Pro's FOV head: median 647, p10-p90 562-749, sd 11.6%.
+
+**Labels with Bsession** (the primary here), 1 s median / p90:
+- DA2 4.5 / 15.0 mm; Metric3D 4.6 / 15.8; UniDepth + K 4.9 / 18.6;
+- Depth Pro + K 5.7 / 22.9; MoGe-2 6.4 / 26.6; DA3 6.6 / 25.9.
+- The labels with Bnet are in exp009.
+
+**Reading.**
+- **The best scale is DA3 metric + K used as is, without the ball.** |err| 3.1% median, 6.9% p90,
+  bias about 0 (22 episodes). It needs no marker, which suits in-the-wild data.
+- **The ball correction hurts every new network.** k_session is 0.78-0.87. Yet the same networks
+  are at 0.90-0.96 on the table, and the per-episode k_need has a median of 0.91-0.99. They
+  over-estimate the depth of the small hand-held ball relative to the surfaces. DA3, for example,
+  reads 0.97 on the table at 0.35-0.55 m but 0.82 on the ball. The ball is not a reliable depth
+  reference for these networks. It was not one for DA2 either (exp007: the ball sits about 10%
+  off the table's curve). With DA2 the two biases partly cancelled.
+- **The episode-to-episode spread improves only moderately**: 6.6% (DA2) to 4.9% (DA3). This is
+  what no constant correction can remove.
+- **Intrinsics help where the network's own focal estimate is poor.**
+  - Depth Pro: with K, the spread drops from 9.0 to 7.5% and the Bnet bias from +16.8 to +10.2%.
+  - UniDepth, whose own estimate is closer: K changes little (spread 6.1 to 5.6%, table 3.8 to 3.6%).
+  - Taking K is not enough on its own: DA3 and MoGe-2 beat UniDepth and Depth Pro on the scale.
+- **DA2's distance dependence explains exp007's bias.** Its slope is +0.35, from 0.44 at 0.45 m to
+  0.70 at 1.4 m. The new networks are flatter: UniDepth +0.07, Depth Pro +0.01, the others about
+  +0.27.
+- **The table check and the scale rank the networks differently.** UniDepth is the most consistent
+  on the tiles (spread 3.2%), yet its Bnet scale is biased by +6.5%. R uses the whole background
+  (table, walls, objects) against DROID's depth, while tile cells are table cells at about 0.85 m.
