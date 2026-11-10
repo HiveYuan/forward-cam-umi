@@ -1,0 +1,1453 @@
+{
+ "run": "E3_m3d",
+ "label": "Bsession+Bcheck+Bnetcheck",
+ "primary": "Bsession",
+ "checks": [
+  "B",
+  "Bnet"
+ ],
+ "flag_threshold": 0.1,
+ "methods": {
+  "Bsession": {
+   "depth": "m3d",
+   "correction": "faces",
+   "min_facing": 0.7,
+   "pool": "segments",
+   "depth_window": null,
+   "z_max": 4.0,
+   "min_cells": 200,
+   "_depth_node": "depth.m3d@E3_m3d"
+  },
+  "B": {
+   "depth": "m3d",
+   "correction": "faces",
+   "min_facing": 0.7,
+   "fit": "scale",
+   "min_affine_range": 0.15,
+   "depth_window": null,
+   "z_max": 4.0,
+   "min_cells": 200,
+   "_depth_node": "depth.m3d@E3_m3d"
+  },
+  "Bnet": {
+   "depth": "m3d",
+   "z_max": 4.0,
+   "min_cells": 200,
+   "_depth_node": "depth.m3d@E3_m3d"
+  }
+ },
+ "rows": [
+  {
+   "segment": "ep00",
+   "s": 0.6074169720511065,
+   "ok": true,
+   "oracle_s": 0.6230854975503709,
+   "err": -0.025146670177470742,
+   "primary": {
+    "s": 0.6074169720511065,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8636923856202614,
+    "ball_samples": 10,
+    "s_own_k": 0.6093029027296786,
+    "n_s_per_keyframe": 10,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6093029027296786,
+     "ok": true,
+     "diff": 0.0031048369824171473,
+     "err": -0.02211990950660525
+    },
+    "Bnet": {
+     "s": 0.7054628625585337,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.13220876642455215
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep01",
+   "s": 0.7952980005937171,
+   "ok": true,
+   "oracle_s": 0.8275725089211778,
+   "err": -0.03899900972971382,
+   "primary": {
+    "s": 0.7952980005937171,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9590551838523129,
+    "ball_samples": 10,
+    "s_own_k": 0.8858510850932901,
+    "n_s_per_keyframe": 12,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.8858510850932901,
+     "ok": true,
+     "diff": 0.11386057104628966,
+     "err": 0.07042111179851074
+    },
+    "Bnet": {
+     "s": 0.9236706083324862,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.1161204587820126
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "B",
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep02",
+   "s": 0.5425433903017388,
+   "ok": true,
+   "oracle_s": 0.5863348521858649,
+   "err": -0.07468677961214631,
+   "primary": {
+    "s": 0.5425433903017388,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9295864793084145,
+    "ball_samples": 8,
+    "s_own_k": 0.5857489368602813,
+    "n_s_per_keyframe": 12,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.5857489368602813,
+     "ok": true,
+     "diff": 0.07963519108492578,
+     "err": -0.0009992844931514533
+    },
+    "Bnet": {
+     "s": 0.630117745791722,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.07467216632719986
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep03",
+   "s": 0.327172677155243,
+   "ok": true,
+   "oracle_s": 0.34497022485221907,
+   "err": -0.05159154737079208,
+   "primary": {
+    "s": 0.327172677155243,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.7984418901795827,
+    "ball_samples": 9,
+    "s_own_k": 0.3033944105934941,
+    "n_s_per_keyframe": 13,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.3033944105934941,
+     "ok": true,
+     "diff": -0.07267803280060015,
+     "err": -0.12052000799934415
+    },
+    "Bnet": {
+     "s": 0.37998308245732915,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.10149530331236312
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep04",
+   "s": 0.7066848780385376,
+   "ok": true,
+   "oracle_s": 0.7426711974738355,
+   "err": -0.048455251203633254,
+   "primary": {
+    "s": 0.7066848780385376,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9185921182975512,
+    "ball_samples": 9,
+    "s_own_k": 0.7539381970629349,
+    "n_s_per_keyframe": 11,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.7539381970629349,
+     "ok": true,
+     "diff": 0.06686618108420928,
+     "err": 0.015170912279113047
+    },
+    "Bnet": {
+     "s": 0.8207540452885951,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.1051378430728902
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep05",
+   "s": 0.5292037566560179,
+   "ok": true,
+   "oracle_s": 0.5694540863743314,
+   "err": -0.07068230904195294,
+   "primary": {
+    "s": 0.5292037566560179,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8275769718962402,
+    "ball_samples": 8,
+    "s_own_k": 0.5086494154225365,
+    "n_s_per_keyframe": 10,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.5086494154225365,
+     "ok": true,
+     "diff": -0.038840127219357146,
+     "err": -0.1067771263859626
+    },
+    "Bnet": {
+     "s": 0.6146249022094707,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.07932301640460304
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep06",
+   "s": 0.5803875278203579,
+   "ok": true,
+   "oracle_s": 0.5963507439851857,
+   "err": -0.02676816676399485,
+   "primary": {
+    "s": 0.5803875278203579,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.7447238580597638,
+    "ball_samples": 5,
+    "s_own_k": 0.501996364618508,
+    "n_s_per_keyframe": 12,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.501996364618508,
+     "ok": true,
+     "diff": -0.13506693277205206,
+     "err": -0.15821960535530344
+    },
+    "Bnet": {
+     "s": 0.674070474828568,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.13032553682084935
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "B",
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep07",
+   "s": 0.6638897631427776,
+   "ok": true,
+   "oracle_s": null,
+   "err": null,
+   "primary": {
+    "s": 0.6638897631427776,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.7552678320800729,
+    "ball_samples": 6,
+    "s_own_k": 0.5823501527409771,
+    "n_s_per_keyframe": 8,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.5823501527409771,
+     "ok": true,
+     "diff": -0.12282100874067003,
+     "err": null
+    },
+    "Bnet": {
+     "s": 0.7710511794698506,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": null
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "B",
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep08",
+   "s": 0.6374338697339783,
+   "ok": true,
+   "oracle_s": 0.6804514277449127,
+   "err": -0.06321914578605425,
+   "primary": {
+    "s": 0.6374338697339783,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8152477525340359,
+    "ball_samples": 5,
+    "s_own_k": 0.6035482287773635,
+    "n_s_per_keyframe": 15,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6035482287773635,
+     "ok": true,
+     "diff": -0.053159461028885135,
+     "err": -0.11301791109824622
+    },
+    "Bnet": {
+     "s": 0.7403249219655663,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.0879908422252571
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep09",
+   "s": 0.5012820987546918,
+   "ok": true,
+   "oracle_s": 0.5375259549851359,
+   "err": -0.06742717424956046,
+   "primary": {
+    "s": 0.5012820987546918,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.858345737969009,
+    "ball_samples": 9,
+    "s_own_k": 0.49972569955585444,
+    "n_s_per_keyframe": 9,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.49972569955585444,
+     "ok": true,
+     "diff": -0.0031048369824172584,
+     "err": -0.07032266084774774
+    },
+    "Bnet": {
+     "s": 0.5821962846093811,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.08310357706444238
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep10",
+   "s": 0.4419595928772923,
+   "ok": true,
+   "oracle_s": 0.45546273684496563,
+   "err": -0.02964708828039564,
+   "primary": {
+    "s": 0.4419595928772923,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8968726486619819,
+    "ball_samples": 14,
+    "s_own_k": 0.46036317690719225,
+    "n_s_per_keyframe": 15,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.46036317690719225,
+     "ok": true,
+     "diff": 0.0416408747009811,
+     "err": 0.010759255732252448
+    },
+    "Bnet": {
+     "s": 0.5132982677016571,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.1269819157047265
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep11",
+   "s": 0.13774206380340798,
+   "ok": true,
+   "oracle_s": 0.15546769405050478,
+   "err": -0.11401487849519731,
+   "primary": {
+    "s": 0.13774206380340798,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8338721406461314,
+    "ball_samples": 11,
+    "s_own_k": 0.13339921808625338,
+    "n_s_per_keyframe": 11,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.13339921808625338,
+     "ok": true,
+     "diff": -0.031528827122504266,
+     "err": -0.14194895022423315
+    },
+    "Bnet": {
+     "s": 0.15997562645861763,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.02899594308415221
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep12",
+   "s": 0.41278172928690127,
+   "ok": true,
+   "oracle_s": 0.45316913084456534,
+   "err": -0.08912213742889896,
+   "primary": {
+    "s": 0.41278172928690127,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.7347537925707588,
+    "ball_samples": 9,
+    "s_own_k": 0.3522488113855562,
+    "n_s_per_keyframe": 13,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.3522488113855562,
+     "ok": true,
+     "diff": -0.146646311128931,
+     "err": -0.22269901586395635
+    },
+    "Bnet": {
+     "s": 0.47941067463307263,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.057906732834165586
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "B",
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep13",
+   "s": 0.6996252161849134,
+   "ok": true,
+   "oracle_s": 0.744672893840341,
+   "err": -0.06049324210407736,
+   "primary": {
+    "s": 0.6996252161849134,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9139759012467802,
+    "ball_samples": 7,
+    "s_own_k": 0.7426555530196786,
+    "n_s_per_keyframe": 14,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.7426555530196786,
+     "ok": true,
+     "diff": 0.061504839790383015,
+     "err": -0.0027090294777063484
+    },
+    "Bnet": {
+     "s": 0.8125548518364667,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.09115674621383452
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep14",
+   "s": 0.7146517487639361,
+   "ok": true,
+   "oracle_s": 0.8047114453556049,
+   "err": -0.11191551594232774,
+   "primary": {
+    "s": 0.7146517487639361,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8939604229872733,
+    "ball_samples": 21,
+    "s_own_k": 0.7419933053305412,
+    "n_s_per_keyframe": 18,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.7419933053305412,
+     "ok": true,
+     "diff": 0.038258573653384476,
+     "err": -0.07793867029857926
+    },
+    "Bnet": {
+     "s": 0.8300068842545443,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.03143417313737995
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep15",
+   "s": 0.47242864136222196,
+   "ok": true,
+   "oracle_s": 0.4990810630164009,
+   "err": -0.05340299127579429,
+   "primary": {
+    "s": 0.47242864136222196,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9040796237343582,
+    "ball_samples": 6,
+    "s_own_k": 0.49605534566662596,
+    "n_s_per_keyframe": 17,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.49605534566662596,
+     "ok": true,
+     "diff": 0.05001115985744997,
+     "err": -0.006062576951903931
+    },
+    "Bnet": {
+     "s": 0.548685461594232,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.09939146614384975
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep16",
+   "s": 1.2573574579163436,
+   "ok": true,
+   "oracle_s": null,
+   "err": null,
+   "primary": {
+    "s": 1.2573574579163436,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9416792483306025,
+    "ball_samples": 6,
+    "s_own_k": 1.3751465889566403,
+    "n_s_per_keyframe": 8,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 1.3751465889566403,
+     "ok": true,
+     "diff": 0.09367990804738491,
+     "err": null
+    },
+    "Bnet": {
+     "s": 1.4603131495086927,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": null
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep17",
+   "s": 0.7241725486323594,
+   "ok": true,
+   "oracle_s": 0.7803051993646629,
+   "err": -0.07193678932039371,
+   "primary": {
+    "s": 0.7241725486323594,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.7447618046909527,
+    "ball_samples": 9,
+    "s_own_k": 0.6263926992544582,
+    "n_s_per_keyframe": 10,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6263926992544582,
+     "ok": true,
+     "diff": -0.1350228610053832,
+     "err": -0.19724653922019586
+    },
+    "Bnet": {
+     "s": 0.8410644790174047,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.07786604485297932
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "B",
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep18",
+   "s": 0.6071687971345491,
+   "ok": true,
+   "oracle_s": 0.6936575061116484,
+   "err": -0.1246850329089908,
+   "primary": {
+    "s": 0.6071687971345491,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8884261680192355,
+    "ball_samples": 7,
+    "s_own_k": 0.6264955930879916,
+    "n_s_per_keyframe": 8,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6264955930879916,
+     "ok": true,
+     "diff": 0.03183100983557252,
+     "err": -0.09682287358229302
+    },
+    "Bnet": {
+     "s": 0.7051746286185789,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.016603471317553575
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep19",
+   "s": 0.7601866181583554,
+   "ok": true,
+   "oracle_s": 0.7866603618340798,
+   "err": -0.03365333371316881,
+   "primary": {
+    "s": 0.7601866181583554,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8330730691638899,
+    "ball_samples": 15,
+    "s_own_k": 0.7355133320817789,
+    "n_s_per_keyframe": 11,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.7355133320817789,
+     "ok": true,
+     "diff": -0.03245688030703631,
+     "err": -0.06501793179594406
+    },
+    "Bnet": {
+     "s": 0.8828917406008259,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.1223290042762355
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep20",
+   "s": 0.9266526358643536,
+   "ok": true,
+   "oracle_s": 0.9652759307341937,
+   "err": -0.04001269858709,
+   "primary": {
+    "s": 0.9266526358643536,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.602763149114164,
+    "ball_samples": 14,
+    "s_own_k": 0.6487104475530888,
+    "n_s_per_keyframe": 13,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6487104475530888,
+     "ok": true,
+     "diff": -0.29994215475576647,
+     "err": -0.32795335831105166
+    },
+    "Bnet": {
+     "s": 1.076227782847127,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.11494314587181576
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "B",
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep21",
+   "s": 0.7722612923651989,
+   "ok": true,
+   "oracle_s": 0.8335257995845708,
+   "err": -0.07350043303987253,
+   "primary": {
+    "s": 0.7722612923651989,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.7617289160469276,
+    "ball_samples": 13,
+    "s_own_k": 0.6832064274073516,
+    "n_s_per_keyframe": 13,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6832064274073516,
+     "ok": true,
+     "diff": -0.11531701230952496,
+     "err": -0.18034159500778313
+    },
+    "Bnet": {
+     "s": 0.8969154419828556,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.07605000640637405
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "B",
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep22",
+   "s": 0.6278422158069135,
+   "ok": true,
+   "oracle_s": 0.5505262877531804,
+   "err": 0.140440029429433,
+   "primary": {
+    "s": 0.6278422158069135,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9104255343071745,
+    "ball_samples": 12,
+    "s_own_k": 0.6638686762581163,
+    "n_s_per_keyframe": 13,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6638686762581163,
+     "ok": true,
+     "diff": 0.05738139224184069,
+     "err": 0.2058800660864195
+    },
+    "Bnet": {
+     "s": 0.7291850362735204,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.3245235559040893
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep23",
+   "s": 0.6988953144559769,
+   "ok": true,
+   "oracle_s": 0.755082842291523,
+   "err": -0.07441240177704,
+   "primary": {
+    "s": 0.6988953144559769,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8028588602219702,
+    "ball_samples": 17,
+    "s_own_k": 0.6516862639591996,
+    "n_s_per_keyframe": 16,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.6516862639591996,
+     "ok": true,
+     "diff": -0.06754809986603638,
+     "err": -0.13693408529656936
+    },
+    "Bnet": {
+     "s": 0.8117071334045249,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.07499083271599538
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep24",
+   "s": 0.7494681069929517,
+   "ok": true,
+   "oracle_s": 0.7745650058619852,
+   "err": -0.03240128159560218,
+   "primary": {
+    "s": 0.7494681069929517,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8563546841224223,
+    "ball_samples": 18,
+    "s_own_k": 0.745408031601581,
+    "n_s_per_keyframe": 15,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.745408031601581,
+     "ok": true,
+     "diff": -0.005417275736603111,
+     "err": -0.03764303065558261
+    },
+    "Bnet": {
+     "s": 0.8704431066030338,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.12378315572667709
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep25",
+   "s": 0.731544046652529,
+   "ok": true,
+   "oracle_s": 0.7452013559980436,
+   "err": -0.0183270054940029,
+   "primary": {
+    "s": 0.731544046652529,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.9069114202049378,
+    "ball_samples": 12,
+    "s_own_k": 0.7705353803773897,
+    "n_s_per_keyframe": 14,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.7705353803773897,
+     "ok": true,
+     "diff": 0.05330004926330956,
+     "err": 0.03399621347362736
+    },
+    "Bnet": {
+     "s": 0.849625843506601,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.14012922368975333
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep26",
+   "s": 0.7647727173502139,
+   "ok": true,
+   "oracle_s": 0.7963072330745056,
+   "err": -0.03960094096161648,
+   "primary": {
+    "s": 0.7647727173502139,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8804833103551437,
+    "ball_samples": 6,
+    "s_own_k": 0.7820612152747239,
+    "n_s_per_keyframe": 14,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.7820612152747239,
+     "ok": true,
+     "diff": 0.022606059986568727,
+     "err": -0.017890102221950754
+    },
+    "Bnet": {
+     "s": 0.8882181025774116,
+     "ok": true,
+     "diff": 0.16141447311942758,
+     "err": 0.11542136713745821
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep27",
+   "s": 0.976867980645436,
+   "ok": true,
+   "oracle_s": 1.053015202359353,
+   "err": -0.07231350653181834,
+   "primary": {
+    "s": 0.976867980645436,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8483467008720489,
+    "ball_samples": 15,
+    "s_own_k": 0.9624905711620096,
+    "n_s_per_keyframe": 15,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.9624905711620096,
+     "ok": true,
+     "diff": -0.014717863384084873,
+     "err": -0.08596706960594369
+    },
+    "Bnet": {
+     "s": 1.134548611048558,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": 0.07742852003135736
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep28",
+   "s": 0.14777361065171993,
+   "ok": true,
+   "oracle_s": 0.1499880921147201,
+   "err": -0.014764381837102158,
+   "primary": {
+    "s": 0.14777361065171993,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8658574702703136,
+    "ball_samples": 10,
+    "s_own_k": 0.1486040093292691,
+    "n_s_per_keyframe": 17,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.1486040093292691,
+     "ok": true,
+     "diff": 0.005619397630516554,
+     "err": -0.009227951138896962
+    },
+    "Bnet": {
+     "s": 0.17162641015602276,
+     "ok": true,
+     "diff": 0.1614144731194278,
+     "err": 0.14426690636715556
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  },
+  {
+   "segment": "ep29",
+   "s": 0.8660310866649215,
+   "ok": true,
+   "oracle_s": 1.2498068721620454,
+   "err": -0.3070680711118422,
+   "primary": {
+    "s": 0.8660310866649215,
+    "ok": true,
+    "k_session": 0.8610190617946352,
+    "pool": "segments",
+    "k_ball": 0.8769565565559722,
+    "ball_samples": 20,
+    "s_own_k": 0.8820613541924587,
+    "n_s_per_keyframe": 17,
+    "model": "metric3d-v2-vitl",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "B": {
+     "s": 0.8820613541924587,
+     "ok": true,
+     "diff": 0.018510037081081787,
+     "err": -0.2942418754134568
+    },
+    "Bnet": {
+     "s": 1.005821038223985,
+     "ok": true,
+     "diff": 0.16141447311942736,
+     "err": -0.19521882890273157
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "Bnet"
+   ]
+  }
+ ],
+ "summary": {
+  "segments": 30,
+  "segments_ok": 30,
+  "n_compared": 28,
+  "abs_err_median": 0.06185619394506581,
+  "abs_err_p90": 0.11721592481933536,
+  "bias_median": -0.056948116689935824,
+  "flagged": [
+   "ep00",
+   "ep01",
+   "ep02",
+   "ep03",
+   "ep04",
+   "ep05",
+   "ep06",
+   "ep07",
+   "ep08",
+   "ep09",
+   "ep10",
+   "ep11",
+   "ep12",
+   "ep13",
+   "ep14",
+   "ep15",
+   "ep16",
+   "ep17",
+   "ep18",
+   "ep19",
+   "ep20",
+   "ep21",
+   "ep22",
+   "ep23",
+   "ep24",
+   "ep25",
+   "ep26",
+   "ep27",
+   "ep28",
+   "ep29"
+  ],
+  "both": [
+   "ep00",
+   "ep01",
+   "ep02",
+   "ep03",
+   "ep04",
+   "ep05",
+   "ep06",
+   "ep07",
+   "ep08",
+   "ep09",
+   "ep10",
+   "ep11",
+   "ep12",
+   "ep13",
+   "ep14",
+   "ep15",
+   "ep16",
+   "ep17",
+   "ep18",
+   "ep19",
+   "ep20",
+   "ep21",
+   "ep22",
+   "ep23",
+   "ep24",
+   "ep25",
+   "ep26",
+   "ep27",
+   "ep28",
+   "ep29"
+  ],
+  "without_flagged": {
+   "n_compared": 0,
+   "abs_err_median": null,
+   "abs_err_p90": null,
+   "bias_median": null
+  },
+  "methods": {
+   "Bsession": {
+    "segments_ok": 30,
+    "n_compared": 28,
+    "abs_err_median": 0.06185619394506581,
+    "abs_err_p90": 0.11721592481933536,
+    "bias_median": -0.056948116689935824
+   },
+   "B": {
+    "segments_ok": 30,
+    "n_compared": 28,
+    "abs_err_median": 0.08195286995226148,
+    "abs_err_p90": 0.21092575101968059,
+    "bias_median": -0.0741306655731635
+   },
+   "Bnet": {
+    "segments_ok": 30,
+    "n_compared": 28,
+    "abs_err_median": 0.10044338472810643,
+    "abs_err_p90": 0.14137052849297402,
+    "bias_median": 0.09527410617884213
+   }
+  }
+ },
+ "session": {
+  "Bsession": {
+   "k_session": 0.8610190617946352,
+   "pool": "segments",
+   "n_segments": 30,
+   "n_samples": 321,
+   "k_segment_p10": 0.7447580100278338,
+   "k_segment_p25": 0.8059560832999866,
+   "k_segment_p75": 0.9022778799662642,
+   "k_segment_p90": 0.9196915543986375,
+   "per_segment": {
+    "ep00": {
+     "k": 0.8636923856202614,
+     "n": 10
+    },
+    "ep01": {
+     "k": 0.9590551838523129,
+     "n": 10
+    },
+    "ep02": {
+     "k": 0.9295864793084145,
+     "n": 8
+    },
+    "ep03": {
+     "k": 0.7984418901795827,
+     "n": 9
+    },
+    "ep04": {
+     "k": 0.9185921182975512,
+     "n": 9
+    },
+    "ep05": {
+     "k": 0.8275769718962402,
+     "n": 8
+    },
+    "ep06": {
+     "k": 0.7447238580597638,
+     "n": 5
+    },
+    "ep07": {
+     "k": 0.7552678320800729,
+     "n": 6
+    },
+    "ep08": {
+     "k": 0.8152477525340359,
+     "n": 5
+    },
+    "ep09": {
+     "k": 0.858345737969009,
+     "n": 9
+    },
+    "ep10": {
+     "k": 0.8968726486619819,
+     "n": 14
+    },
+    "ep11": {
+     "k": 0.8338721406461314,
+     "n": 11
+    },
+    "ep12": {
+     "k": 0.7347537925707588,
+     "n": 9
+    },
+    "ep13": {
+     "k": 0.9139759012467802,
+     "n": 7
+    },
+    "ep14": {
+     "k": 0.8939604229872733,
+     "n": 21
+    },
+    "ep15": {
+     "k": 0.9040796237343582,
+     "n": 6
+    },
+    "ep16": {
+     "k": 0.9416792483306025,
+     "n": 6
+    },
+    "ep17": {
+     "k": 0.7447618046909527,
+     "n": 9
+    },
+    "ep18": {
+     "k": 0.8884261680192355,
+     "n": 7
+    },
+    "ep19": {
+     "k": 0.8330730691638899,
+     "n": 15
+    },
+    "ep20": {
+     "k": 0.602763149114164,
+     "n": 14
+    },
+    "ep21": {
+     "k": 0.7617289160469276,
+     "n": 13
+    },
+    "ep22": {
+     "k": 0.9104255343071745,
+     "n": 12
+    },
+    "ep23": {
+     "k": 0.8028588602219702,
+     "n": 17
+    },
+    "ep24": {
+     "k": 0.8563546841224223,
+     "n": 18
+    },
+    "ep25": {
+     "k": 0.9069114202049378,
+     "n": 12
+    },
+    "ep26": {
+     "k": 0.8804833103551437,
+     "n": 6
+    },
+    "ep27": {
+     "k": 0.8483467008720489,
+     "n": 15
+    },
+    "ep28": {
+     "k": 0.8658574702703136,
+     "n": 10
+    },
+    "ep29": {
+     "k": 0.8769565565559722,
+     "n": 20
+    }
+   }
+  }
+ }
+}
