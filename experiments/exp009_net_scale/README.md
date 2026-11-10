@@ -14,8 +14,9 @@ only; the producers are exp008's (cache hits).
 **Why.** exp008 (`../exp008_depth_models/compare.md`), on the 22 well-tiled episodes:
 - Bnet with DA3 metric + K had scale |err| 3.1% median / 6.9% p90 and bias +0.8%, with no ball. The
   default (DA2 + Bsession) had 6.9% / 11.4%, bias -5.5%.
-- The ball correction made the new networks worse. They over-estimate the ball's depth by 15-25% but
-  the table at the same distance far less.
+- The ball over-corrects the new networks (k_session 0.72-0.87 against k_need 0.86-0.99): they
+  over-estimate the ball's depth more than the surfaces'. For DA3, MoGe-2, UniDepth and Depth Pro + K,
+  Bnet beats Bsession on the median; for Metric3D, Bsession is better.
 - exp008 computed labels only with its primary (Bsession). This run gives the label errors that
   Bnet's scale produces.
 

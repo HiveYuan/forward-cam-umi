@@ -136,17 +136,22 @@ exp007's default.
 **Reading.**
 - **The best scale is DA3 metric + K used as is, without the ball.** |err| 3.1% median, 6.9% p90,
   bias about 0 (22 episodes). It needs no marker, which suits in-the-wild data.
-- **The ball correction hurts every new network.** k_session is 0.78-0.87. Yet the same networks
-  are at 0.90-0.96 on the table, and the per-episode k_need has a median of 0.91-0.99. They
+- **The ball over-corrects every new network.** k_session is 0.72-0.87, below what the episodes
+  needed (k_need median 0.86-0.99) and below the networks' ratio on the table (0.86-0.96). They
   over-estimate the depth of the small hand-held ball relative to the surfaces. DA3, for example,
-  reads 0.97 on the table at 0.35-0.55 m but 0.82 on the ball. The ball is not a reliable depth
-  reference for these networks. It was not one for DA2 either (exp007: the ball sits about 10%
-  off the table's curve). With DA2 the two biases partly cancelled.
+  reads 0.97 on the table at 0.35-0.55 m but 0.82 on the ball. Bsession therefore turns a small
+  positive bias into a larger negative one (-6 to -19%).
+  - For DA3, MoGe-2, UniDepth and Depth Pro + K, Bnet beats Bsession on the median.
+  - For Metric3D it is the other way round (6.7% vs 9.0%); Depth Pro without K is about equal.
+  - The ball is not a reliable depth reference for these networks. It was not one for DA2 either
+    (exp007: the ball sits about 10% off the table's curve); with DA2 the two biases partly
+    cancelled.
 - **The episode-to-episode spread improves only moderately**: 6.6% (DA2) to 4.9% (DA3). This is
   what no constant correction can remove.
 - **Intrinsics help where the network's own focal estimate is poor.**
   - Depth Pro: with K, the spread drops from 9.0 to 7.5% and the Bnet bias from +16.8 to +10.2%.
-  - UniDepth, whose own estimate is closer: K changes little (spread 6.1 to 5.6%, table 3.8 to 3.6%).
+  - UniDepth, whose own estimate is closer: K changes little (scale spread 6.1 to 5.6%, table
+    spread 3.6 to 3.2% on the 22 episodes).
   - Taking K is not enough on its own: DA3 and MoGe-2 beat UniDepth and Depth Pro on the scale.
 - **DA2's distance dependence explains exp007's bias.** Its slope is +0.35, from 0.44 at 0.45 m to
   0.70 at 1.4 m. The new networks are flatter: UniDepth +0.07, Depth Pro +0.01, the others about
