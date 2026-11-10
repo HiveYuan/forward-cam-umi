@@ -49,6 +49,9 @@ class Impl:
 CONDA_ENVS = "/home/student/miniconda3/envs"
 CV_PKGS = ("numpy", "opencv-python", "opencv-python-headless", "opencv-contrib-python")
 TORCH_PKGS = ("torch", "transformers", "safetensors") + CV_PKGS
+THIRD_PARTY = "/home/student/yuanliu-hawaii/third_party"
+MDEPTH_PKGS = ("torch", "torchvision", "xformers", "numpy", "timm", "einops", "huggingface-hub",
+               "safetensors") + CV_PKGS
 
 
 _IMPLS = [
@@ -144,6 +147,47 @@ _IMPLS = [
          code_files=("slam/depth.py", "slam/pipeline/impl_depth.py"),
          env_packages=TORCH_PKGS, choices={"model": ("da2-metric-indoor-large", "depth-pro")},
          doc="slam.depth: transformers metric depth on the SLAM run's keyframes (scale method B)"),
+    # networks that can take the camera K (slam.depth_models; exp008). `model` is the file label of the
+    # output (depth/<run>_<model>.npz in the view), so variants of one network need distinct labels.
+    Impl("depth", "unidepth_v2", "mdepth", "slam.pipeline.impl_depth_models:run_depth_model",
+         {"model": "unidepth-v2-vitl14", "repo": "lpiccinelli/unidepth-v2-vitl14",
+          "revision": "52b349b514bd8b47642f67ac78cb7b5dc5c51dd9", "use_intrinsics": True, "resolution_level": None},
+         gpu_gb=6.0, code_inputs=(f"{THIRD_PARTY}/UniDepth",),
+         code_files=("slam/depth_models.py", "slam/pipeline/impl_depth_models.py"),
+         env_packages=MDEPTH_PKGS,
+         doc="UniDepth V2: K -> ray embedding conditioning the depth decoder (use_intrinsics), else its own camera"),
+    Impl("depth", "metric3d_v2", "mdepth", "slam.pipeline.impl_depth_models:run_depth_model",
+         {"model": "metric3d-v2-vitl", "repo": "JUGGHM/Metric3D",
+          "revision": "80d2d1410afb4b23cd9d18c6be9144483d4b70b6",
+          "checkpoint": "metric_depth_vit_large_800k.pth", "input_size": [616, 1064]},
+         gpu_gb=6.0, code_inputs=(f"{THIRD_PARTY}/Metric3D",),
+         code_files=("slam/depth_models.py", "slam/pipeline/impl_depth_models.py"),
+         env_packages=MDEPTH_PKGS + ("mmengine",),
+         doc="Metric3D v2 (hubconf recipe): canonical camera f = 1000 px, depth * fx_resized / 1000"),
+    Impl("depth", "da3_metric", "mdepth", "slam.pipeline.impl_depth_models:run_depth_model",
+         {"model": "da3-metric-large", "repo": "depth-anything/DA3METRIC-LARGE",
+          "revision": "4010e39f3634a45bc60553321fb49fb760bd594e", "process_res": 504,
+          "process_res_method": "upper_bound_resize", "canonical_focal": 300.0},
+         gpu_gb=6.0, code_inputs=(f"{THIRD_PARTY}/Depth-Anything-3",),
+         code_files=("slam/depth_models.py", "slam/pipeline/impl_depth_models.py"),
+         env_packages=MDEPTH_PKGS,
+         choices={"process_res_method": ("upper_bound_resize", "lower_bound_resize")},
+         doc="DA3METRIC-LARGE: depth * f_proc / 300 with f_proc = mean(fx, fy) of K at the processing resolution"),
+    Impl("depth", "moge2", "mdepth", "slam.pipeline.impl_depth_models:run_depth_model",
+         {"model": "moge-2-vitl-normal", "repo": "Ruicheng/moge-2-vitl-normal",
+          "revision": "cb0e8bbd6b1e243589717c78e750b1ba4c093acf", "use_intrinsics": True,
+          "resolution_level": 9, "use_fp16": True},
+         gpu_gb=6.0, code_inputs=(f"{THIRD_PARTY}/MoGe",),
+         code_files=("slam/depth_models.py", "slam/pipeline/impl_depth_models.py"),
+         env_packages=MDEPTH_PKGS + ("utils3d-moge",),
+         doc="MoGe-2: fov_x from K fixes the focal of the depth recovery; metric scale from an image-only head"),
+    Impl("depth", "depth_pro_f", "sam2", "slam.pipeline.impl_depth_models:run_depth_model",
+         {"model": "depth-pro-f", "repo": "apple/DepthPro-hf",
+          "revision": "de816c8ce7168afcb231f96d501d72b869d0beda", "use_intrinsics": True},
+         gpu_gb=6.0,
+         code_files=("slam/depth_models.py", "slam/pipeline/impl_depth_models.py"),
+         env_packages=TORCH_PKGS,
+         doc="Depth Pro (transformers): metric depth with K's focal (use_intrinsics) or its FOV head's"),
     # ------------------------------------------------------------------ analysis
     Impl("mask_compare", "default", "venv", "slam.pipeline.impl_mask_compare:run_mask_compare",
          {"reference": "", "candidates": [""], "dilate_px": 8, "overlays_per_segment": 4},

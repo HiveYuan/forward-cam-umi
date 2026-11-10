@@ -41,6 +41,9 @@ slam.labels --scale, slam.evaluate --scale, slam.report):
          network's scale on the background (exp005: glove7 E3 |err| p90 20.1 -> 17.7%, median
          5.4 -> 6.3%, bias -5.0 -> -5.9%; labels 1 s 5.7 -> 4.8 mm).
 
+  Bnet   the network's metric depth as is, no ball (k = 1): s = median(D_net / z_slam) on B's
+         background cells (exp008: networks that take the camera K). Needs no marker.
+
   B+Acheck  decision of 2026-11-08: B is the method, A only cross-checks. s = B's result on
          every segment; where A also succeeds, the relative difference s_A/s_B - 1 is recorded
          and |diff| > threshold (10%) flags the segment. Flags are informational only: they
@@ -312,6 +315,23 @@ def scale_depth_ball(seg, run, model="da2-metric-indoor-large", correction="face
             "correction": correction, "depth_window": depth_window}
 
 
+def scale_depth_net(seg, run, model="da2-metric-indoor-large", z_max=4.0, min_cells=200, mask_names=None,
+                    mask_dilate_px=8, **_):
+    """Bnet: the network's metric depth taken as is (k = 1, no ball correction): s = median over the
+    background cells of D_net / z_slam, with B's cells and gates. Measures a network's own metric
+    scale; needs no marker. The ball's k is reported for reference only (k_ball, not used)."""
+    ctx, err = _depth_inputs(seg, run, model)
+    if err is not None:
+        return err
+    valid = _run_valid_cells(seg, ctx, mask_names, mask_dilate_px)
+    ratios, per_kf = background_ratios(ctx, valid, 1.0, 0.0, z_max, min_cells, None)
+    if not per_kf:
+        return {"s": float("nan"), "ok": False, "error": "no keyframe with enough valid background"}
+    pr = np.array([(d, zt) for d, zt, _ in ball_depth_pairs(ctx)]).reshape(-1, 2)
+    return {"s": float(np.median(np.concatenate(ratios))), "ok": True, "s_per_keyframe": per_kf, "model": model,
+            "k_ball": float(np.median(pr[:, 1] / pr[:, 0])) if len(pr) else float("nan"), "ball_samples": len(pr)}
+
+
 # ------------------------------------------------------------------ session-level ball correction
 SESSION_POOLS = ("segments", "samples")
 
@@ -444,8 +464,9 @@ def scale_b_with_a_check(seg, run, model="da2-metric-indoor-large", threshold=0.
 
 
 METHODS = {"none": scale_none, "native": scale_native, "tiles": scale_tiles, "A": scale_static_ball,
-           "B": scale_depth_ball, "B+Acheck": scale_b_with_a_check, "Bsession": scale_depth_ball_session}
-TAKES_MODEL = ("B", "B+Acheck", "Bsession")
+           "B": scale_depth_ball, "B+Acheck": scale_b_with_a_check, "Bsession": scale_depth_ball_session,
+           "Bnet": scale_depth_net}
+TAKES_MODEL = ("B", "B+Acheck", "Bsession", "Bnet")
 COMPOSITE_METHODS = ("B+Acheck",)        # built from other methods; not a config-level method
 # methods that need a session-level quantity computed over every segment first (keyword -> what):
 # the caller (slam.pipeline.impl_analysis.scale_run) pools it with session_k_of_run and passes it

@@ -1,0 +1,16 @@
+diff --git a/mono/utils/comm.py b/mono/utils/comm.py
+index 939e4e175c14563d5d13e77e6b56fd1a34668ebf..5e392c01a01dc1fe0554ce527e44d0e4946f0eae 100644
+--- a/mono/utils/comm.py
++++ b/mono/utils/comm.py
+@@ -5,7 +5,10 @@ from .avg_meter import AverageMeter
+ from collections import defaultdict, OrderedDict
+ import os
+ import socket
+-from mmcv.utils import collect_env as collect_base_env
++try:
++    from mmcv.utils import collect_env as collect_base_env
++except ImportError:  # local patch: mmcv 1.x is not installable with torch 2.7; mmengine has the same function
++    from mmengine.utils.dl_utils import collect_env as collect_base_env
+ try:
+     from mmcv.utils import get_git_hash
+ except:

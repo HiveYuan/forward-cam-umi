@@ -39,10 +39,10 @@ Steps and their implementations (`registry.py`; the config picks one per step):
 | tiles | `apriltag_36h11` | venv | tile detections (evaluation GT) |
 | masks (named) | `sam2_points`, `sam3_text_points`, `tile_geometry` | sam2 / sam3 / venv | `masked.npz` |
 | slam (named runs) | `droid` (backend interface `slam/backends/base.py`, AMB3R next) | droid | `traj.npz` |
-| depth | `hf_depth` (DA2 metric, Depth Pro) | sam2 | keyframe depth for scale B |
+| depth | `hf_depth` (DA2 metric, Depth Pro); `unidepth_v2`, `metric3d_v2`, `da3_metric`, `moge2` (take K); `depth_pro_f` (Depth Pro with K) | sam2 / mdepth / sam2 | keyframe depth for scale B |
 | mask_compare | `impl_mask_compare.py`: mask sets vs a reference (IoU, recall, precision, extra / missed area, DROID-cell IoU) | venv | `masks_<cand>_vs_<ref>.{json,md}`; overlays in `<work>/runs/<exp>/<variant>/overlays/` |
 | error_decomp | `impl_error_decomp.py`: label error with the head rotation and/or scale replaced by the tile GT | venv | `errdecomp_<run>.{json,md}` |
-| scale | methods of `slam/scale.py`: `none`, `native`, `A`, `B`, `Bsession`; primary + checks | venv | per-segment s, flags |
+| scale | methods of `slam/scale.py`: `none`, `native`, `A`, `B`, `Bsession`, `Bnet`; primary + checks | venv | per-segment s, flags |
 | labels | `slam/labels.py` | venv | 15 fps tool poses, error vs tiles, chunk metrics |
 | evaluate | `slam/evaluate.py`, `slam/tiles.py noise` | venv | head-motion metrics vs tiles |
 | report | `impl_report.py` | venv | `results/` |
@@ -107,3 +107,4 @@ New experiments start from these unless they test an alternative to them:
 | exp005_session_scale | scale `Bsession`: one ball correction k pooled over the session, vs per-segment B; diagnosis of the long tail |
 | exp006_sam3_v2 | SAM3 masks v2 (`sam3_v2`): leak-filtered text instances attached to the wearer, denser rig prompts, held-block point; DROID E3 |
 | exp007_v2_session_scale | the current defaults: exp006's masks and DROID E3 with scale Bsession + A check; the baseline for later backends |
+| exp008_depth_models | depth networks that take K (UniDepth V2, Metric3D v2, DA3 metric, MoGe-2, Depth Pro with K) vs DA2 for Bsession / B / Bnet (no ball); K ablations |

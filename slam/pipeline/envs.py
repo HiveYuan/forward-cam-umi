@@ -15,6 +15,7 @@ ENVS = {
     "sam2": str(CONDA / "envs/sam2/bin/python"),                       # SAM2, depth (transformers)
     "sam3": str(CONDA / "envs/sam3/bin/python"),                       # SAM3
     "lerobot": str(CONDA / "envs/lerobot/bin/python"),                 # LeRobot export
+    "mdepth": str(CONDA / "envs/mdepth/bin/python"),                   # UniDepth V2, Metric3D v2, DA3, MoGe-2
 }
 
 
