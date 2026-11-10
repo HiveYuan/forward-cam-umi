@@ -105,3 +105,47 @@ These are differences of summary statistics, not a per-anchor attribution.
   statistics (leave-one-out, bootstrap, robustness).
 - `checks/physics.py`, `checks/kf.py` (+ `phys.json`): depth ranges, correction vs depth, keyframe /
   tile-frame overlap, ep29 and ep20.
+
+## With the reference noise taken out (`refnoise.py`, `refnoise.json`)
+
+**How the reference's own uncertainty is measured.** A moving-block bootstrap (blocks of 13 fit
+frames, 2,000 resamples) of the tile-fitted scale gives sd_ref per episode. The rms over the 28
+episodes is 4.7%; the largest are ep29 19.7%, ep22 8.8%, ep20 6.1%, ep18 4.4%, ep10 4.1%, ep17 3.6%
+and ep23 3.4%.
+
+**Two causes.**
+- Weak tile geometry: ep29 (41 frames, 5 cm of head travel), ep22 (70 frames, 5 cm), ep18 (4.6 cm
+  of head travel) and ep20 (a noisy middle third).
+- DROID's scale changing within the episode: ep10 (thirds 0.35 / 0.51 / 0.47), ep17 and ep23. These
+  have plenty of tile frames; one scale just does not describe the trajectory. That is SLAM's error,
+  not the reference's.
+
+**Scale error.** Same subsets for both methods; the subsets are chosen from tile data only.
+
+| | all 28 | without weak references (24) | also without within-episode scale changes (21) |
+|---|---|---|---|
+| Bsession \|err\| median / p90 | 7.8% / 17.4% | 7.3% / 16.2% | 7.2% / 17.0% |
+| Bsession bias (median) / spread (sd of log) | -7.3% / 9.1% | -7.3% / 6.6% | -7.2% / 6.5% |
+| Bsession rms / max, episodes > 20% | 11.1% / 31.9%, 1 | 9.2% / 18.9%, 0 | 9.4% / 18.9%, 0 |
+| B \|err\| median / p90 | 6.6% / 21.7% | 6.6% / 19.3% | 6.4% / 20.4% |
+| B spread (sd of log), episodes > 20% | 11.9%, 5 | 9.5%, 3 | 9.8%, 3 |
+| Bsession with the bias also removed (leave-one-out): median / p90 | 5.4% / 13.0% | 4.4% / 12.2% | 4.6% / 10.7% |
+
+On all 28, subtracting the mean reference variance from the observed variance gives a method spread
+of 7.8% for Bsession (observed 9.1%) and 10.9% for B (observed 11.9%).
+
+**Tool labels.** Position error, median / p90 at 1 s and mean over a 100-step chunk, in mm.
+
+| | all 28 (989 anchors) | 24 (865) | 21 (660) |
+|---|---|---|---|
+| B | 5.7 / 18.7, 11.7 | 5.7 / 20.7, 12.6 | 5.6 / 27.0, 14.2 |
+| Bsession | 4.5 / 15.0, 10.1 | 4.4 / 16.7, 10.7 | 3.9 / 17.8, 11.3 |
+| oracle scale | 3.9 / 13.9, 9.1 | 3.8 / 15.3, 9.6 | 3.4 / 16.9, 10.4 |
+
+Removing episodes changes the anchor set, so compare label numbers within a column only.
+
+**Reading.**
+- The method's own episode-to-episode spread is about 6.5-7.8% (observed 9.1%).
+- The bias of about -7% belongs to the method and does not change.
+- No episode is above 20% once the weak references are removed.
+- Pooling still clearly beats the per-episode correction on clean episodes: spread 6.6% vs 9.5%.
