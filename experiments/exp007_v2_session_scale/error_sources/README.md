@@ -173,3 +173,48 @@ Background on the two scales being compared:
 
 Tool labels are unchanged. Their anchors come only from 10 episodes with dense tile coverage (ep00,
 10, 11, 12, 15, 17, 18, 21, 24, 27), and none of the dropped episodes has any.
+
+## In millimetres: how far each scale moves the tool labels (`label_shift.py`, `label_shift.json`)
+
+**Definition.** Each episode has two label files on the same 15 fps training timeline: one built
+with the estimated scale and one built with the tile-fitted scale. Rotation is scale-free, so the
+difference of their relative chunks tool_t -> tool_t+j is a pure translation shift. It equals
+|e| times the head translation over j steps, where e = s/s_o - 1 (checked on the label files to
+5e-13 mm).
+- Anchors: every gap-free SLAM label anchor; no tile requirement.
+- Steps: 1 s = step 15, 2 s = step 30, and the chunk mean over steps 1..100, truncated at the
+  episode end as in the label metric.
+- Bias: the signed median, i.e. the shift with the sign of e.
+- An independent check reproduced these numbers.
+- The 6.67 s horizon is not reported. Only 10 episodes last longer than 6.67 s in-episode (median
+  duration 6.47 s), so it rests on about 150 start-to-end pairs.
+
+Median / p90 in mm; max in brackets.
+
+| | all 28 | >= 3 tile keyframes (22) | the label metric's 10 episodes |
+|---|---|---|---|
+| Bsession, scale error in % (median / p90) | 7.8% / 17.4% | 6.9% / 11.4% | 5.8% / 8.7% * |
+| Bsession, label shift at 1 s | 2.0 / 9.6 (47) | 1.7 / 7.3 (16) | 1.4 / 7.3 (15) |
+| Bsession, at 2 s | 3.1 / 14.6 (60) | 2.6 / 12.7 (18) | 2.1 / 13.9 (18) |
+| Bsession, 100-step chunk mean | 2.3 / 9.3 (43) | 2.0 / 7.8 (12) | 1.6 / 7.9 (12) |
+| Bsession bias (signed median, 1 s / chunk) | -1.7 / -1.9 | -1.4 / -1.5 | -1.1 / -1.3 |
+| B, scale error in % | 6.6% / 21.7% | 5.7% / 20.0% | 7.1% / 21.4% * |
+| B, label shift at 1 s | 2.1 / 8.5 (47) | 1.8 / 7.7 (45) | 1.8 / 8.4 (45) |
+| B, at 2 s | 3.3 / 12.8 (60) | 2.8 / 11.9 (52) | 2.8 / 12.9 (52) |
+| B, 100-step chunk mean | 2.3 / 12.6 (43) | 1.9 / 11.9 (36) | 2.2 / 14.8 (36) |
+| B bias (signed median, 1 s / chunk) | -1.7 / -1.9 | -1.2 / -1.5 | -1.8 / -2.2 |
+
+\* From `refnoise.json` on those 10 episodes.
+
+**Reading.**
+- **Size.** The scale alone moves a 1 s label by about 2 mm at the median and 7-10 mm at p90.
+  Typical head motion in 1 s is 31 mm (p90 about 100 mm).
+- **Medians.** Bsession is at or below B everywhere.
+- **Tails.** The max shift is 16 mm for Bsession vs 45 mm for B on the 22 episodes. B's tail comes
+  from ep12 and ep11 and is confirmed with tile ground-truth displacement. Bsession's 47 mm on all 28
+  comes from ep29, whose reference is unreliable.
+- **p90 ordering.** It is mixed between the methods and between the slam and tile-GT displacements,
+  so no claim is made on it.
+- **These shifts add to the other label errors as vectors, not as numbers.** On the label metric's
+  10 episodes, the measured median label error only goes from 3.9 mm with the oracle scale to
+  4.5 mm with Bsession.
