@@ -17,8 +17,11 @@ RAW = DATA_REPO / "data/raw"               # git-ignored: videos, *_ts.json, epi
 DET_CACHE = DATA_REPO / "calib"            # git-ignored: <stem>_dodeca_detections.npz etc.
 WORK = Path(os.environ.get("SLAM_WORK", "/home/student/yuanliu-hawaii/work"))
 
-# Sessions we run. Only single-take sessions for now; multi-take ones (glove5,
-# glove6) need their episodes split by take before they can be added.
+# Sessions we run. Multi-take sessions (glove5, glove6) run one take at a time as their own session
+# (<session>_take1 = the .take1 files, _take2 = the plain files): their raw files are symlinked under
+# derived names into <work>/takes/data/raw with a per-take episode file renumbered from 0
+# (source_episode_index keeps the original), so run the CLI steps of these sessions with
+# HEADCAM_DATA_REPO=<work>/takes (detection caches then go to <work>/takes/calib).
 SESSIONS = {
     "yam_glove7": {
         "head_stem": "yam_glove7_b0587b",
@@ -31,6 +34,9 @@ SESSIONS = {
         "sam2_prompts": {"glove": ["ball", "flange"], "hand": [[-0.141, -0.0026, 0.1014]]},
     },
 }
+for _s in ("yam_glove8", "yam_glove6_take1", "yam_glove6_take2", "yam_glove5_take1", "yam_glove5_take2"):
+    # same collector, glove unit, head camera (f3 intrinsics, glove5 included) and tile layout as glove7
+    SESSIONS[_s] = {**SESSIONS["yam_glove7"], "head_stem": f"{_s}_b0587b"}
 
 
 def session(name):

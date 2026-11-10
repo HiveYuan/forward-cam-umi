@@ -56,9 +56,13 @@ def main():
     ap.add_argument("--session", required=True)
     ap.add_argument("--closed-percentile", type=float, default=0.5)
     ap.add_argument("--write-log", action="store_true")
+    ap.add_argument("--d0-mm", type=float, default=None,
+                    help="closed-jaw separation [mm] to use instead of the session's percentile: for a short "
+                         "session in which the glove is never closed empty (yam_glove8: the glove7 value of the "
+                         "same unit and day)")
     a = ap.parse_args()
     t, d, n_frames = separation(a.session)
-    d0 = float(np.percentile(d, a.closed_percentile))
+    d0 = float(np.percentile(d, a.closed_percentile)) if a.d0_mm is None else float(a.d0_mm)
     g2a = json.load(open(C.CALIB / "gap_to_actuator.json"))
     w2c = json.load(open(C.CALIB / "width_to_cmd_glove_v2.json"))
     gap = np.clip(d - d0, 0, None)
@@ -102,7 +106,8 @@ def main():
               f"block gap {block_gap:.1f} mm imply d0 = {agree['implied_closed_separation_mm']:.1f} mm "
               f"(session closed value {d0:.1f} mm)")
     meta = {"method": "tip separation - closed separation -> gap_to_actuator -> width_to_cmd_glove_v2",
-            "d0_mm": d0, "closed_percentile": a.closed_percentile, "n_frames_with_tips": int(len(t)),
+            "d0_mm": d0, "d0_source": "session percentile" if a.d0_mm is None else "--d0-mm",
+            "session_percentile_d0_mm": float(np.percentile(d, a.closed_percentile)), "closed_percentile": a.closed_percentile, "n_frames_with_tips": int(len(t)),
             "agreement_with_dataset_widths": agree}
     np.savez(C.gt_dir(a.session) / "gripper_wrist.npz", meta=json.dumps(meta), **out)
     print(f"wrote {C.gt_dir(a.session) / 'gripper_wrist.npz'}: {len(out) // 2} episodes")

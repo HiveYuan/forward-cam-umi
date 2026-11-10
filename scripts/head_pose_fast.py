@@ -106,6 +106,7 @@ ap.add_argument("--intr", default="calib/B0587b_f3_intrinsics.json")
 ap.add_argument("--tags", default="calib/tags36h11_yosub.json")
 ap.add_argument("--layout", default="calib/workspace_tiles_pilot_v2.json")
 ap.add_argument("--out", default=None, help="default calib/<stem>_cam_world.json")
+ap.add_argument("--raw-dir", default=None, help="directory of <stem>.mkv (default data/raw of this checkout)")
 a = ap.parse_args()
 ROOT = Path(__file__).resolve().parent.parent
 K, dist = L.load_intrinsics(a.intr)
@@ -118,7 +119,7 @@ crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
 rows = []
 last_T, last_k, anchor_k = None, None, None          # last accepted pose; last multi-tile (anchor) frame
 FPS = 24.0
-cap = cv2.VideoCapture(str(ROOT / f"data/raw/{a.stem}.mkv")); k = 0; misses = 0
+cap = cv2.VideoCapture(str((Path(a.raw_dir) if a.raw_dir else ROOT / "data/raw") / f"{a.stem}.mkv")); k = 0; misses = 0
 while misses < 50:
     if not cap.grab():
         ok, _ = cap.read(); misses += 1
