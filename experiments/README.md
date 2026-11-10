@@ -109,3 +109,7 @@ New experiments start from these unless they test an alternative to them:
 | exp007_v2_session_scale | the current defaults: exp006's masks and DROID E3 with scale Bsession + A check; the baseline for later backends |
 | exp008_depth_models | depth networks that take K (UniDepth V2, Metric3D v2, DA3 metric, MoGe-2, Depth Pro with K) vs DA2 for Bsession / B / Bnet (no ball); K ablations |
 | exp009_net_scale | scale `Bnet` (the network's own metric depth, no ball) + A check for DA3 metric, MoGe-2, UniDepth + K, Metric3D + K: labels, evaluation, error decomposition (DA3) |
+| exp010_glove8 | glove8: default (DA2 + Bsession) vs DA3 metric + K, Bnet |
+| exp011_glove6_take1 | glove6 take 1, failed on ep00 (false start without ball / tile pose); superseded by exp012 |
+| exp012_glove6_take1 | glove6 take 1 without ep00: default vs DA3 + Bnet |
+| cross_session/ | summary over glove6 take 1, glove7 and glove8: DA3 + Bnet 4.0 / 13.2% vs default 14.2 / 26.2% scale error; labels 1 s 4.8 vs 7.2 mm |
