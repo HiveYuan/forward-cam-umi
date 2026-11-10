@@ -108,3 +108,4 @@ New experiments start from these unless they test an alternative to them:
 | exp006_sam3_v2 | SAM3 masks v2 (`sam3_v2`): leak-filtered text instances attached to the wearer, denser rig prompts, held-block point; DROID E3 |
 | exp007_v2_session_scale | the current defaults: exp006's masks and DROID E3 with scale Bsession + A check; the baseline for later backends |
 | exp008_depth_models | depth networks that take K (UniDepth V2, Metric3D v2, DA3 metric, MoGe-2, Depth Pro with K) vs DA2 for Bsession / B / Bnet (no ball); K ablations |
+| exp009_net_scale | scale `Bnet` (the network's own metric depth, no ball) + A check for DA3 metric, MoGe-2, UniDepth + K, Metric3D + K: labels, evaluation, error decomposition (DA3) |
