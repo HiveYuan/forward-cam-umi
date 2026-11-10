@@ -1,0 +1,216 @@
+{
+ "run": "E3_da2",
+ "label": "Bsession+Acheck",
+ "primary": "Bsession",
+ "checks": [
+  "A"
+ ],
+ "flag_threshold": 0.1,
+ "methods": {
+  "Bsession": {
+   "depth": "da2",
+   "correction": "faces",
+   "min_facing": 0.7,
+   "pool": "segments",
+   "depth_window": null,
+   "z_max": 4.0,
+   "min_cells": 200,
+   "_depth_node": "depth.da2@E3_da2"
+  },
+  "A": {
+   "window_s": 1.0,
+   "step_s": 0.25,
+   "res_max_mm": 5.0,
+   "min_baseline_mm": 20.0,
+   "min_frames": 10
+  }
+ },
+ "rows": [
+  {
+   "segment": "ep00",
+   "s": 0.582485924209369,
+   "ok": true,
+   "oracle_s": 0.6553893940426219,
+   "err": -0.11123687764241086,
+   "primary": {
+    "s": 0.582485924209369,
+    "ok": true,
+    "k_session": 0.5721271480919063,
+    "pool": "segments",
+    "k_ball": 0.31549807291818527,
+    "ball_samples": 16,
+    "s_own_k": 0.32121039388346373,
+    "n_s_per_keyframe": 15,
+    "model": "da2-metric-indoor-large",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep01",
+   "s": 1.3259881941521674,
+   "ok": true,
+   "oracle_s": 1.4675753788368346,
+   "err": -0.09647694198637069,
+   "primary": {
+    "s": 1.3259881941521674,
+    "ok": true,
+    "k_session": 0.5721271480919063,
+    "pool": "segments",
+    "k_ball": 0.5774890469690048,
+    "ball_samples": 7,
+    "s_own_k": 1.338415177617263,
+    "n_s_per_keyframe": 13,
+    "model": "da2-metric-indoor-large",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep02",
+   "s": 0.7491827238096765,
+   "ok": true,
+   "oracle_s": 0.6741176248788241,
+   "err": 0.1113531172610207,
+   "primary": {
+    "s": 0.7491827238096765,
+    "ok": true,
+    "k_session": 0.5721271480919063,
+    "pool": "segments",
+    "k_ball": 0.5667652492148078,
+    "ball_samples": 10,
+    "s_own_k": 0.7421614838301827,
+    "n_s_per_keyframe": 15,
+    "model": "da2-metric-indoor-large",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep03",
+   "s": 0.7660356980819172,
+   "ok": true,
+   "oracle_s": 0.8315928710324335,
+   "err": -0.07883325511091288,
+   "primary": {
+    "s": 0.7660356980819172,
+    "ok": true,
+    "k_session": 0.5721271480919063,
+    "pool": "segments",
+    "k_ball": 0.5793452334006235,
+    "ball_samples": 12,
+    "s_own_k": 0.7757001774493423,
+    "n_s_per_keyframe": 17,
+    "model": "da2-metric-indoor-large",
+    "correction": "faces",
+    "depth_window": null,
+    "method": "Bsession"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  }
+ ],
+ "summary": {
+  "segments": 4,
+  "segments_ok": 4,
+  "n_compared": 4,
+  "abs_err_median": 0.10385690981439077,
+  "abs_err_p90": 0.11131824537543775,
+  "bias_median": -0.08765509854864179,
+  "flagged": [],
+  "both": [],
+  "without_flagged": {
+   "n_compared": 4,
+   "abs_err_median": 0.10385690981439077,
+   "abs_err_p90": 0.11131824537543775,
+   "bias_median": -0.08765509854864179
+  },
+  "methods": {
+   "Bsession": {
+    "segments_ok": 4,
+    "n_compared": 4,
+    "abs_err_median": 0.10385690981439077,
+    "abs_err_p90": 0.11131824537543775,
+    "bias_median": -0.08765509854864179
+   },
+   "A": {
+    "segments_ok": 0,
+    "n_compared": 0,
+    "abs_err_median": null,
+    "abs_err_p90": null,
+    "bias_median": null
+   }
+  }
+ },
+ "session": {
+  "Bsession": {
+   "k_session": 0.5721271480919063,
+   "pool": "segments",
+   "n_segments": 4,
+   "n_samples": 45,
+   "k_segment_p10": 0.390878225807172,
+   "k_segment_p25": 0.5039484551406521,
+   "k_segment_p75": 0.5779530935769095,
+   "k_segment_p90": 0.5787883774711379,
+   "per_segment": {
+    "ep00": {
+     "k": 0.31549807291818527,
+     "n": 16
+    },
+    "ep01": {
+     "k": 0.5774890469690048,
+     "n": 7
+    },
+    "ep02": {
+     "k": 0.5667652492148078,
+     "n": 10
+    },
+    "ep03": {
+     "k": 0.5793452334006235,
+     "n": 12
+    }
+   }
+  }
+ }
+}

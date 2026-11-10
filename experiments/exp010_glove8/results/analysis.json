@@ -1,0 +1,77 @@
+{
+ "runs": {
+  "E1": {
+   "scale_label": null,
+   "scale": null,
+   "labels": {
+    "oracle": null,
+    "scaled": null
+   },
+   "eval": {
+    "oracle": null,
+    "scaled": null
+   },
+   "slam": {
+    "keyframes_per_segment": 20.5,
+    "runtime_s_per_segment": 91.23656141757965,
+    "valid_frac": 1.0,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3_da2": {
+   "scale_label": "Bsession+Acheck",
+   "scale": "scale_E3_da2.json",
+   "labels": {
+    "oracle": "labels_E3_da2.json",
+    "scaled": "labels_E3_da2@Bsession+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bsession+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 15.0,
+    "runtime_s_per_segment": 90.89675283432007,
+    "valid_frac": 0.8447532653808594,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3_da3m": {
+   "scale_label": "Bnet+Acheck",
+   "scale": "scale_E3_da3m.json",
+   "labels": {
+    "oracle": "labels_E3_da3m.json",
+    "scaled": "labels_E3_da3m@Bnet+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bnet+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 15.0,
+    "runtime_s_per_segment": 90.89675283432007,
+    "valid_frac": 0.8447532653808594,
+    "tracked_frac": 1.0
+   }
+  }
+ },
+ "gt_noise": "gt_noise.json",
+ "segments": [
+  "ep00",
+  "ep01",
+  "ep02",
+  "ep03"
+ ],
+ "evaluate": {
+  "fail_deg": 2.0,
+  "dts": [
+   0.08,
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   6.67
+  ]
+ }
+}
