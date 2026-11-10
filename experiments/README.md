@@ -92,7 +92,7 @@ New experiments start from these unless they test an alternative to them:
 |---|---|---|---|
 | motion masks | `sam3_v2` with exp006's parameters, frozen (a change needs a new impl name or version and its own comparison) | 2026-11-09 | exp006 audit: moving regions 54/80 vs SAM2 40, static 10/74 vs v1 73, held block 0.98-0.99 |
 | tile masks (E3) | `tile_geometry`, `slam_fallback: E1` | exp000 (legacy) | exp001 reproduces it bitwise |
-| scale | primary `Bsession` (pool `segments`, correction `faces`), check `A` at 10% | 2026-11-09 | exp005: \|err\| p90 17.7% vs 20.1% for B, labels at 1 s 4.8 vs 5.7 mm median |
+| scale | primary `Bnet` (no ball) on depth `da3_metric` (DA3METRIC-LARGE with the camera K, exp008's parameters), check `A` at 10% (informational) | 2026-11-10 | cross_session (glove6 take 1, glove7, glove8; 61 episodes): scale \|err\| 4.0 / 13.2% vs 14.2 / 26.2% for DA2 + `Bsession`, labels at 1 s 4.8 vs 7.2 mm median. Replaces `Bsession` (2026-11-09), whose ball correction depends on how near the ball is held (glove6: -22%) |
 | SLAM | `droid`, demo parameters, native 960x536, per-episode segments | exp000 (legacy) | exp001; a shared map over the take is being tested next |
 
 ## Experiments

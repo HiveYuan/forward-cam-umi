@@ -8,8 +8,9 @@ interchangeable methods in `scale.py` (see "Scale" below); `tiles` is the oracle
 `python -m slam.run experiments/<exp>/config.yaml` (see `experiments/README.md` and
 `slam/pipeline/`). It calls the modules below; their CLIs still work for ad-hoc use.
 SLAM backends implement `slam/backends/base.py` (DROID now, AMB3R next). Decisions 2026-11-09: the motion masks are frozen at
-`sam3_v2` (exp006's parameters) and the scale primary is `Bsession` with the A check (exp005); see
-`experiments/README.md`, "Current defaults". New in the modules:
+`sam3_v2` (exp006's parameters). Decision 2026-11-10: the scale primary is `Bnet` (the metric depth of
+DA3METRIC-LARGE with the camera K, no ball; `depth_models.py`) with the A check, replacing `Bsession`
+(experiments/cross_session); see `experiments/README.md`, "Current defaults". New in the modules:
 scale method `native` and the generic `cross_check` (`scale.py`), chunk-length label
 metrics (`labels.py`), `evaluate_session` (`evaluate.py`), `tiles.noise_floor` /
 `segment_tile_masks`. `run_droid.py` now writes the backend's `traj.npz` format: it adds
