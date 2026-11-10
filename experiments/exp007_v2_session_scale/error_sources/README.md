@@ -149,3 +149,27 @@ Removing episodes changes the anchor set, so compare label numbers within a colu
 - The bias of about -7% belongs to the method and does not change.
 - No episode is above 20% once the weak references are removed.
 - Pooling still clearly beats the per-episode correction on clean episodes: spread 6.6% vs 9.5%.
+
+## Only episodes with at least 3 tile-visible keyframes (`tile_keyframes.json`)
+
+A tile-visible keyframe is a DROID keyframe of E3 with a strict tile pose (at least 2 tiles, rms at
+most 5). 22 of the 28 episodes are kept. Dropped: ep04 (0 tile keyframes), ep09 (2), ep19 (1),
+ep20 (1), ep26 (2) and ep29 (0); ep07 and ep16 have no tile-fitted scale at all.
+
+Background on the two scales being compared:
+- The tile-fitted scale uses every tile-visible frame, not only keyframes. ep09 and ep26 have 205
+  and 178 tile frames and stable fits.
+- Bsession's background ratio uses keyframes only. With fewer than 3 tile-visible keyframes, the two
+  scales are measured at different times of the episode.
+
+| | all 28 | >= 3 tile keyframes (22) |
+|---|---|---|
+| Bsession \|err\| median / p90 | 7.8% / 17.4% | 6.9% / 11.4% |
+| Bsession bias (median) / spread (sd of log) | -7.3% / 9.1% | -5.5% / 6.5% |
+| Bsession rms / max; episodes > 10% / > 20% | 11.1% / 31.9%; 8 / 1 | 8.1% / 18.9%; 4 / 0 |
+| B \|err\| median / p90 | 6.6% / 21.7% | 5.7% / 20.0% |
+| B bias / spread; episodes > 10% / > 20% | -5.2% / 11.9%; 11 / 5 | -4.2% / 9.8%; 8 / 3 |
+| Bsession with the bias also removed (leave-one-out): median / p90 | 5.4% / 13.0% | 4.4% / 11.5% |
+
+Tool labels are unchanged. Their anchors come only from 10 episodes with dense tile coverage (ep00,
+10, 11, 12, 15, 17, 18, 21, 24, 27), and none of the dropped episodes has any.
