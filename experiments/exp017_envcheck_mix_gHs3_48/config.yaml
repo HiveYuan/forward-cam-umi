@@ -1,0 +1,8 @@
+# exp017_envcheck_mix_gHs3_48: Yosub's arm mix_gHs3_48 (joint actions, his dataset, his train config) retrained
+# for 10k of its 50k steps in our env (lerobot52: his lerobot_alohamini 0cae109f), to compare the robot-val curve
+# with his (docs/results/head_val_curves.csv). Checks that our training env reproduces his before P3's arms.
+experiment: exp017_envcheck_mix_gHs3_48
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3, root: /home/student/.cache/huggingface/lerobot/pilot_mix_gHs3}   # episodes: his list (242)
+overrides: {steps: 10000}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp017_envcheck_mix_gHs3_48

@@ -1,0 +1,7 @@
+# exp019_rel_Gtile48: relative actions, 48 teleop + 194 glove episodes (the paper's mix_gHs3_48 list); glove labels from tiles: FK of Yosub's HHs3 joints.
+# Loss masks slam_valid and ik_unreached (identical flags in both glove datasets); hyperparameters = Yosub's.
+experiment: exp019_rel_Gtile48
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_tile, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_tile, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], stats: calib/rel_action_stats_teleop172.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp019_rel_Gtile48
