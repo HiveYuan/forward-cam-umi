@@ -296,8 +296,13 @@ def text_instances(model, proc, imgs, prompts, dev, dtype):
     import torch
     from slam.masks import torch_dtype
     n = len(imgs)
+    # inference state (per-object memories and outputs of every frame) on the CPU, computation on dev:
+    # bit-identical masks (glove6 take 2 ep00: 857 instance-frames equal) at 4.1 instead of 7.2 GiB
+    # peak; glove5 (2026-10-08) has ~2.6x the text instances and ran out of the 3090's memory with the
+    # state on the GPU (exp014, 2026-11-10). About 10% slower.
     sess = proc.init_video_session(video=imgs, inference_device=dev, video_storage_device="cpu",
-                                   processing_device="cpu", dtype=torch_dtype(dtype))
+                                   processing_device="cpu", inference_state_device="cpu",
+                                   dtype=torch_dtype(dtype))
     proc.add_text_prompt(sess, list(prompts))
     fr, ob, pr, sc, ms = [], [], [], [], []
     seen = np.zeros(n, bool)
