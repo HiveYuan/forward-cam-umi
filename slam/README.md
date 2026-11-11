@@ -58,6 +58,9 @@ Key modules: `droid_masked.py` (mask-aware DROID: BA weights × valid(source) ×
 valid(matched target), masked keyframe selection), `relative.py` (relative
 10-D actions: 3 translation + 6D rotation + absolute gripper; deployment and
 temporal ensembling helpers), `geometry.py`.
+`robot_fk.py` (YAM FK of i2rt's `grasp_site` = the glove labels' tool frame, i2rt's own `Kinematics`
+imported from `third_party/i2rt`; lerobot env, which has i2rt's dependencies since 2026-11-10;
+validated against HHs3's IK in `experiments/audits/fk_frame`).
 
 DROID parameters: demo defaults at native 960×536, every frame, global BA at the
 end. A keyframe-threshold sweep (filter/keyframe 2.4/4.0 vs 1.2/2.0 vs 0.6/1.0)
