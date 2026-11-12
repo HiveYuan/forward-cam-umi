@@ -14,6 +14,23 @@ Detection caches (`*_detections.*`), per-frame camera-pose solves
 | `fisheye_glove_yosub_intrinsics.json`, `fisheye_intrinsics.json` | the glove's wrist fisheye (ablation) and the robot's |
 | `*.example.json` | format examples for `cameras.json` and the robot bundles |
 
+## Glove units (physical glove <-> file names)
+
+Each glove is its own print: its calipers, bundles and tool frame belong to it alone. Unit names follow
+who held the glove when the files were first written (2026-10-05). The yosub_spring glove (2026-11-02) is a
+third unit, not listed here.
+
+| unit | physical glove | timeline | files |
+|---|---|---|---|
+| `yuan` | the first glove, built by Yosub | Yosub's only glove until 2026-10-01 (calipered 2026-09-28); with Yuan since 2026-10-01 | in the repo: `marker_map_glove_yuan.json` (the 09-28 calipers, authoritative) and `tags36h11_yuan.json`. Missing: ball / gripper-back bundles, tool frame (`handeye_glove_yuan`), width-holds calibration |
+| `yosub` | the second glove: Yuan's parts, assembled by Yosub after 2026-10-01 | calipered 2026-10-05; recorded glove_cal_yosub and yam_glove1-4 (10-06/07), yam_glove5 (10-08) and yam_glove6-8 (10-15), i.e. pilot_glove_HHs3 and the paper | everything `*_glove_yosub*` / `glove_yosub_*`, plus `head_width_glove_yosub.json` |
+
+Pitfall (Yuan's macOS work, 2026-10-13): that glove was the first glove, unit `yuan`. It was recorded and
+re-measured under the name `yosub` (`marker_map_glove_yosub.local.json`, the `glove_yosub_width_verify_*` and
+`glove_yosub_task_smoke_*` recordings) because "the glove is Yosub's" was read as unit yosub. Those files belong
+to unit `yuan`. Their re-measured sizes (ball 14.6 mm, ...) are not used; Yosub's 09-28 calipers stand (decision
+2026-11-12).
+
 ## Marker geometry
 
 | file | what |
@@ -54,6 +71,7 @@ Detection caches (`*_detections.*`), per-frame camera-pose solves
 |---|---|
 | `gap_to_actuator.json` | caliper mm -> YAM gripper actuator units (robot bench, `gap_bench.py`) |
 | `width_to_cmd*.json` | label width -> gripper command maps used by `build_dataset.py --grip-map`; `_glove_v2` is the paper's |
+| `head_width_glove_<unit>.json` | the unit's head-camera jaw-width estimators (`slam.head_width fit`): tails/bases -> width, from the unit's caliper width holds (`--source holds`) or, for yosub, pilot_glove_HHs3's head-camera width (`--source hhs3`); `_holdout` = even/odd episode check |
 | `ik_seed_yam.json`, `robot_joint_prior.json` | IK start posture and the teleop posture prior (`free_base.py`) |
 
 ## Episode lists
