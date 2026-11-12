@@ -1,0 +1,7 @@
+# exp037_rel_T48_prevanchor: exp018_rel_T48 with the anchor = the previous step's target pose (test (a), 2026-11-12).
+# relative actions, teleop only (48 episodes, the paper's head_Hgt48 list); hyperparameters = Yosub's.
+experiment: exp037_rel_T48_prevanchor
+base_train_config: calib/yosub_train_configs/head_Hgt48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_tile, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_tile, episodes: calib/train_eps_pilot_head_Hgt_48.txt}
+relative: {masks: [], anchor: prev_action, stats: calib/rel_action_stats_teleop172_prevanchor.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp037_rel_T48_prevanchor

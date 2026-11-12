@@ -7,6 +7,8 @@ returns, for an anchor step t:
                            translation (3) + 6D rotation (6, slam.relative.rot6d) + absolute gripper (1)
   action_is_pad   (H,)     past the episode end, or step t+j flagged by one of `masks`
   observation.state (1,)   gripper (stored as a scalar column)
+anchor="prev_action" (test (a), 2026-11-12) uses the previous step's target pose as anchor_t instead of the
+anchor_pose column (see anchor_poses); its stats file must be computed with the same anchor.
 plus the images and LeRobot's bookkeeping keys. anchor_t is the dataset's anchor_pose (teleop: FK of
 the measured joints; glove: the pose itself), so rel_0 is the identity for glove steps and the
 commanded lead (~2 frames) for teleop, as in Yosub's joint-space data.
@@ -74,28 +76,59 @@ def load_episode_list(path):
     return [int(x) for x in json.loads(txt)] if txt.startswith("[") else [int(x) for x in txt.split()]
 
 
-def valid_anchors(df, masks):
+def valid_anchors(df, masks, anchor="anchor_pose"):
+    """Anchors t that may be sampled: no mask flags step t (and, for anchor "prev_action", step t-1)."""
     ok = np.ones(len(df), bool)
     for m in masks:
         ok &= ~_bad(m, df[m].values)
+    if anchor == "prev_action":
+        prev = _prev_index(df["episode_index"].values)
+        ok = ok & ok[prev]
     return ok
 
 
+ANCHORS = ("anchor_pose", "prev_action")
+
+
+def _prev_index(ep):
+    """Index of step t-1 in the same episode, or t itself at an episode's first step."""
+    i = np.arange(len(ep))
+    prev = i - 1
+    prev[0] = 0
+    first = np.r_[True, ep[1:] != ep[:-1]]
+    prev[first] = i[first]
+    return prev
+
+
+def anchor_poses(df, anchor="anchor_pose"):
+    """(N, 6) anchor pose per step. "anchor_pose": the dataset's column (teleop: FK of the measured joints,
+    glove: the pose itself). "prev_action": the previous step's target pose (teleop: the command sent at t-1,
+    glove: the pose at t-1; at an episode's first step the step's own target), so rel_0 is one step of motion
+    in both halves and at deployment the anchor is the last command sent (decision 2026-11-12, test (a))."""
+    if anchor == "anchor_pose":
+        return np.stack(df["anchor_pose"].values).astype(float)
+    if anchor == "prev_action":
+        act = np.stack(df["action"].values).astype(float)[:, :6]
+        return act[_prev_index(df["episode_index"].values)]
+    raise ValueError(f"anchor must be one of {ANCHORS}, got {anchor!r}")
+
+
 # ------------------------------------------------------------------------- stats (no video)
-def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT):
+def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT, anchor="anchor_pose"):
     """Relative-action and state statistics over every valid (anchor, j) pair of the episodes."""
     df = read_columns(root)
     act = np.stack(df["action"].values).astype(float)
-    anc = np.stack(df["anchor_pose"].values).astype(float)
+    anc = anchor_poses(df, anchor)
     ep = df["episode_index"].values
     bad = ~valid_anchors(df, masks)
+    bad_anchor = ~valid_anchors(df, masks, anchor)
     rows, states = [], []
     for e in episodes:
         r = np.where(ep == e)[0]
         A, P, b = anc[r], act[r], bad[r]
         TA, TP = pose_T(A), pose_T(P[:, :6])
         states.append(np.stack(df["observation.state"].values[r]).astype(float).reshape(-1))
-        for t in np.where(~b)[0]:
+        for t in np.where(~bad_anchor[r])[0]:
             j = np.arange(t, min(t + horizon, len(r)))
             j = j[~b[j]]
             rel = G.inv(TA[t][None]) @ TP[j]
@@ -109,7 +142,7 @@ def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT):
         return {k: np.asarray(v).tolist() for k, v in out.items()}
     return {"action": st(X), "observation.state": st(S),
             "_source": {"root": str(root), "episodes": [int(e) for e in episodes], "masks": list(masks),
-                        "horizon": horizon, "pairs": int(len(X))}}
+                        "horizon": horizon, "anchor": anchor, "pairs": int(len(X))}}
 
 
 # ------------------------------------------------------------------------- wrapper
@@ -135,17 +168,25 @@ class _Meta:
 
 
 class RelChunkDataset:
-    def __init__(self, repo, root, episodes, stats, horizon=H_DEFAULT, masks=MASK_KEYS, **lerobot_kw):
+    def __init__(self, repo, root, episodes, stats, horizon=H_DEFAULT, masks=MASK_KEYS, anchor="anchor_pose",
+                 **lerobot_kw):
         import torch  # noqa: F401
         from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
+        if anchor not in ANCHORS:
+            raise ValueError(f"anchor must be one of {ANCHORS}, got {anchor!r}")
+        if stats.get("_source", {}).get("anchor", "anchor_pose") != anchor:
+            raise ValueError(f"stats were computed for anchor {stats.get('_source', {}).get('anchor', 'anchor_pose')!r}, "
+                             f"the dataset uses {anchor!r}")
         base = LeRobotDatasetMetadata(repo, root=root)
-        self.H, self.masks = horizon, tuple(masks)
+        self.H, self.masks, self.anchor = horizon, tuple(masks), anchor
         fps = base.fps
         dts = {k: [j / fps for j in range(horizon)] for k in ("action", *self.masks)}
+        if anchor == "prev_action":                       # step t-1 first (clamped to t at an episode's start)
+            dts["action"] = [-1 / fps] + dts["action"]
         self.ds = LeRobotDataset(repo, root=root, episodes=list(episodes), delta_timestamps=dts, **lerobot_kw)
         df = read_columns(root)
         df = df[df["episode_index"].isin(list(episodes))].reset_index(drop=True)
-        ok = valid_anchors(df, self.masks)
+        ok = valid_anchors(df, self.masks, anchor)
         # LeRobotDataset orders frames by the selected episodes' order in the files (= sorted episode index)
         if not np.array_equal(df["episode_index"].values, np.sort(df["episode_index"].values)):
             raise RuntimeError("source frames are not sorted by episode")
@@ -170,9 +211,12 @@ class RelChunkDataset:
     def __getitem__(self, i):
         import torch
         item = self.ds[int(self.idx[i])]
-        act = item["action"].double().numpy()                         # (H, 7)
-        anchor = item["anchor_pose"].double().numpy().reshape(6)
+        act = item["action"].double().numpy()                         # (H, 7), or (H + 1, 7) with step t-1 first
         pad = item["action_is_pad"].numpy().copy()
+        if self.anchor == "prev_action":
+            anchor, act, pad = act[0, :6], act[1:], pad[1:]
+        else:
+            anchor = item["anchor_pose"].double().numpy().reshape(6)
         for m in self.masks:
             pad |= _bad(m, item[m].numpy().reshape(-1))
         item["action"] = torch.as_tensor(rel10(anchor, act), dtype=torch.float32)
@@ -193,24 +237,25 @@ def main():
     ap.add_argument("--episodes", required=True, help="episode list file (JSON list or whitespace)")
     ap.add_argument("--masks", default=",".join(MASK_KEYS))
     ap.add_argument("--horizon", type=int, default=H_DEFAULT)
+    ap.add_argument("--anchor", default="anchor_pose", choices=ANCHORS)
     ap.add_argument("--stats", help="check: stats file")
     ap.add_argument("--out", help="stats: output file")
     a = ap.parse_args()
     eps = load_episode_list(a.episodes)
     masks = tuple(m for m in a.masks.split(",") if m)
     if a.cmd == "stats":
-        s = compute_stats(a.root, eps, masks, a.horizon)
+        s = compute_stats(a.root, eps, masks, a.horizon, a.anchor)
         json.dump(s, open(a.out, "w"), indent=1)
         print(f"{a.out}: {s['_source']['pairs']} (anchor, j) pairs; action mean {np.round(s['action']['mean'], 4)}, "
               f"std {np.round(s['action']['std'], 4)}")
         return
     # check: the wrapper's items against a direct numpy computation from the parquet columns
     stats = json.load(open(a.stats))
-    rd = RelChunkDataset(a.repo, a.root, eps, stats, a.horizon, masks)
+    rd = RelChunkDataset(a.repo, a.root, eps, stats, a.horizon, masks, a.anchor)
     df = read_columns(a.root)
     df = df[df["episode_index"].isin(eps)].reset_index(drop=True)
     act = np.stack(df["action"].values).astype(float)
-    anc = np.stack(df["anchor_pose"].values).astype(float)
+    anc = anchor_poses(df, a.anchor)
     bad = ~valid_anchors(df, masks)
     ep = df["episode_index"].values
     worst, n = 0.0, 0

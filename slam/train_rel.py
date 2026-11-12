@@ -8,6 +8,7 @@ An experiment config (YAML) names Yosub's train_config.json for the arm being mi
   base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
   dataset: {repo: pilot_mix_gHs3_rel_tile, root: <dir>, episodes: calib/train_eps_pilot_head_Hgt_48.txt}
   relative: {masks: [], stats: calib/rel_action_stats_teleop172.json}    # omit for Yosub's joint actions
+  (relative.anchor: anchor_pose (default) or prev_action, see slam.relative_dataset.anchor_poses)
   overrides: {steps: 50000}                                               # dotted keys allowed
   output_dir: /home/student/yuanliu-hawaii/work/train/exp018_T48_rel
 
@@ -73,6 +74,7 @@ def build_train_config(cfg, output_dir=None, steps=None, device=None):
 def relative_make_dataset(rel, chunk):
     stats = json.load(open(C.REPO / rel["stats"]))
     masks = tuple(rel.get("masks", MASK_KEYS))
+    anchor = rel.get("anchor", "anchor_pose")
 
     def make_dataset(tcfg):
         import torch
@@ -80,7 +82,7 @@ def relative_make_dataset(rel, chunk):
         from lerobot.utils.constants import IMAGENET_STATS
         it = ImageTransforms(tcfg.dataset.image_transforms) if tcfg.dataset.image_transforms.enable else None
         ds = RelChunkDataset(tcfg.dataset.repo_id, tcfg.dataset.root, tcfg.dataset.episodes, stats,
-                             horizon=chunk, masks=masks, image_transforms=it,
+                             horizon=chunk, masks=masks, anchor=anchor, image_transforms=it,
                              video_backend=tcfg.dataset.video_backend, return_uint8=True,
                              tolerance_s=tcfg.tolerance_s)
         if tcfg.dataset.use_imagenet_stats:
@@ -88,7 +90,7 @@ def relative_make_dataset(rel, chunk):
                 for stats_type, s in IMAGENET_STATS.items():
                     ds.meta.stats[key][stats_type] = torch.tensor(s, dtype=torch.float32)
         print(f"[train_rel] RelChunkDataset {tcfg.dataset.repo_id}: {ds.num_frames} anchors in "
-              f"{ds.num_episodes} episodes, {ds.dropped_anchors} masked anchors dropped, masks {list(masks)}",
+              f"{ds.num_episodes} episodes, {ds.dropped_anchors} masked anchors dropped, masks {list(masks)}, anchor {anchor}",
               flush=True)
         return ds
     return make_dataset
