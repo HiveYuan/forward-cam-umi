@@ -1,0 +1,110 @@
+{
+ "runs": {
+  "E1": {
+   "scale_label": null,
+   "scale": null,
+   "labels": {
+    "oracle": null,
+    "scaled": null
+   },
+   "eval": {
+    "oracle": null,
+    "scaled": null
+   },
+   "slam": {
+    "keyframes_per_segment": 19.894736842105264,
+    "runtime_s_per_segment": 86.2346499217184,
+    "valid_frac": 1.0,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3": {
+   "scale_label": "Bnet+Acheck",
+   "scale": "scale_E3.json",
+   "labels": {
+    "oracle": "labels_E3.json",
+    "scaled": "labels_E3@Bnet+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bnet+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 18.68421052631579,
+    "runtime_s_per_segment": 63.5069442046316,
+    "valid_frac": 0.8688655087822362,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3p2": {
+   "scale_label": "Bnet+Acheck",
+   "scale": "scale_E3p2.json",
+   "labels": {
+    "oracle": "labels_E3p2.json",
+    "scaled": "labels_E3p2@Bnet+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bnet+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 13.894736842105264,
+    "runtime_s_per_segment": 43.9257341686048,
+    "valid_frac": 0.8456142450633802,
+    "tracked_frac": 0.7330954504906334
+   }
+  },
+  "E3p1": {
+   "scale_label": "Bnet+Acheck",
+   "scale": "scale_E3p1.json",
+   "labels": {
+    "oracle": "labels_E3p1.json",
+    "scaled": "labels_E3p1@Bnet+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bnet+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 11.473684210526315,
+    "runtime_s_per_segment": 36.95029101873699,
+    "valid_frac": 0.8392489113305744,
+    "tracked_frac": 0.6438893844781445
+   }
+  }
+ },
+ "gt_noise": "gt_noise.json",
+ "segments": [
+  "ep00",
+  "ep01",
+  "ep02",
+  "ep03",
+  "ep04",
+  "ep05",
+  "ep06",
+  "ep07",
+  "ep08",
+  "ep09",
+  "ep10",
+  "ep11",
+  "ep12",
+  "ep13",
+  "ep14",
+  "ep15",
+  "ep16",
+  "ep17",
+  "ep18"
+ ],
+ "evaluate": {
+  "fail_deg": 2.0,
+  "dts": [
+   0.08,
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   6.67
+  ]
+ }
+}
