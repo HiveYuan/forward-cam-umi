@@ -93,7 +93,7 @@ New experiments start from these unless they test an alternative to them:
 | motion masks | `sam3_v2` with exp006's parameters, frozen (a change needs a new impl name or version and its own comparison) | 2026-11-09 | exp006 audit: moving regions 54/80 vs SAM2 40, static 10/74 vs v1 73, held block 0.98-0.99 |
 | tile masks (E3) | `tile_geometry`, `slam_fallback: E1` | exp000 (legacy) | exp001 reproduces it bitwise |
 | scale | primary `Bnet` (no ball) on depth `da3_metric` (DA3METRIC-LARGE with the camera K, exp008's parameters), check `A` at 10% (informational) | 2026-11-10 | cross_session (glove6 take 1, glove7, glove8; 61 episodes): scale \|err\| 4.0 / 13.2% vs 14.2 / 26.2% for DA2 + `Bsession`, labels at 1 s 4.8 vs 7.2 mm median. Replaces `Bsession` (2026-11-09), whose ball correction depends on how near the ball is held (glove6: -22%) |
-| SLAM | `droid`, demo parameters, native 960x536, per-episode segments | exp000 (legacy) | exp001; a shared map over the take is being tested next |
+| SLAM | `droid_adaptive`: `droid` (demo parameters, native 960x536, per-episode segments with a 5 s preroll), re-run from 1 s before the episode where the first run turns faster than 120°/s before the episode | 2026-11-12 | exp023-exp028 (167 segments): DROID initialized on fast pre-episode head turns (all 6 episodes with a scale error > 50%); a 1 s start only there gives scale \|err\| 5.8 / 15.0% vs 6.6 / 19.0%, 2 vs 6 episodes > 50%, label chunk mean 8.1 vs 17.9 mm, rotation unchanged; a short start everywhere loses accuracy (rotation 0.36° -> 0.44-0.50° at 1 s). Runs: exp029-exp034. Replaces `droid` (exp000) |
 
 ## Experiments
 
@@ -112,4 +112,17 @@ New experiments start from these unless they test an alternative to them:
 | exp010_glove8 | glove8: default (DA2 + Bsession) vs DA3 metric + K, Bnet |
 | exp011_glove6_take1 | glove6 take 1, failed on ep00 (false start without ball / tile pose); superseded by exp012 |
 | exp012_glove6_take1 | glove6 take 1 without ep00: default vs DA3 + Bnet |
+| exp013_glove6_take2 | glove6 take 2: the defaults (sam3_v2, DROID E3, DA3 + K Bnet) |
+| exp014_glove5_take1 | glove5 take 1: the defaults (SAM3 inference state moved to the CPU for memory, bit-identical) |
+| exp015_glove5_take2 | glove5 take 2: the defaults |
+| exp016_rel_datasets | P2: relative-pose versions of pilot_mix_gHs3, glove labels from tiles (FK of HHs3) vs SLAM; HHs3 source manifest |
+| exp017_envcheck_mix_gHs3_48 | P3: Yosub's mix_gHs3_48 retrained 10k steps in our env; matches his val curve within ±2.2% |
+| exp018_rel_T48 | P3: ACT, relative actions, 48 teleop episodes |
+| exp019_rel_Gtile48 | P3: + 194 glove segments, tile labels |
+| exp020_rel_Gslam48 | P3: + 194 glove segments, SLAM labels (5 s start) |
+| exp021_glove5_take1_ballscale, exp022_glove5_take2_ballscale | glove5: DA3 + K / DA2 x no ball / ball per segment / ball per session; the ball makes glove5 worse |
+| exp023-exp028 (preroll_*) | DROID started 5 / 2 / 1 s before the episode on all six takes (`droid_preroll`) |
+| exp029-exp034 (adaptive_*) | the adaptive start (`droid_adaptive`), the default since 2026-11-12, on all six takes |
+| exp035_rel_datasets_adaptive | exp016 rebuilt with the adaptive SLAM runs |
+| exp036_rel_Gslam48_adaptive | exp020 retrained on exp035's SLAM dataset |
 | cross_session/ | summary over glove6 take 1, glove7 and glove8: DA3 + Bnet 4.0 / 13.2% vs default 14.2 / 26.2% scale error; labels 1 s 4.8 vs 7.2 mm |

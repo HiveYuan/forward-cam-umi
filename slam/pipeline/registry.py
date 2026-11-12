@@ -154,6 +154,22 @@ _IMPLS = [
          doc="droid on the frames from preroll_s before the episode start only (the segment keeps the 5 s "
              "preroll for frames and masks; earlier frames get no pose): no initialization on pre-episode "
              "head turns (2026-11-11)"),
+    Impl("slam", "droid_adaptive", "droid", "slam.pipeline.impl_slam_adaptive:run_slam_adaptive",
+         {"weights": {"path": f"{DROID_ROOT}/droid.pth",
+                      "sha256": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526"},
+          "dilate_px": 8, "buffer": 0, "beta": 0.3, "filter_thresh": 2.4, "warmup": 8,
+          "keyframe_thresh": 4.0, "frontend_thresh": 16.0, "frontend_window": 25,
+          "frontend_radius": 2, "frontend_nms": 1, "backend_thresh": 22.0, "backend_radius": 2,
+          "backend_nms": 3, "seed": 0, "turn_deg_s": 120.0, "short_preroll_s": 1.0},
+         gpu_gb=18.0, per_segment_process=True, code_inputs=(DROID_ROOT,),
+         code_files=("slam/backends/droid.py", "slam/backends/base.py", "slam/droid_masked.py",
+                     "slam/pipeline/impl_slam_preroll.py", "slam/pipeline/impl_slam_adaptive.py"),
+         binaries=(f"{DROID_ROOT}/*.so", f"{CONDA_ENVS}/droid/lib/python3.10/site-packages/lietorch*.so",
+                   f"{CONDA_ENVS}/droid/lib/python3.10/site-packages/lietorch/*.py"),
+         env_packages=("torch", "lietorch", "droid_backends", "torch_scatter") + CV_PKGS,
+         doc="droid from the segment's 5 s preroll; re-run from short_preroll_s before the episode when the "
+             "first run turns faster than turn_deg_s before the episode (no initialization on pre-episode "
+             "head turns; decision 2026-11-12)"),
     # ------------------------------------------------------------------ depth
     Impl("depth", "hf_depth", "sam2", "slam.pipeline.impl_depth:run_depth",
          {"model": "da2-metric-indoor-large",
