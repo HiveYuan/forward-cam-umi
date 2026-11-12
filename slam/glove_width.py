@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Gripper-width labels for a session, taken from Yosub's built glove dataset.
 
-The jaw-width channel is built by scripts/build_dataset.py from the wrist camera with
-estimators calibrated against actuator measurements (the glove --log), which is not in
-the raw data. Yosub's built glove dataset (pilot_glove_HHs3) already carries it:
+The jaw-width channel is built by scripts/build_dataset.py from the head camera (pipeline B:
+the tails against the gripper-back markers; its interpolation kinks sit at the head frame
+times, checked 2026-11-12) with estimators calibrated against caliper width holds (the
+glove --log), which are not in the raw data. Yosub's built glove dataset (pilot_glove_HHs3) already carries it:
 action[6] = gripper.pos (commanded-gripper units, calib/width_to_cmd_glove_v2.json).
 It has no wall clock or source ids, so its episodes are matched to this session's:
 
