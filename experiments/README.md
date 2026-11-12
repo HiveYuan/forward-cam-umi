@@ -90,10 +90,11 @@ New experiments start from these unless they test an alternative to them:
 
 | what | default | since | evidence |
 |---|---|---|---|
-| motion masks | `sam3_v2` with exp006's parameters, frozen (a change needs a new impl name or version and its own comparison) | 2026-11-09 | exp006 audit: moving regions 54/80 vs SAM2 40, static 10/74 vs v1 73, held block 0.98-0.99 |
+| motion masks | `sam3_v2_head`: `sam3_v2` (exp006's parameters, frozen; a change needs a new impl name or version and its own comparison) with the held-object gate on the head-camera gripper width (`slam.head_width`) | 2026-11-12 | no wrist-camera data in the algorithm (the wrist camera is a cross-check only); `sam3_v2` (2026-11-09, exp006 audit: moving regions 54/80 vs SAM2 40, static 10/74 vs v1 73, held block 0.98-0.99) gated on the wrist width; the gate differs on 2.5% of segment frames. Runs: exp039-exp044 |
 | tile masks (E3) | `tile_geometry`, `slam_fallback: E1` | exp000 (legacy) | exp001 reproduces it bitwise |
 | scale | primary `Bnet` (no ball) on depth `da3_metric` (DA3METRIC-LARGE with the camera K, exp008's parameters), check `A` at 10% (informational) | 2026-11-10 | cross_session (glove6 take 1, glove7, glove8; 61 episodes): scale \|err\| 4.0 / 13.2% vs 14.2 / 26.2% for DA2 + `Bsession`, labels at 1 s 4.8 vs 7.2 mm median. Replaces `Bsession` (2026-11-09), whose ball correction depends on how near the ball is held (glove6: -22%) |
 | SLAM | `droid_adaptive`: `droid` (demo parameters, native 960x536, per-episode segments with a 5 s preroll), re-run from 1 s before the episode where the first run turns faster than 120°/s before the episode | 2026-11-12 | exp023-exp028 (167 segments): DROID initialized on fast pre-episode head turns (all 6 episodes with a scale error > 50%); a 1 s start only there gives scale \|err\| 5.8 / 15.0% vs 6.6 / 19.0%, 2 vs 6 episodes > 50%, label chunk mean 8.1 vs 17.9 mm, rotation unchanged; a short start everywhere loses accuracy (rotation 0.36° -> 0.44-0.50° at 1 s). Runs: exp029-exp034. Replaces `droid` (exp000) |
+| labels gripper | `head`: gt/gripper_head.npz (`slam.head_width`, tail/base estimators calibrated per glove unit: caliper width holds, or for yosub pilot_glove_HHs3's head-camera width) | 2026-11-12 | holdout vs HHs3: median 0.020 / p95 0.122 command units (wrist 0.023 / 0.138, cross-check only) |
 
 ## Experiments
 
@@ -125,4 +126,7 @@ New experiments start from these unless they test an alternative to them:
 | exp029-exp034 (adaptive_*) | the adaptive start (`droid_adaptive`), the default since 2026-11-12, on all six takes |
 | exp035_rel_datasets_adaptive | exp016 rebuilt with the adaptive SLAM runs |
 | exp036_rel_Gslam48_adaptive | exp020 retrained on exp035's SLAM dataset |
+| exp037_rel_T48_prevanchor, exp038_rel_Gtile48_prevanchor | test (a): exp018 / exp019 with the anchor = the previous step's target pose |
+| exp039-exp044 (adaptive_head_*) | exp029-exp034 with no wrist-camera data: `sam3_v2_head` masks, head labels gripper |
+| exp045_rel_datasets_head | exp035 rebuilt from exp039-exp044 (`pilot_mix_gHs3_rel_{tile,slam}_v3`) |
 | cross_session/ | summary over glove6 take 1, glove7 and glove8: DA3 + Bnet 4.0 / 13.2% vs default 14.2 / 26.2% scale error; labels 1 s 4.8 vs 7.2 mm |
