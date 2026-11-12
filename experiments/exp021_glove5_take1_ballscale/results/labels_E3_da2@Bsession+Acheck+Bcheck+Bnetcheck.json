@@ -1,0 +1,221 @@
+{
+ "ref": "E3_da2@Bsession+Acheck+Bcheck+Bnetcheck",
+ "anchors": 4734,
+ "excluded": [],
+ "by_step": {
+  "1": {
+   "dt_s": 0.06666666666666667,
+   "n": 4671,
+   "pos_mm_median": 1.0298718001436777,
+   "pos_mm_p90": 2.9986911797262996,
+   "rot_deg_median": 0.10115608456814085,
+   "rot_deg_p90": 0.3295601889664187
+  },
+  "2": {
+   "dt_s": 0.13333333333333333,
+   "n": 4609,
+   "pos_mm_median": 1.7507791857820763,
+   "pos_mm_p90": 4.990604705536581,
+   "rot_deg_median": 0.14168562311218852,
+   "rot_deg_p90": 0.4884481382327618
+  },
+  "4": {
+   "dt_s": 0.26666666666666666,
+   "n": 4485,
+   "pos_mm_median": 2.9418127920330552,
+   "pos_mm_p90": 8.311677906938732,
+   "rot_deg_median": 0.1826486165769862,
+   "rot_deg_p90": 0.749520023848846
+  },
+  "8": {
+   "dt_s": 0.5333333333333333,
+   "n": 4256,
+   "pos_mm_median": 5.308862727420793,
+   "pos_mm_p90": 14.650988181924937,
+   "rot_deg_median": 0.24479947645630934,
+   "rot_deg_p90": 1.0992693320147013
+  },
+  "15": {
+   "dt_s": 1.0,
+   "n": 3881,
+   "pos_mm_median": 9.509923296205907,
+   "pos_mm_p90": 23.72854678912076,
+   "rot_deg_median": 0.3109872486687802,
+   "rot_deg_p90": 1.6398370268618976
+  },
+  "30": {
+   "dt_s": 2.0,
+   "n": 3238,
+   "pos_mm_median": 17.087851536398826,
+   "pos_mm_p90": 38.37585195237584,
+   "rot_deg_median": 0.39446239501020885,
+   "rot_deg_p90": 2.4455362689337856
+  },
+  "60": {
+   "dt_s": 4.0,
+   "n": 2192,
+   "pos_mm_median": 25.305001913889384,
+   "pos_mm_p90": 52.62185452524125,
+   "rot_deg_median": 0.4954872869895817,
+   "rot_deg_p90": 2.7779800530731995
+  },
+  "100": {
+   "dt_s": 6.666666666666667,
+   "n": 858,
+   "pos_mm_median": 27.53985023305347,
+   "pos_mm_p90": 46.684046590755614,
+   "rot_deg_median": 0.5167350327961575,
+   "rot_deg_p90": 3.4893411067386855
+  }
+ },
+ "chunk": {
+  "15": {
+   "anchors": 4682,
+   "pos_mm_mean": 6.433707912966021,
+   "pos_mm_median": 5.078808065083074,
+   "pos_mm_p90": 13.084513462231063,
+   "rot_deg_mean": 0.4399344765011953,
+   "rot_deg_median": 0.24127453672029525,
+   "rot_deg_p90": 0.9712041360243884,
+   "pooled_pos_mm_mean": 6.692042638942298,
+   "pooled_rot_deg_mean": 0.4440287940962011
+  },
+  "30": {
+   "anchors": 4690,
+   "pos_mm_mean": 10.334744118057403,
+   "pos_mm_median": 8.43596334490158,
+   "pos_mm_p90": 20.35703384764106,
+   "rot_deg_mean": 0.594867327696885,
+   "rot_deg_median": 0.3078888055496929,
+   "rot_deg_p90": 1.3816703118038458,
+   "pooled_pos_mm_mean": 11.126676238201902,
+   "pooled_rot_deg_mean": 0.6219950308981044
+  },
+  "50": {
+   "anchors": 4692,
+   "pos_mm_mean": 13.676969070841915,
+   "pos_mm_median": 11.528101608267091,
+   "pos_mm_p90": 28.502254893346162,
+   "rot_deg_mean": 0.712464935386795,
+   "rot_deg_median": 0.35161831463027515,
+   "rot_deg_p90": 1.534469159648614,
+   "pooled_pos_mm_mean": 15.152202616785939,
+   "pooled_rot_deg_mean": 0.7731667485280144
+  },
+  "100": {
+   "anchors": 4692,
+   "pos_mm_mean": 15.874999499882156,
+   "pos_mm_median": 13.238424891690247,
+   "pos_mm_p90": 32.80606161929978,
+   "rot_deg_mean": 0.7858985599819436,
+   "rot_deg_median": 0.3883579684993028,
+   "rot_deg_p90": 1.5803792612421037,
+   "pooled_pos_mm_mean": 19.520627344076093,
+   "pooled_rot_deg_mean": 0.9193921407958486
+  }
+ },
+ "kept_episodes": 49,
+ "without_flagged": {
+  "ref": "E3_da2@Bsession+Acheck+Bcheck+Bnetcheck",
+  "anchors": 0,
+  "excluded": [
+   "ep00",
+   "ep01",
+   "ep02",
+   "ep03",
+   "ep04",
+   "ep05",
+   "ep06",
+   "ep07",
+   "ep08",
+   "ep09",
+   "ep10",
+   "ep11",
+   "ep12",
+   "ep13",
+   "ep14",
+   "ep15",
+   "ep16",
+   "ep17",
+   "ep18",
+   "ep19",
+   "ep20",
+   "ep21",
+   "ep22",
+   "ep23",
+   "ep24",
+   "ep25",
+   "ep26",
+   "ep27",
+   "ep28",
+   "ep29",
+   "ep30",
+   "ep31",
+   "ep32",
+   "ep33",
+   "ep34",
+   "ep35",
+   "ep36",
+   "ep37",
+   "ep38",
+   "ep39",
+   "ep40",
+   "ep41",
+   "ep42",
+   "ep43",
+   "ep44",
+   "ep45",
+   "ep46",
+   "ep47",
+   "ep48"
+  ],
+  "by_step": {},
+  "chunk": {
+   "15": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "30": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "50": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "100": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   }
+  },
+  "kept_episodes": 0
+ }
+}
