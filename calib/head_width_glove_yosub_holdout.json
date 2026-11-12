@@ -1,9 +1,12 @@
 {
  "unit": "yosub",
+ "source": "hhs3",
  "created": "2026-11-12",
  "code": "slam/head_width.py",
- "method": "build_dataset pipeline B tail/base estimators (labels_lib.fit_estimators) in width units, calibrated against pilot_glove_HHs3's head-camera gripper channel",
- "fit": "even HHs3 episodes",
+ "method": "build_dataset pipeline B tail/base estimators (labels_lib.fit_estimators) on the head camera, in width units (actuator), mapped to the gripper command by grip_map",
+ "grip_map": "calib/width_to_cmd_glove_v2.json",
+ "grip_map_sha256": "99da70d377d8f0dba0eda1ee07ab2d35382d33f8cccff59840fb810eaf472844",
+ "marker_map": "calib/marker_map_glove_yosub.json",
  "sources": {
   "dataset": "/home/student/.cache/huggingface/lerobot/pilot_glove_HHs3",
   "manifest": "calib/hhs3_manifest.json",
@@ -21,10 +24,8 @@
    "yam_glove8"
   ],
   "episodes": 183,
+  "fit_on": "even HHs3 episodes",
   "head_frames_fit": 16009,
-  "marker_map": "calib/marker_map_glove_yosub.json",
-  "grip_map": "calib/width_to_cmd_glove_v2.json",
-  "grip_map_sha256": "99da70d377d8f0dba0eda1ee07ab2d35382d33f8cccff59840fb810eaf472844",
   "censored_cmd": [
    0.2,
    0.9984590411186218
@@ -447,6 +448,7 @@
   }
  },
  "report": {
+  "units": "gripper command",
   "scored_on": "odd HHs3 episodes (held out)",
   "head": {
    "frames": 15333,

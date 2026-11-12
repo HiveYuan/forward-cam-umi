@@ -47,7 +47,36 @@ def test_score_coverage():
     assert abs(s["gate_agreement"] - 0.5) < 1e-12           # 0.5 vs 0.4 straddles the 0.45 gate
 
 
+def test_holds_log_and_sparse_fit():
+    """A width-holds log in raw mm (record_session --width_holds): converted by gap_to_actuator, and only frames
+    within 0.3 s of a hold enter the fit (frames in transit between holds would get interpolated ramp values)."""
+    import json
+    import tempfile
+    rng = np.random.default_rng(1)
+    holds_mm = [0.0, 20.0, 40.0, 60.0, 80.0]
+    ev = [{"event": "e8_meas", "t_wall": 6.0 * i + k * 0.04, "gripper_pos": mm}   # hold i: [6i, 6i + 4) s
+          for i, mm in enumerate(holds_mm) for k in range(100)]
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump({"units": "mm", "events": ev}, f)
+    mt, mv, units = H.load_holds(f.name)
+    assert units == "mm" and np.allclose(H.to_mm(mv), np.array([e["gripper_pos"] for e in ev]))
+    t_rows = np.arange(0.0, 30.0, 0.04)                       # camera frames, holds and the transit between them
+    w_true = np.interp(t_rows, mt, mv)
+    j = np.clip(np.searchsorted(mt, t_rows), 1, len(mt) - 1)
+    far = np.minimum(np.abs(t_rows - mt[j - 1]), np.abs(mt[j] - t_rows)) > H.HOLD_TOL_S
+    w_true[far] = 2.0                                         # transit far from a hold: a width the fit must not see
+    axis = np.array([0.0, 0.6, 0.8])
+    tail = 50.0 * w_true[:, None] * axis + rng.normal(0, 0.2, (len(t_rows), 3))
+    pos = np.stack([tail, rng.normal(0, 0.2, (len(t_rows), 3))], 1)
+    rows = H.rows_from(t_rows, np.array([36, 40]), pos)
+    ests = H.L.fit_estimators(rows, mt, mv, tails={36: 12.0}, bases={40: 12.0}, singles=[], meas_tol=H.HOLD_TOL_S,
+                              verbose=False)
+    assert "pair:36-40" in ests and far.any()
+    s = H.score_holds(rows, ests, mt, mv)
+    assert s["median"] < 0.5 and set(s["per_hold_mm"]) == {f"{x:.1f}" for x in holds_mm}
+
+
 if __name__ == "__main__":
-    for f in (test_width_map_inverse, test_fit_predict_synthetic, test_score_coverage):
+    for f in (test_width_map_inverse, test_fit_predict_synthetic, test_score_coverage, test_holds_log_and_sparse_fit):
         f()
         print("ok", f.__name__)
