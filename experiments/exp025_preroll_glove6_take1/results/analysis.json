@@ -1,0 +1,120 @@
+{
+ "runs": {
+  "E1": {
+   "scale_label": null,
+   "scale": null,
+   "labels": {
+    "oracle": null,
+    "scaled": null
+   },
+   "eval": {
+    "oracle": null,
+    "scaled": null
+   },
+   "slam": {
+    "keyframes_per_segment": 18.137931034482758,
+    "runtime_s_per_segment": 56.26844353511416,
+    "valid_frac": 1.0,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3": {
+   "scale_label": "Bnet+Acheck",
+   "scale": "scale_E3.json",
+   "labels": {
+    "oracle": "labels_E3.json",
+    "scaled": "labels_E3@Bnet+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bnet+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 16.344827586206897,
+    "runtime_s_per_segment": 58.604972658486204,
+    "valid_frac": 0.8566299060295368,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3p2": {
+   "scale_label": "Bnet+Acheck",
+   "scale": "scale_E3p2.json",
+   "labels": {
+    "oracle": "labels_E3p2.json",
+    "scaled": "labels_E3p2@Bnet+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bnet+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 12.344827586206897,
+    "runtime_s_per_segment": 42.537580251693726,
+    "valid_frac": 0.8395176447671036,
+    "tracked_frac": 0.7405767484105359
+   }
+  },
+  "E3p1": {
+   "scale_label": "Bnet+Acheck",
+   "scale": "scale_E3p1.json",
+   "labels": {
+    "oracle": "labels_E3p1.json",
+    "scaled": "labels_E3p1@Bnet+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bnet+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 11.241379310344827,
+    "runtime_s_per_segment": 37.55014356251421,
+    "valid_frac": 0.8358164059704748,
+    "tracked_frac": 0.6540644868301544
+   }
+  }
+ },
+ "gt_noise": "gt_noise.json",
+ "segments": [
+  "ep01",
+  "ep02",
+  "ep03",
+  "ep04",
+  "ep05",
+  "ep06",
+  "ep07",
+  "ep08",
+  "ep09",
+  "ep10",
+  "ep11",
+  "ep12",
+  "ep13",
+  "ep14",
+  "ep15",
+  "ep16",
+  "ep17",
+  "ep18",
+  "ep19",
+  "ep20",
+  "ep21",
+  "ep22",
+  "ep23",
+  "ep24",
+  "ep25",
+  "ep26",
+  "ep27",
+  "ep28",
+  "ep29"
+ ],
+ "evaluate": {
+  "fail_deg": 2.0,
+  "dts": [
+   0.08,
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   6.67
+  ]
+ }
+}
