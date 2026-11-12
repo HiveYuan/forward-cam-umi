@@ -1,0 +1,30 @@
+# exp045_rel_datasets_head: exp035 rebuilt from exp039-exp044 (adaptive SLAM with no wrist-camera data:
+# sam3_v2_head masks, decision 2026-11-12); compare with exp035 (wrist-gated masks).
+# Build:  PYTHONPATH=. python -m slam.rel_dataset build experiments/exp045_rel_datasets_head/config.yaml  (lerobot env)
+experiment: exp045_rel_datasets_head
+
+source:
+  repo: pilot_mix_gHs3                              # Yosub's mix: 0-177 = pilot_head_Hgt, 178-377 = pilot_glove_HHs3
+  root: ~/.cache/huggingface/lerobot/pilot_mix_gHs3
+  glove_first_episode: 178
+manifest: calib/hhs3_manifest.json                  # slam.hhs3_manifest, from Yosub's calib/pilot_glove_HHs3_sources.csv
+fps: 15.0
+slow: 2.5                                           # glove step j = t0 + j / (fps * slow) s of the recording
+ik_limit_tol: 0.005                                 # rad; ik_unreached joint rule (+ the joint-3 stretched-arm plateau)
+ik_residual_mm: 30.0                                # ik_unreached also where |FK(HHs3) - IK target| > this (target from our tile chain)
+glove_frame:
+  handeye: calib/handeye_glove_yosub.json           # tool = ball body . inv(T_flange_body) (P1: what HHs3 used)
+  base_world: calib/base_world_v3_20261016.json     # IK targets for the ik_unreached residual (tile labels are FK)
+slam:
+  bridge_s: 0.3                                     # slam_valid: bracketing pose samples at most this far apart
+  sources:                                          # sam3_v2_head masks (head-camera width), DROID E3 with the adaptive start, Bnet on DA3 metric + K
+    yam_glove8:       {experiment: exp044_adaptive_head_glove8,         run: E3, scale: Bnet+Acheck}
+    yam_glove7:       {experiment: exp043_adaptive_head_glove7,         run: E3, scale: Bnet+Acheck}
+    yam_glove6_take1: {experiment: exp041_adaptive_head_glove6_take1,   run: E3, scale: Bnet+Acheck}
+    yam_glove6_take2: {experiment: exp042_adaptive_head_glove6_take2,   run: E3, scale: Bnet+Acheck}
+    yam_glove5_take1: {experiment: exp039_adaptive_head_glove5_take1,   run: E3, scale: Bnet+Acheck}
+    yam_glove5_take2: {experiment: exp040_adaptive_head_glove5_take2,   run: E3, scale: Bnet+Acheck}
+outputs:
+  tile: pilot_mix_gHs3_rel_tile_v3
+  slam: pilot_mix_gHs3_rel_slam_v3
+out_root: /home/student/yuanliu-hawaii/work/lerobot

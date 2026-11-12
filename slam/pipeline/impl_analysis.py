@@ -284,8 +284,11 @@ def run_labels(job):
     if bad:
         raise ValueError("labels: these parameters are fixed in slam.labels (config value, slam.labels "
                          f"value): {bad}; a different value needs a new labels implementation")
-    if p["gripper"] not in ("wrist", "dataset"):
-        raise ValueError(f"labels.gripper: 'wrist' or 'dataset', got {p['gripper']!r}")
+    if p["gripper"] not in L.GRIPPER_FILES:
+        raise ValueError(f"labels.gripper: one of {sorted(L.GRIPPER_FILES)}, got {p['gripper']!r}")
+    gfile = C.gt_dir(job.session) / L.GRIPPER_FILES[p["gripper"]]
+    if not gfile.exists():                    # as before: pose-only coverage, but say which file is missing
+        job.log(f"WARNING labels.gripper {p['gripper']!r}: {gfile} missing")
     session, ev = job.session, p
     seg_root = C.segments_dir(session)
     segs = [seg_root / s for s in job.segments]
