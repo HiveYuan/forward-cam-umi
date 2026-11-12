@@ -1,0 +1,6 @@
+# exp018_rel_T48: relative actions, teleop only (48 episodes, the paper's head_Hgt48 list); hyperparameters = Yosub's.
+experiment: exp018_rel_T48
+base_train_config: calib/yosub_train_configs/head_Hgt48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_tile, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_tile, episodes: calib/train_eps_pilot_head_Hgt_48.txt}
+relative: {masks: [], stats: calib/rel_action_stats_teleop172.json}    # teleop steps carry no flags
+output_dir: /home/student/yuanliu-hawaii/work/train/exp018_rel_T48

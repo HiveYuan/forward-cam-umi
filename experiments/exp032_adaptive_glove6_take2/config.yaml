@@ -1,0 +1,146 @@
+# exp032_adaptive_glove6_take2: the adaptive SLAM start (droid_adaptive, decision 2026-11-12) on glove6 take 2: DROID from the 5 s preroll,
+# re-run from 1 s before the episode where the first run turns faster than 120 deg/s before it. DA3 metric + K Bnet,
+# A check, labels, evaluation. Producers as exp026_preroll_glove6_take2 (cached). Run:  python -m slam.run experiments/exp032_adaptive_glove6_take2/config.yaml
+experiment: exp032_adaptive_glove6_take2
+
+data:
+  session: yam_glove6_take2
+  episodes: all
+  head_stem: yam_glove6_take2_b0587b
+  intrinsics: B0587b_f3_intrinsics.json          # calib/ (f3 for every head session, glove5 included)
+  glove: yosub
+  tile_layout: workspace_tiles_pilot_v3.json      # calib/ (first solved from glove5 footage, refit from head14)
+  raw_dir: /home/student/yuanliu-hawaii/work/takes/data/raw   # per-take symlinks + renumbered episode file
+  det_cache_dir: /home/student/yuanliu-hawaii/work/takes/calib
+  gt_dir: /home/student/yuanliu-hawaii/work/yam_glove6_take2/gt
+
+preprocess:
+  impl: undistort_crop
+  params: {preroll_s: 5.0, width: 960, alpha: 0.0, jpg_quality: 95}
+
+tiles:
+  impl: apriltag_36h11
+  params: {detect_scale: 0.5, subpix_win: 5}
+
+masks:
+  motion:
+    impl: sam3_v2
+    params:
+      model: facebook/sam3
+      revision: 3c879f39826c281e95690f02c7821c4de09afae7
+      dtype: bfloat16
+      text_prompts: [hand, arm, cable]              # open-vocabulary body parts, one SAM3 masklet per instance
+      seed_prompts: [hand, arm]                     # may seed the wearer by touching the image border (if border_px >= 0)
+      attach_px: 8                                  # an instance within 8 px of the kept region is attached
+      border_px: -1                                 # -1: no border seeds (border_px 4 added walls, no moving regions)
+      leak_ratio: 3.0                               # drop an instance whose area > 3x its masklet's lower-quartile area
+      split_components: true                        # judge each connected part of an instance on its own
+      # SAM3 tracker objects, body-frame points (m) projected with the ball pose every prompt_every frames:
+      rig_points:                                   # ball centre + three points on the gripper body
+        - ball
+        - [-0.0852, -0.0324, 0.0655]                # between the gripper-back marker pairs 40/46 and 41/47
+        - [-0.0623, -0.0177, 0.1004]                # gripper-back markers 41/47
+        - [-0.0865, -0.0568, 0.0937]                # between markers 41/47 and the tool point
+      rig_negative_points: []                       # (tried: the back of the hand; it cut off the finger cubes by the thumb)
+      hand_points:                                  # hand + forearm object
+        - [-0.141, -0.0026, 0.1014]                 # back of the hand (sam2_points' hand prompt)
+        - [-0.141, 0.0574, 0.1314]                  # towards the wrist (on hand/arm in 98% of frames)
+      held_points: [[-0.0943, -0.1071, 0.0855]]     # tool point (fingertip midpoint) + 2 cm along the finger axis
+      held_width_max: 0.45                          # held object used where the gripper width (command units) <= this
+      held_after_open: true                         # ... and only after the gripper was open (closed at rest = empty)
+      width_tol_s: 0.12                             # no width sample within 0.12 s: not held
+      prompt_every: 10
+      require_postprocess: true                     # SAM3 hole filling / NMS kernel (kernels-community/cv-utils)
+  tiles:
+    impl: tile_geometry
+    params: {margin_mm: 10.0, max_gap_s: 0.5, grow_mm_per_s: 100.0, slam_fallback: E1, slam_margin_mm: 25.0}
+
+slam:
+  E1:
+    impl: droid
+    masks: []
+    params:
+      weights:
+        path: /home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth
+        sha256: 46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526
+      dilate_px: 8
+      buffer: 0                                   # 0 = frames + 32
+      beta: 0.3
+      filter_thresh: 2.4
+      warmup: 8
+      keyframe_thresh: 4.0
+      frontend_thresh: 16.0
+      frontend_window: 25
+      frontend_radius: 2
+      frontend_nms: 1
+      backend_thresh: 22.0
+      backend_radius: 2
+      backend_nms: 3
+      seed: 0
+  E3:
+    impl: droid_adaptive
+    masks: [motion, tiles]
+    params:
+      weights:
+        path: /home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth
+        sha256: 46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526
+      dilate_px: 8
+      buffer: 0
+      beta: 0.3
+      filter_thresh: 2.4
+      warmup: 8
+      keyframe_thresh: 4.0
+      frontend_thresh: 16.0
+      frontend_window: 25
+      frontend_radius: 2
+      frontend_nms: 1
+      backend_thresh: 22.0
+      backend_radius: 2
+      backend_nms: 3
+      seed: 0
+      turn_deg_s: 120.0                           # a fast turn: > 120 deg/s between frames before the episode (first run)
+      short_preroll_s: 1.0                        # then re-run from 1 s before the episode
+depth:
+  da3m:                                        # canonical focal 300 px at the processing resolution
+    impl: da3_metric
+    runs: [E3]
+    params:
+      model: da3-metric-large
+      repo: depth-anything/DA3METRIC-LARGE
+      revision: 4010e39f3634a45bc60553321fb49fb760bd594e
+      process_res: 504
+      process_res_method: upper_bound_resize
+      canonical_focal: 300.0
+
+scale:
+  E3:
+    primary: Bnet
+    checks: [A]
+    flag_threshold: 0.10
+    methods:
+      A: {window_s: 1.0, step_s: 0.25, res_max_mm: 5.0, min_baseline_mm: 20.0, min_frames: 10}
+      Bnet: {depth: da3m, z_max: 4.0, min_cells: 200}
+labels:
+  runs: [E3]
+  params:
+    fps: 15.0                                     # fixed in slam.labels (build_dataset rules)
+    label_tol_s: 0.12
+    min_coverage: 0.7
+    bridge_s: 0.5
+    min_episode_s: 1.0
+    gripper: wrist                                # gt/gripper_wrist.npz (slam.wrist_width)
+    label_steps: [1, 2, 4, 8, 15, 30, 60, 100]    # j: tool_t -> tool_t+j error vs tile labels
+    horizon: 100
+    chunk_H: [15, 30, 50, 100]                    # mean error over chunk steps 1..H
+
+evaluate:
+  runs: [E3]
+  params:
+    dts: [0.08, 0.25, 0.5, 1.0, 2.0, 4.0, 6.67]
+    fail_deg: 2.0                                 # tracking failure: dt 0.08 s rotation error > 2 deg
+    gt_noise: true
+
+report:
+  params: {compare: [], dt_show: [0.08, 0.5, 1.0, 2.0, 6.67]}
+
+exec: {jobs: 8}

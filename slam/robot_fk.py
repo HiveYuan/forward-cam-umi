@@ -8,10 +8,11 @@ So for teleop data the same tool pose is simply FK(q)[grasp_site], with no extra
 
 This is i2rt's own model and FK, exactly as build_dataset and evaluate_yam use them:
     Kinematics(combine_arm_and_gripper_xml(ArmType.YAM, GripperType.NO_GRIPPER), "grasp_site").fk(q)
-i2rt is imported from I2RT_DIR (third_party/i2rt, commit 0b475453 = v1.4.1), as build_dataset
-imports ~/co/i2rt. Its robots.utils imports the CAN drivers, so the env needs python-can, tyro and
-crcmod-plus besides mujoco and mink (all in the lerobot env since 2026-11-10). yam.xml,
-no_gripper.xml and the yam block of no_gripper.yml are unchanged since v1.3.6 (2026-09-17).
+i2rt is imported from I2RT_DIR (third_party/i2rt), as build_dataset imports ~/co/i2rt. Versions are
+Yosub's (2026-11-11): i2rt v1.3.3 = commit 47fee5e, mujoco 3.13.0, mink 1.3.0 (the lerobot env). Its
+robots.utils imports the CAN drivers, so the env also needs python-can, tyro and crcmod-plus. The YAM
+kinematics are the same in later i2rt versions (v1.3.6 only rounded the MJCF numbers: FK differs by
+~1e-5; the P1 audit gives 0.377 mm with either).
 
   fk = YamFK(); T = fk(q)          # q (6,) or (N, 6) joint1..joint6 in rad -> (4, 4) or (N, 4, 4)
   python -m slam.robot_fk          # FK at a few joint vectors

@@ -6,10 +6,10 @@ FK / hand-eye / base calibration did Yosub's glove dataset use?
 
 **FK.** `slam/robot_fk.py` (`YamFK`) wraps i2rt's own
 `Kinematics(combine_arm_and_gripper_xml(YAM, NO_GRIPPER), "grasp_site").fk`, the same model
-build_dataset and evaluate_yam use. i2rt is imported from `third_party/i2rt` at 0b475453 (v1.4.1).
-The YAM model, `no_gripper.xml` and the yam block of `no_gripper.yml` are unchanged since v1.3.6
-(2026-09-17); before that, only rounding changed. So the FK does not depend on which October
-version Yosub ran.
+build_dataset and evaluate_yam use. i2rt is imported from `third_party/i2rt`. First run at 0b475453
+(v1.4.1); since 2026-11-11 at Yosub's version, v1.3.3 (47fee5e), with his mujoco 3.13.0 and mink 1.3.0.
+The two differ only in the MJCF's rounding (FK within 1e-5); the results below are v1.3.3's and match
+v1.4.1's to 0.001 mm.
 
 **Test** (`check.py`). `pilot_glove_HHs3`'s joint actions are build_dataset's IK of the tile-chain
 glove pose:
@@ -52,11 +52,11 @@ Median / p90 over 7,913 steps (the tool moves 120 mm in 1 s at the median).
   commanded follower target and leads the encoders by about 0.1 s. Teleop and glove tool
   positions cover the same workspace in the base frame (`results.md`).
 
-These answer two of the questions to Yosub ourselves: the hand-eye file (`handeye_glove_yosub`)
-and whether the i2rt version matters for FK (it does not).
+These answer two of the questions to Yosub ourselves: the hand-eye file (`handeye_glove_yosub`, which
+he confirmed on 2026-11-11) and whether the i2rt version matters for FK (it does not).
 
 ```
-R=/home/student/miniconda3/envs/lerobot/bin/python      # + mujoco, mink, python-can, tyro, crcmod-plus (2026-11-10)
+R=/home/student/miniconda3/envs/lerobot/bin/python      # + mujoco 3.13.0, mink 1.3.0, python-can, tyro, crcmod-plus
 PYTHONPATH=. $R experiments/audits/fk_frame/check.py      # -> results.json, results.md (~2 min, CPU)
 $R -m slam.tests.test_robot_fk
 ```

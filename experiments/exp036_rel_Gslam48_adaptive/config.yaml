@@ -1,0 +1,7 @@
+# exp036_rel_Gslam48_adaptive: relative actions, 48 teleop + 194 glove episodes (the paper's mix_gHs3_48 list); glove labels from SLAM with the adaptive start (exp035).
+# Loss masks slam_valid and ik_unreached (identical flags in both glove datasets); hyperparameters = Yosub's.
+experiment: exp036_rel_Gslam48_adaptive
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v2, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v2, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], stats: calib/rel_action_stats_teleop172.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp036_rel_Gslam48_adaptive

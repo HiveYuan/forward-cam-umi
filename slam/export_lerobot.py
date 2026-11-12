@@ -8,8 +8,10 @@ One LeRobot episode per kept label file <segment>/labels/<run>.npz (slam.labels 
                             each chunk to relative 10-D actions with slam.relative.chunk_actions
                             (translation 3 + 6D rotation + gripper), so the frame cancels.
   observation.state    (1)  gripper only (absolute poses mean nothing across SLAM frames)
-  observation.label_valid (1)  1 where neither pose nor gripper is a gap (build_dataset
-                            emits gap steps interpolated; this lets training mask them)
+  label_valid          (1)  1 where neither pose nor gripper is a gap (build_dataset
+                            emits gap steps interpolated; this lets training mask them).
+                            Top-level, not observation.*: LeRobot feeds every observation.* key
+                            to the policy as state (renamed 2026-11-10).
   observation.images.b0587b   head frame nearest the step's wall time, raw (distorted)
                             and resized to 640x360 with INTER_AREA: build_dataset's recipe,
                             so the policy sees the same images as before
@@ -87,7 +89,7 @@ def export(a):
         "action": {"dtype": "float32", "shape": (7,),
                    "names": ["tool.x", "tool.y", "tool.z", "tool.rx", "tool.ry", "tool.rz", "gripper.pos"]},
         "observation.state": {"dtype": "float32", "shape": (1,), "names": ["gripper.pos"]},
-        "observation.label_valid": {"dtype": "float32", "shape": (1,), "names": ["valid"]},
+        "label_valid": {"dtype": "float32", "shape": (1,), "names": ["valid"]},
         IMKEY: {"dtype": "video", "shape": (OBS[1], OBS[0], 3), "names": ["height", "width", "channels"]},
     }
     ds = LeRobotDataset.create(repo_id=a.repo, fps=int(FPS), features=features, root=root,
@@ -106,7 +108,7 @@ def export(a):
             valid = float(not (z["gap"][i] or z["gripper_gap"][i]))
             ds.add_frame({"action": np.concatenate([tv, rv, [g]]).astype(np.float32),
                           "observation.state": np.array([g], np.float32),
-                          "observation.label_valid": np.array([valid], np.float32),
+                          "label_valid": np.array([valid], np.float32),
                           IMKEY: imgs[ks[i]], "task": a.task})
         ds.save_episode()
         side["episodes"].append({"dataset_episode": len(side["episodes"]), "source_episode": ep,

@@ -1,6 +1,6 @@
 """Regression checks of the YAM FK (lerobot env: python -m slam.tests.test_robot_fk).
 
-The reference values are i2rt's FK at 0b475453 (slam.robot_fk). The frame is validated against
+The reference values are i2rt's FK at 0b475453 (v1.4.1); v1.3.3 (47fee5e, used now) agrees to 1e-5. The frame is validated against
 i2rt's IK (pilot_glove_HHs3) in experiments/audits/fk_frame (0.4 mm median); this test only
 guards against a changed model, e.g. another i2rt checkout.
 """

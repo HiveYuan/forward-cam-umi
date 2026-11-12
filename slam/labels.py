@@ -148,8 +148,11 @@ def build_segment(seg, ref, scale_mode, T_bt, grip=None, scale=None):
 class RefPoses:
     """Per-step tool poses from `build` outputs, for scripts/build_dataset.py --ref-poses.
 
-    lookup(episode_index, t) -> (tvec (3,), rvec (3,), is_gap) for the step whose time is
-    t on the episode's 15 fps grid, or None if the episode has no kept label file."""
+    lookup(episode_index, t) -> (tvec (3,), rvec (3,), is_gap): the pose at time t, interpolated
+    between the two 15 fps label steps around it (is_gap if either is a gap), or None if the
+    episode has no kept label file. Interpolation matters with build_dataset --slow S: the
+    timeline is then sampled at 15 * S Hz, and rounding to the 15 fps grid repeated each label
+    S times (a stair-step); until 2026-11-10 the nearest step was returned."""
 
     def __init__(self, segments_dir, run):
         from pathlib import Path
@@ -166,14 +169,18 @@ class RefPoses:
         z = self.episode(ep)
         if z is None:
             return None
-        i = int(round((t - z["t"][0]) * FPS))
-        if not 0 <= i < len(z["t"]) or abs(z["t"][i] - t) > 0.5 / FPS:
+        tt = z["t"]
+        if not tt[0] - 1e-6 <= t <= tt[-1] + 1e-6:
             return np.full(3, np.nan), np.full(3, np.nan), True
-        T = z["T_ref_tool"][i]
-        q = G.R_to_quat(T[:3, :3])[0]
+        i = int(np.clip(np.searchsorted(tt, t), 1, len(tt) - 1)) if len(tt) > 1 else 0
+        j = max(i - 1, 0)
+        T = interp_poses(np.array([t]), tt[[j, i]], z["T_ref_tool"][[j, i]])[0] if i != j else z["T_ref_tool"][i]
+        q = G.R_to_quat(T[:3, :3][None])[0]
+        if q[3] < 0:
+            q = -q
         ang = 2 * np.arctan2(np.linalg.norm(q[:3]), q[3])
         rv = q[:3] / max(np.linalg.norm(q[:3]), 1e-12) * ang
-        return T[:3, 3].copy(), rv, bool(z["gap"][i])
+        return T[:3, 3].copy(), rv, bool(z["gap"][i] or z["gap"][j])
 
 
 def cmd_build(a):

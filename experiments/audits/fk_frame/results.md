@@ -1,6 +1,6 @@
 # FK frame check (P1): FK(HHs3 joints) vs our tile-chain tool pose
 
-Matched HHs3 segments: 52; unmatched (session, HHs3, best take episode, median mm): [('glove7', 6, 3, 17.39), ('glove7', 8, 3, 42.01), ('glove7', 9, 3, 160.55), ('glove7', 10, 3, 223.87), ('glove7', 11, 9, 181.46), ('glove7', 12, 11, 184.29), ('glove7', 18, 14, 53.15), ('glove7', 20, None, None), ('glove7', 33, 26, 38.57), ('glove6 take 1', 45, 12, 39.53), ('glove6 take 1', 58, 24, 35.18), ('glove6 take 1', 61, 27, 7.58), ('glove6 take 1', 64, 28, 76.51), ('glove6 take 1', 65, 29, 58.7)]
+Matched HHs3 segments: 52; unmatched (session, HHs3, best take episode, median mm): [('glove7', 6, 3, 17.39), ('glove7', 8, 3, 42.01), ('glove7', 9, 3, 160.55), ('glove7', 10, 3, 223.87), ('glove7', 11, 9, 181.46), ('glove7', 12, 11, 184.29), ('glove7', 18, 14, 53.15), ('glove7', 20, None, None), ('glove7', 33, 26, 38.57), ('glove6 take 1', 45, 12, 39.53), ('glove6 take 1', 58, 24, 35.18), ('glove6 take 1', 61, 27, 7.57), ('glove6 take 1', 64, 28, 76.52), ('glove6 take 1', 65, 29, 58.7)]
 
 HHs3 steps with an IK joint at the model's range limit: {'steps': 5180, 'of': 50014, 'per_joint': [0, 0, 2152, 2049, 14, 1371]}; on matched episodes their FK is off our pose by 67.23 / 221.14 mm, 0.81 / 1.68 deg (median / p90). They are left out of the table below.
 

@@ -59,8 +59,11 @@ valid(matched target), masked keyframe selection), `relative.py` (relative
 10-D actions: 3 translation + 6D rotation + absolute gripper; deployment and
 temporal ensembling helpers), `geometry.py`.
 `robot_fk.py` (YAM FK of i2rt's `grasp_site` = the glove labels' tool frame, i2rt's own `Kinematics`
-imported from `third_party/i2rt`; lerobot env, which has i2rt's dependencies since 2026-11-10;
+imported from `third_party/i2rt` at Yosub's v1.3.3 (47fee5e, mujoco 3.13.0, mink 1.3.0; lerobot env);
 validated against HHs3's IK in `experiments/audits/fk_frame`).
+`hhs3_manifest.py` (source take / episode / start of every pilot_glove_HHs3 episode, Yosub's CSV checked
+and corrected by FK matching; `ik_flag`) and `rel_dataset.py` (the relative-pose datasets of exp016:
+`pilot_mix_gHs3_rel_tile` / `_rel_slam`, flags `slam_valid`, `ik_unreached`).
 
 DROID parameters: demo defaults at native 960×536, every frame, global BA at the
 end. A keyframe-threshold sweep (filter/keyframe 2.4/4.0 vs 1.2/2.0 vs 0.6/1.0)
