@@ -1,0 +1,548 @@
+{
+ "unit": "yosub",
+ "created": "2026-11-12",
+ "code": "slam/head_width.py",
+ "method": "build_dataset pipeline B tail/base estimators (labels_lib.fit_estimators) in width units, calibrated against pilot_glove_HHs3's head-camera gripper channel",
+ "fit": "even HHs3 episodes",
+ "sources": {
+  "dataset": "/home/student/.cache/huggingface/lerobot/pilot_glove_HHs3",
+  "manifest": "calib/hhs3_manifest.json",
+  "manifest_sha256": "f507f9a4441912c06c2acb03c5a1426fef39a9d2f65ff7781c1fba5b892c2d02",
+  "manifest_methods": [
+   "verified",
+   "remapped"
+  ],
+  "sessions": [
+   "yam_glove5_take1",
+   "yam_glove5_take2",
+   "yam_glove6_take1",
+   "yam_glove6_take2",
+   "yam_glove7",
+   "yam_glove8"
+  ],
+  "episodes": 183,
+  "head_frames_fit": 16009,
+  "marker_map": "calib/marker_map_glove_yosub.json",
+  "grip_map": "calib/width_to_cmd_glove_v2.json",
+  "grip_map_sha256": "99da70d377d8f0dba0eda1ee07ab2d35382d33f8cccff59840fb810eaf472844",
+  "censored_cmd": [
+   0.2,
+   0.9984590411186218
+  ],
+  "head_markers": {
+   "yam_glove5_take1": {
+    "session": "yam_glove5_take1",
+    "head_stem": "yam_glove5_take1_b0587b",
+    "data_repo": "/home/student/yuanliu-hawaii/work/takes",
+    "glove": "yosub",
+    "intrinsics": "B0587b_f3_intrinsics.json",
+    "frames": 40572,
+    "frames_with_pose": 16615,
+    "frames_with_tail_and_base": 15737,
+    "tails": [
+     36,
+     37,
+     38,
+     39,
+     42,
+     43,
+     44,
+     45,
+     48,
+     49
+    ],
+    "bases": [
+     40,
+     41,
+     46,
+     47
+    ],
+    "method": "labels_lib.body_frames (build_dataset pipeline B), positions in mm in the ball body frame"
+   },
+   "yam_glove5_take2": {
+    "session": "yam_glove5_take2",
+    "head_stem": "yam_glove5_take2_b0587b",
+    "data_repo": "/home/student/yuanliu-hawaii/work/takes",
+    "glove": "yosub",
+    "intrinsics": "B0587b_f3_intrinsics.json",
+    "frames": 44015,
+    "frames_with_pose": 22688,
+    "frames_with_tail_and_base": 21033,
+    "tails": [
+     36,
+     37,
+     38,
+     39,
+     42,
+     43,
+     44,
+     45,
+     48,
+     49
+    ],
+    "bases": [
+     40,
+     41,
+     46,
+     47
+    ],
+    "method": "labels_lib.body_frames (build_dataset pipeline B), positions in mm in the ball body frame"
+   },
+   "yam_glove6_take1": {
+    "session": "yam_glove6_take1",
+    "head_stem": "yam_glove6_take1_b0587b",
+    "data_repo": "/home/student/yuanliu-hawaii/work/takes",
+    "glove": "yosub",
+    "intrinsics": "B0587b_f3_intrinsics.json",
+    "frames": 18080,
+    "frames_with_pose": 8954,
+    "frames_with_tail_and_base": 8482,
+    "tails": [
+     36,
+     37,
+     38,
+     39,
+     42,
+     43,
+     44,
+     45,
+     48,
+     49
+    ],
+    "bases": [
+     40,
+     41,
+     46,
+     47
+    ],
+    "method": "labels_lib.body_frames (build_dataset pipeline B), positions in mm in the ball body frame"
+   },
+   "yam_glove6_take2": {
+    "session": "yam_glove6_take2",
+    "head_stem": "yam_glove6_take2_b0587b",
+    "data_repo": "/home/student/yuanliu-hawaii/work/takes",
+    "glove": "yosub",
+    "intrinsics": "B0587b_f3_intrinsics.json",
+    "frames": 8791,
+    "frames_with_pose": 4249,
+    "frames_with_tail_and_base": 3928,
+    "tails": [
+     36,
+     37,
+     38,
+     39,
+     42,
+     43,
+     44,
+     45,
+     48,
+     49
+    ],
+    "bases": [
+     40,
+     41,
+     46,
+     47
+    ],
+    "method": "labels_lib.body_frames (build_dataset pipeline B), positions in mm in the ball body frame"
+   },
+   "yam_glove7": {
+    "session": "yam_glove7",
+    "head_stem": "yam_glove7_b0587b",
+    "data_repo": "/home/student/yuanliu-hawaii/head-cam-umi",
+    "glove": "yosub",
+    "intrinsics": "B0587b_f3_intrinsics.json",
+    "frames": 20629,
+    "frames_with_pose": 11624,
+    "frames_with_tail_and_base": 11238,
+    "tails": [
+     36,
+     37,
+     38,
+     39,
+     42,
+     43,
+     44,
+     45,
+     48,
+     49
+    ],
+    "bases": [
+     40,
+     41,
+     46,
+     47
+    ],
+    "method": "labels_lib.body_frames (build_dataset pipeline B), positions in mm in the ball body frame"
+   },
+   "yam_glove8": {
+    "session": "yam_glove8",
+    "head_stem": "yam_glove8_b0587b",
+    "data_repo": "/home/student/yuanliu-hawaii/work/takes",
+    "glove": "yosub",
+    "intrinsics": "B0587b_f3_intrinsics.json",
+    "frames": 3719,
+    "frames_with_pose": 1642,
+    "frames_with_tail_and_base": 1547,
+    "tails": [
+     36,
+     37,
+     38,
+     39,
+     42,
+     43,
+     44,
+     45,
+     48,
+     49
+    ],
+    "bases": [
+     40,
+     41,
+     46,
+     47
+    ],
+    "method": "labels_lib.body_frames (build_dataset pipeline B), positions in mm in the ball body frame"
+   }
+  }
+ },
+ "estimators": {
+  "pair:36-40": {
+   "ctr": [
+    54.56309140759593,
+    27.25040345838928,
+    113.2317727907612
+   ],
+   "axis": [
+    0.5483766341764399,
+    0.03245665920306884,
+    0.8356013597180745
+   ],
+   "slope": 47.74148939225311,
+   "icpt": -23.39739146144362,
+   "rms_mm": 2.4897074111941135,
+   "grms": 0.05214976413362823,
+   "n": 2330
+  },
+  "pair:36-41": {
+   "ctr": [
+    12.736534137342922,
+    3.982636395928067,
+    41.15227122479231
+   ],
+   "axis": [
+    0.49215228909521913,
+    0.22722558291939676,
+    0.8403300891942855
+   ],
+   "slope": 39.539501028158995,
+   "icpt": -19.694327916573982,
+   "rms_mm": 3.027901373528237,
+   "grms": 0.0765791498322613,
+   "n": 9230
+  },
+  "pair:36-46": {
+   "ctr": [
+    49.06302811480482,
+    40.40658801128852,
+    112.45189094597413
+   ],
+   "axis": [
+    0.5416710591538443,
+    0.3356470214777786,
+    0.77067083806788
+   ],
+   "slope": 47.77068911812275,
+   "icpt": -23.092900177852833,
+   "rms_mm": 1.6508705756230941,
+   "grms": 0.034558232382643266,
+   "n": 2173
+  },
+  "pair:36-47": {
+   "ctr": [
+    12.696163506968464,
+    23.700742868846827,
+    40.612171748024295
+   ],
+   "axis": [
+    -0.6243609546745413,
+    -0.6330344619633085,
+    -0.4576469908616466
+   ],
+   "slope": -38.22109872532076,
+   "icpt": 18.76789131205703,
+   "rms_mm": 4.795922831840488,
+   "grms": 0.12547841354082476,
+   "n": 9149
+  },
+  "pair:37-40": {
+   "ctr": [
+    -21.72231657421174,
+    -20.177183814879925,
+    -34.50948462555173
+   ],
+   "axis": [
+    0.5382703730967334,
+    0.41541053425793617,
+    0.7332796829817664
+   ],
+   "slope": -42.80850387100067,
+   "icpt": 20.941695790879432,
+   "rms_mm": 2.4451936911815255,
+   "grms": 0.057119344757992074,
+   "n": 2704
+  },
+  "pair:39-47": {
+   "ctr": [
+    18.527592434276293,
+    18.939557370803843,
+    49.818495279949225
+   ],
+   "axis": [
+    -0.5230958249839898,
+    -0.7535156664956646,
+    -0.39822719423704983
+   ],
+   "slope": -50.29468621552396,
+   "icpt": 22.894621077989836,
+   "rms_mm": 6.490596121708032,
+   "grms": 0.12905132947632636,
+   "n": 2736
+  },
+  "pair:44-40": {
+   "ctr": [
+    59.05675710595442,
+    13.84172633367741,
+    114.10043920894293
+   ],
+   "axis": [
+    0.7339894684335942,
+    0.25906985160992546,
+    0.6278075120730724
+   ],
+   "slope": 44.18173753448906,
+   "icpt": -21.32488890293477,
+   "rms_mm": 4.576902640684563,
+   "grms": 0.10359263569278483,
+   "n": 2179
+  },
+  "pair:44-41": {
+   "ctr": [
+    17.120386511089137,
+    -9.791382253692667,
+    40.75440202807289
+   ],
+   "axis": [
+    -0.5340549975146812,
+    -0.32531976113855177,
+    -0.7803539662501557
+   ],
+   "slope": -39.58704318965542,
+   "icpt": 19.424889018083533,
+   "rms_mm": 4.213587729012648,
+   "grms": 0.1064385563939696,
+   "n": 8380
+  },
+  "pair:44-46": {
+   "ctr": [
+    55.736861763616616,
+    28.025297936809682,
+    111.85179371741984
+   ],
+   "axis": [
+    -0.4826178394396936,
+    -0.2150197995614157,
+    -0.8490267998426972
+   ],
+   "slope": -48.554603842163104,
+   "icpt": 23.087212024557235,
+   "rms_mm": 2.055493349777843,
+   "grms": 0.04233364474478371,
+   "n": 2268
+  },
+  "pair:44-47": {
+   "ctr": [
+    16.983862376999298,
+    9.306706340880927,
+    39.95429731242695
+   ],
+   "axis": [
+    -0.4658677250771112,
+    -0.2949230364912181,
+    -0.8342587519938146
+   ],
+   "slope": -44.80608453674158,
+   "icpt": 21.727992372621944,
+   "rms_mm": 1.923003259603554,
+   "grms": 0.04291835092233212,
+   "n": 12280
+  },
+  "pair:45-40": {
+   "ctr": [
+    -15.749654995553906,
+    -32.617549395765124,
+    -35.016733905479406
+   ],
+   "axis": [
+    -0.7044997896992704,
+    -0.6732260128338763,
+    -0.22460361074008847
+   ],
+   "slope": 42.83183290172351,
+   "icpt": -20.874031081793007,
+   "rms_mm": 5.71435405628563,
+   "grms": 0.1334137175356717,
+   "n": 2359
+  },
+  "pair:45-41": {
+   "ctr": [
+    -56.03071791142735,
+    -57.934393883221006,
+    -106.94977234438429
+   ],
+   "axis": [
+    -0.5404359798430166,
+    -0.7505306289320985,
+    -0.3803060960935374
+   ],
+   "slope": 47.062672979683285,
+   "icpt": -23.567619362568,
+   "rms_mm": 5.790968286373162,
+   "grms": 0.12304801065747144,
+   "n": 6478
+  },
+  "pair:45-46": {
+   "ctr": [
+    -20.279378738391205,
+    -18.492518743837735,
+    -34.93579955693173
+   ],
+   "axis": [
+    0.5478547798116992,
+    0.541762352505156,
+    0.637454856162814
+   ],
+   "slope": -45.85882172353123,
+   "icpt": 21.75850398990649,
+   "rms_mm": 2.8656688748974677,
+   "grms": 0.06248893380152038,
+   "n": 2464
+  },
+  "pair:45-47": {
+   "ctr": [
+    -56.84207237916181,
+    -39.01195544369121,
+    -107.97351672011678
+   ],
+   "axis": [
+    -0.6563624781823769,
+    -0.5855494210543252,
+    -0.4757311979860405
+   ],
+   "slope": 42.795661388104776,
+   "icpt": -21.352521582223968,
+   "rms_mm": 4.762265805146216,
+   "grms": 0.11127917295069323,
+   "n": 7557
+  }
+ },
+ "report": {
+  "scored_on": "odd HHs3 episodes (held out)",
+  "head": {
+   "frames": 15333,
+   "coverage": 0.9611960882647944,
+   "median": 0.019797754370344922,
+   "p90": 0.08469410145247198,
+   "p95": 0.12193434820055603,
+   "mean": 0.03538897760668364,
+   "gate_agreement": 0.9651079371290681
+  },
+  "per_session": {
+   "yam_glove5_take1": {
+    "frames": 4956,
+    "coverage": 0.9821640903686087,
+    "median": 0.017725473893575205,
+    "p90": 0.07626703902917409,
+    "p95": 0.10672932335804114,
+    "mean": 0.032844787636234316,
+    "gate_agreement": 0.9658999192897498
+   },
+   "yam_glove5_take2": {
+    "frames": 4535,
+    "coverage": 0.9369834710743802,
+    "median": 0.025865152800121027,
+    "p90": 0.10204673528568399,
+    "p95": 0.14147736325750204,
+    "mean": 0.04294051425508798,
+    "gate_agreement": 0.9534729878721059
+   },
+   "yam_glove6_take1": {
+    "frames": 2307,
+    "coverage": 0.9454918032786885,
+    "median": 0.021158891519781897,
+    "p90": 0.08741911772884534,
+    "p95": 0.12421667415228929,
+    "mean": 0.035754391782810716,
+    "gate_agreement": 0.9657563935847421
+   },
+   "yam_glove6_take2": {
+    "frames": 1267,
+    "coverage": 0.9350553505535055,
+    "median": 0.014109821987553173,
+    "p90": 0.061106120147023664,
+    "p95": 0.08833220467540792,
+    "mean": 0.026108646402377342,
+    "gate_agreement": 0.9794790844514601
+   },
+   "yam_glove7": {
+    "frames": 1969,
+    "coverage": 1.0,
+    "median": 0.012882668447736445,
+    "p90": 0.06808942027180301,
+    "p95": 0.09917816231506382,
+    "mean": 0.0272291012570773,
+    "gate_agreement": 0.9827323514474352
+   },
+   "yam_glove8": {
+    "frames": 299,
+    "coverage": 0.9900662251655629,
+    "median": 0.042060119620164316,
+    "p90": 0.11931499842908526,
+    "p95": 0.13752406519631963,
+    "mean": 0.053264403884071096,
+    "gate_agreement": 0.9464882943143813
+   }
+  },
+  "crosscheck_wrist_not_used": {
+   "wrist": {
+    "frames": 15952,
+    "coverage": 1.0,
+    "median": 0.02429301990286148,
+    "p90": 0.1091439019821857,
+    "p95": 0.15800707414596776,
+    "mean": 0.042934275338466124,
+    "gate_agreement": 0.9589393179538616
+   },
+   "on_common_frames": {
+    "head": {
+     "frames": 15333,
+     "coverage": 1.0,
+     "median": 0.019797754370344922,
+     "p90": 0.08469410145247198,
+     "p95": 0.12193434820055603,
+     "mean": 0.03538897760668364,
+     "gate_agreement": 0.9651079371290681
+    },
+    "wrist": {
+     "frames": 15333,
+     "coverage": 1.0,
+     "median": 0.023146500788814972,
+     "p90": 0.09681669149790857,
+     "p95": 0.13807824796671353,
+     "mean": 0.03921112108319043,
+     "gate_agreement": 0.9656296876019044
+    }
+   }
+  }
+ }
+}
