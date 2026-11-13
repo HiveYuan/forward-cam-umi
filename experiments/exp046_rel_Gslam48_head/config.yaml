@@ -1,0 +1,9 @@
+# exp046_rel_Gslam48_head: exp036 on exp045's SLAM dataset (adaptive SLAM with no wrist-camera data: sam3_v2_head masks).
+# Relative actions, 48 teleop + 194 glove episodes (the paper's mix_gHs3_48 list), anchor = the current pose (decision
+# 2026-11-12); loss masks slam_valid and ik_unreached; hyperparameters = Yosub's. With exp018 (T48) and exp019 (G-tile48),
+# the final comparison.
+experiment: exp046_rel_Gslam48_head
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v3, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], anchor: anchor_pose, stats: calib/rel_action_stats_teleop172.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp046_rel_Gslam48_head
