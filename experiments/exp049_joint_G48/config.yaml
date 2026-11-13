@@ -1,0 +1,7 @@
+# exp049_joint_G48: Yosub's arm mix_gHs3_48 (joint actions, his dataset pilot_mix_gHs3, his train config and list),
+# retrained in full (50k; exp017 ran its first 10k). Glove-gain investigation, experiment C (2026-11-12): with exp048.
+# His robot val: 0.2946.
+experiment: exp049_joint_G48
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3, root: /home/student/.cache/huggingface/lerobot/pilot_mix_gHs3}   # episodes: his list (242)
+output_dir: /home/student/yuanliu-hawaii/work/train/exp049_joint_G48
