@@ -1,0 +1,8 @@
+# exp048_joint_T48: Yosub's arm head_Hgt48 (joint actions, his dataset pilot_head_Hgt, his train config and list),
+# retrained in full (50k) in our env. Glove-gain investigation, experiment C (2026-11-12): with exp049, the joint-space
+# T48 / G48 pair whose chunks slam.joint_physical turns into the same physical errors as the relative runs (FK).
+# His robot val: 0.4645 (docs/results/head_val_curves.csv).
+experiment: exp048_joint_T48
+base_train_config: calib/yosub_train_configs/head_Hgt48/train_config.json
+dataset: {repo: pilot_head_Hgt, root: /home/student/.cache/huggingface/lerobot/pilot_head_Hgt}   # episodes: his list (48)
+output_dir: /home/student/yuanliu-hawaii/work/train/exp048_joint_T48

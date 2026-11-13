@@ -131,4 +131,6 @@ New experiments start from these unless they test an alternative to them:
 | exp039-exp044 (adaptive_head_*) | exp029-exp034 with no wrist-camera data: `sam3_v2_head` masks, head labels gripper |
 | exp045_rel_datasets_head | exp035 rebuilt from exp039-exp044 (`pilot_mix_gHs3_rel_{tile,slam}_v3`) |
 | exp046_rel_Gslam48_head | exp036 on exp045's SLAM dataset; with exp018 / exp019 the final T48 / G-tile48 / G-slam48 comparison |
+| exp047_rel_T172 | glove-gain investigation B: relative actions, all 172 teleop episodes (data-scaling control) |
+| exp048_joint_T48, exp049_joint_G48 | glove-gain investigation C: Yosub's joint-space arms retrained (50k); physical chunk errors by FK (`slam.joint_physical`) |
 | cross_session/ | summary over glove6 take 1, glove7 and glove8: DA3 + Bnet 4.0 / 13.2% vs default 14.2 / 26.2% scale error; labels 1 s 4.8 vs 7.2 mm |
