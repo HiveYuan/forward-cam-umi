@@ -140,7 +140,30 @@ It prints the file list and the `rsync` line (raw video, timestamps, episode mar
 log, `_session.json`, `_field_qc.json`, intrinsics, layouts). Delete a session from the Mac
 only after the server confirms it arrived complete.
 
-## 5. Never
+## 5. On the server
+
+Sessions arrive in `COLLECT_REPO` (default `/home/student/yuanliu-hawaii/incoming/collect`, the
+`--dest` above). Each `data/raw/<dataset>_session.json` there registers the dataset in
+`slam.config` (glove unit, intrinsics imported to `calib/collected/`, tile layout from the layout
+take). `python -m slam.collect` runs the steps (`--help` for all):
+
+```
+python -m slam.collect status                                    # what arrived, what is done
+# once per glove unit / tile placement (the unit's bundles must be in calib/ first)
+python -m slam.collect layout yuan_layout_01 --unit yuan --intr <head intrinsics file>
+python -m slam.collect holds  yuan_holds_01  --unit yuan --intr <head intrinsics file>
+# per session
+python -m slam.collect check  yuan_slam_01      # files, transport, metadata, field QC
+python -m slam.collect prep   yuan_slam_01      # detection, tile GT, ball poses, head width, wrist cross-check
+python -m slam.collect config yuan_slam_01 --exp expNNN_yuan_slam_01
+HEADCAM_DATA_REPO=$COLLECT_REPO python -m slam.run experiments/expNNN_yuan_slam_01/config.yaml
+```
+
+`config` starts from the current defaults (experiments/README.md), uses the head-camera width for
+the labels and the held-object mask gate, and leaves out the session's excluded episodes and its
+field-QC FAILs. The wrist width is only compared (`gt/width_crosscheck.json`).
+
+## 6. Never
 
 - re-encode, trim, rotate or rename raw files;
 - resume an existing dataset name (a second run renames the first take to `.take1`);

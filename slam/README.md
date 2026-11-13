@@ -16,6 +16,11 @@ metrics (`labels.py`), `evaluate_session` (`evaluate.py`), `tiles.noise_floor` /
 `segment_tile_masks`. `run_droid.py` now writes the backend's `traj.npz` format: it adds
 `tracked` and `metric`, and `pose7` is renamed `x_pose7`.
 
+**New recordings (since 2026-11-12):** sessions collected with the yuan glove on the Mac follow
+[`docs/SLAM_COLLECTION.md`](../docs/SLAM_COLLECTION.md); they register themselves from their
+`_session.json` in `COLLECT_REPO` (`config.py`) and are prepared by `python -m slam.collect`
+(check, layout, holds, prep, config).
+
 Code is here; raw recordings and detection caches are read from the main
 head-cam-umi checkout (`HEADCAM_DATA_REPO`); outputs go to `SLAM_WORK`
 (see `config.py`). Run modules from the repository root.

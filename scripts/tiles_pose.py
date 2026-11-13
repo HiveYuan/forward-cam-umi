@@ -69,11 +69,14 @@ def detector():
         cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11), p)
 
 
+RAW_DIR = ROOT / "data/raw"     # --raw-dir: a receiving repo (e.g. incoming/collect/data/raw)
+
+
 def sample_frames(stem, stride):
     """Sequential grab() with decode every `stride` frames: seeking a 4K
     MJPEG container by frame index re-scans it each time (minutes per
     pass); grab() just advances the demuxer."""
-    cap = cv2.VideoCapture(str(ROOT / f"data/raw/{stem}.mkv"))
+    cap = cv2.VideoCapture(str(RAW_DIR / f"{stem}.mkv"))
     k, misses = 0, 0
     while misses < 50:
         if not cap.grab():
@@ -290,7 +293,12 @@ def main():
     p2.add_argument("stem"); p2.add_argument("--intr", required=True); p2.add_argument("--tags", required=True)
     p2.add_argument("--layout", required=True); p2.add_argument("--stride", type=int, default=50)
     p2.add_argument("--per-frame", action="store_true", help="keep every sampled frame's pose (moving camera)")
+    for p in (p1, p2):
+        p.add_argument("--raw-dir", default=None, help="directory of <stem>.mkv (default data/raw of this checkout)")
     a = ap.parse_args()
+    global RAW_DIR
+    if a.raw_dir:
+        RAW_DIR = Path(a.raw_dir)
     cmd_layout(a) if a.cmd == "layout" else cmd_solve(a)
 
 

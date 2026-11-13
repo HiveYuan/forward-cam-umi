@@ -40,7 +40,9 @@ def separation(session):
     mm = json.load(open(C.CALIB / f"marker_map_glove_{s['glove']}.json"))
     L.TIPS = {int(k): v for k, v in mm["tips"].items()}
     a, b = sorted(L.TIPS)
-    Kw, dw = L.load_intrinsics(C.CALIB / mm["wrist_cam"]["intrinsics"].replace("calib/", ""))
+    # a collected session names its own wrist intrinsics (calib/collected/...); the paper units carry it in the map
+    wi = s.get("wrist_intrinsics") or mm["wrist_cam"]["intrinsics"].replace("calib/", "")
+    Kw, dw = L.load_intrinsics(C.CALIB / wi)
     stem = f"{session}_fish"
     det = np.load(C.DET_CACHE / f"{stem}_tips16h5_detections.npz")
     ts = json.load(open(C.RAW / f"{stem}_ts.json"))
