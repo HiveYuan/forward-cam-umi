@@ -1,0 +1,9 @@
+# exp051_rel_Gtile48_posestate: exp019_rel_Gtile48 with the current tool pose as state (test D1, 2026-11-13):
+# observation.state = the anchor pose in the robot base (xyz + 6D rotation; teleop: FK of the measured joints, glove:
+# the tile-chain pose, FK of Yosub's HHs3 joints) + gripper, 10-D. 48 teleop + 194 glove episodes (the paper's
+# mix_gHs3_48 list); loss masks slam_valid and ik_unreached; anchor = the current pose; hyperparameters = Yosub's.
+experiment: exp051_rel_Gtile48_posestate
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_tile, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_tile, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], anchor: anchor_pose, state: pose_gripper, stats: calib/rel_action_stats_teleop172_posestate.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp051_rel_Gtile48_posestate

@@ -49,7 +49,8 @@ def make_loader(cfg, eps, chunk, stats, batch_size, workers):
     if cfg.get("relative"):
         ds = RelChunkDataset(d["repo"], d["root"], eps, stats, horizon=chunk,
                              masks=tuple(cfg["relative"].get("masks", MASK_KEYS)),
-                             anchor=cfg["relative"].get("anchor", "anchor_pose"))
+                             anchor=cfg["relative"].get("anchor", "anchor_pose"),
+                             state=cfg["relative"].get("state", "gripper"))
     else:
         from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
         fps = LeRobotDatasetMetadata(d["repo"], root=d["root"]).fps

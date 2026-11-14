@@ -6,7 +6,11 @@ returns, for an anchor step t:
   action          (H, 10)  rel_j = anchor_t^-1 . pose_{t+j}, j = 0..H-1 (LeRobot's chunk convention):
                            translation (3) + 6D rotation (6, slam.relative.rot6d) + absolute gripper (1)
   action_is_pad   (H,)     past the episode end, or step t+j flagged by one of `masks`
-  observation.state (1,)   gripper (stored as a scalar column)
+  observation.state (1,)   gripper (stored as a scalar column); with state="pose_gripper" (10,) = the current
+                           tool pose in the robot base (xyz + 6D rotation of the anchor pose: teleop FK of the
+                           measured joints, glove the tile-chain pose) + gripper (test D1, 2026-11-13). Only for a
+                           dataset whose poses are in the robot base (variant "tile"); its stats file must carry
+                           the same state.
 anchor="prev_action" (test (a), 2026-11-12) uses the previous step's target pose as anchor_t instead of the
 anchor_pose column (see anchor_poses); its stats file must be computed with the same anchor.
 plus the images and LeRobot's bookkeeping keys. anchor_t is the dataset's anchor_pose (teleop: FK of
@@ -88,6 +92,26 @@ def valid_anchors(df, masks, anchor="anchor_pose"):
 
 
 ANCHORS = ("anchor_pose", "prev_action")
+STATES = ("gripper", "pose_gripper")
+STATE_NAMES = {"gripper": ["gripper.pos"],
+               "pose_gripper": ["x", "y", "z", "r00", "r10", "r20", "r01", "r11", "r21", "gripper.pos"]}
+
+
+def pose_state(anchor6, grip):
+    """(N, 6) anchor poses + (N,) gripper -> (N, 10) state: xyz + 6D rotation (as the actions) + gripper."""
+    anchor6 = np.asarray(anchor6, float).reshape(-1, 6)
+    return Rl.to_action10(pose_T(anchor6), np.asarray(grip, float).reshape(-1))
+
+
+def check_state_dataset(root, state):
+    """A pose state needs absolute poses in the robot base: the tile variant of slam.rel_dataset."""
+    if state not in STATES:
+        raise ValueError(f"state must be one of {STATES}, got {state!r}")
+    if state == "pose_gripper":
+        meta = json.load(open(Path(root) / "meta" / "relative_labels.json"))
+        if meta.get("variant") != "tile":
+            raise ValueError(f"state 'pose_gripper' needs robot-base poses (variant 'tile'); {root} is "
+                             f"variant {meta.get('variant')!r}")
 
 
 def _prev_index(ep):
@@ -114,11 +138,14 @@ def anchor_poses(df, anchor="anchor_pose"):
 
 
 # ------------------------------------------------------------------------- stats (no video)
-def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT, anchor="anchor_pose"):
-    """Relative-action and state statistics over every valid (anchor, j) pair of the episodes."""
+def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT, anchor="anchor_pose", state="gripper"):
+    """Relative-action statistics over every valid (anchor, j) pair of the episodes; state statistics over the
+    episodes' steps (gripper) or their valid anchors (pose_gripper)."""
+    check_state_dataset(root, state)
     df = read_columns(root)
     act = np.stack(df["action"].values).astype(float)
     anc = anchor_poses(df, anchor)
+    cur = np.stack(df["anchor_pose"].values).astype(float)
     ep = df["episode_index"].values
     bad = ~valid_anchors(df, masks)
     bad_anchor = ~valid_anchors(df, masks, anchor)
@@ -127,14 +154,19 @@ def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT, anchor="an
         r = np.where(ep == e)[0]
         A, P, b = anc[r], act[r], bad[r]
         TA, TP = pose_T(A), pose_T(P[:, :6])
-        states.append(np.stack(df["observation.state"].values[r]).astype(float).reshape(-1))
+        grip = np.stack(df["observation.state"].values[r]).astype(float).reshape(-1)
+        if state == "gripper":
+            states.append(grip[:, None])
+        else:
+            ok = ~bad_anchor[r]                       # the current pose (anchor_pose column), whatever the anchor
+            states.append(pose_state(cur[r][ok], grip[ok]))
         for t in np.where(~bad_anchor[r])[0]:
             j = np.arange(t, min(t + horizon, len(r)))
             j = j[~b[j]]
             rel = G.inv(TA[t][None]) @ TP[j]
             rows.append(Rl.to_action10(rel, P[j, 6]))
     X = np.concatenate(rows)
-    S = np.concatenate(states)[:, None]
+    S = np.concatenate(states)
 
     def st(x):
         out = {"min": x.min(0), "max": x.max(0), "mean": x.mean(0), "std": x.std(0), "count": np.array([len(x)])}
@@ -142,19 +174,20 @@ def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT, anchor="an
         return {k: np.asarray(v).tolist() for k, v in out.items()}
     return {"action": st(X), "observation.state": st(S),
             "_source": {"root": str(root), "episodes": [int(e) for e in episodes], "masks": list(masks),
-                        "horizon": horizon, "anchor": anchor, "pairs": int(len(X))}}
+                        "horizon": horizon, "anchor": anchor, "state": state, "pairs": int(len(X))}}
 
 
 # ------------------------------------------------------------------------- wrapper
 class _Meta:
     """LeRobotDatasetMetadata proxy: relative features / stats, episode boundaries in anchor space."""
 
-    def __init__(self, base, stats, from_idx, to_idx):
+    def __init__(self, base, stats, from_idx, to_idx, state="gripper"):
         self._base = base
         self.features = dict(base.features)
         self.features["action"] = {"dtype": "float32", "shape": (10,),
                                    "names": ["dx", "dy", "dz", "r00", "r10", "r20", "r01", "r11", "r21", "gripper.pos"]}
-        self.features["observation.state"] = {"dtype": "float32", "shape": (1,), "names": ["gripper.pos"]}
+        self.features["observation.state"] = {"dtype": "float32", "shape": (len(STATE_NAMES[state]),),
+                                              "names": STATE_NAMES[state]}
         for k in ("anchor_pose", *MASK_KEYS):
             self.features.pop(k, None)
         st = {k: dict(v) for k, v in base.stats.items() if k in self.features}
@@ -169,7 +202,7 @@ class _Meta:
 
 class RelChunkDataset:
     def __init__(self, repo, root, episodes, stats, horizon=H_DEFAULT, masks=MASK_KEYS, anchor="anchor_pose",
-                 **lerobot_kw):
+                 state="gripper", **lerobot_kw):
         import torch  # noqa: F401
         from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
         if anchor not in ANCHORS:
@@ -177,8 +210,12 @@ class RelChunkDataset:
         if stats.get("_source", {}).get("anchor", "anchor_pose") != anchor:
             raise ValueError(f"stats were computed for anchor {stats.get('_source', {}).get('anchor', 'anchor_pose')!r}, "
                              f"the dataset uses {anchor!r}")
+        check_state_dataset(root, state)
+        if stats.get("_source", {}).get("state", "gripper") != state:
+            raise ValueError(f"stats were computed for state {stats.get('_source', {}).get('state', 'gripper')!r}, "
+                             f"the dataset uses {state!r}")
         base = LeRobotDatasetMetadata(repo, root=root)
-        self.H, self.masks, self.anchor = horizon, tuple(masks), anchor
+        self.H, self.masks, self.anchor, self.state = horizon, tuple(masks), anchor, state
         fps = base.fps
         dts = {k: [j / fps for j in range(horizon)] for k in ("action", *self.masks)}
         if anchor == "prev_action":                       # step t-1 first (clamped to t at an episode's start)
@@ -199,7 +236,7 @@ class RelChunkDataset:
                 from_idx.append(off)
                 to_idx.append(off + n)
                 off += n
-        self.meta = _Meta(base, stats, from_idx, to_idx)
+        self.meta = _Meta(base, stats, from_idx, to_idx, state)
         self.episodes = None
         self.repo_id, self.root, self.streaming = repo, Path(root), False
         self.num_frames, self.num_episodes = len(self.idx), len(from_idx)
@@ -217,11 +254,16 @@ class RelChunkDataset:
             anchor, act, pad = act[0, :6], act[1:], pad[1:]
         else:
             anchor = item["anchor_pose"].double().numpy().reshape(6)
+        grip = item["observation.state"].double().numpy().reshape(1)
         for m in self.masks:
             pad |= _bad(m, item[m].numpy().reshape(-1))
         item["action"] = torch.as_tensor(rel10(anchor, act), dtype=torch.float32)
         item["action_is_pad"] = torch.as_tensor(pad)
-        item["observation.state"] = item["observation.state"].reshape(1).float()
+        if self.state == "gripper":
+            item["observation.state"] = item["observation.state"].reshape(1).float()
+        else:                                             # the current tool pose: the anchor pose at step t
+            pose = item["anchor_pose"].double().numpy().reshape(6)
+            item["observation.state"] = torch.as_tensor(pose_state(pose, grip)[0], dtype=torch.float32)
         for k in ("anchor_pose", *self.masks):
             item.pop(k, None)
             item.pop(f"{k}_is_pad", None)
@@ -238,20 +280,21 @@ def main():
     ap.add_argument("--masks", default=",".join(MASK_KEYS))
     ap.add_argument("--horizon", type=int, default=H_DEFAULT)
     ap.add_argument("--anchor", default="anchor_pose", choices=ANCHORS)
+    ap.add_argument("--state", default="gripper", choices=STATES)
     ap.add_argument("--stats", help="check: stats file")
     ap.add_argument("--out", help="stats: output file")
     a = ap.parse_args()
     eps = load_episode_list(a.episodes)
     masks = tuple(m for m in a.masks.split(",") if m)
     if a.cmd == "stats":
-        s = compute_stats(a.root, eps, masks, a.horizon, a.anchor)
+        s = compute_stats(a.root, eps, masks, a.horizon, a.anchor, a.state)
         json.dump(s, open(a.out, "w"), indent=1)
         print(f"{a.out}: {s['_source']['pairs']} (anchor, j) pairs; action mean {np.round(s['action']['mean'], 4)}, "
               f"std {np.round(s['action']['std'], 4)}")
         return
     # check: the wrapper's items against a direct numpy computation from the parquet columns
     stats = json.load(open(a.stats))
-    rd = RelChunkDataset(a.repo, a.root, eps, stats, a.horizon, masks, a.anchor)
+    rd = RelChunkDataset(a.repo, a.root, eps, stats, a.horizon, masks, a.anchor, a.state)
     df = read_columns(a.root)
     df = df[df["episode_index"].isin(eps)].reset_index(drop=True)
     act = np.stack(df["action"].values).astype(float)
@@ -273,7 +316,10 @@ def main():
             raise SystemExit(f"pad mismatch at frame {t}")
         got = item["action"].numpy()
         worst = max(worst, float(np.abs(got[~ref_pad] - ref[~ref_pad]).max()) if (~ref_pad).any() else 0.0)
-        assert tuple(item["observation.state"].shape) == (1,)
+        assert tuple(item["observation.state"].shape) == (len(STATE_NAMES[a.state]),)
+        if a.state == "pose_gripper":                     # the state is the anchor pose (anchor_pose column)
+            ref_state = pose_state(np.stack(df["anchor_pose"].values)[t], np.stack(df["observation.state"].values)[t])[0]
+            worst = max(worst, float(np.abs(item["observation.state"].numpy() - ref_state).max()))
         n += 1
     print(f"{n} items; {rd.num_frames} anchors in {rd.num_episodes} episodes ({rd.dropped_anchors} masked anchors "
           f"dropped); action {tuple(item['action'].shape)}; max |wrapper - direct| {worst:.2e}")
