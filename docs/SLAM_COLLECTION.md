@@ -76,11 +76,15 @@ Dataset names used below:
    15–20 s hold, at working distance, slowly rotate the glove so the head camera sees
    **both** jaws' tails and the back markers from several angles. Then one extra hold at
    a width not used above (for verification), and `q`.
-10. **Glove geometry.** If the original (pre-10-13, solved at 15.18 mm) yuan ball and
-    back-marker bundles are found on the Mac, send them; otherwise record a calibration
-    take: one long episode, slowly turning the ball through every orientation at working
-    distance with the back markers visible part of the time (`--dataset yuan_cal_01
-    --num_episodes 1`, same command as a session).
+10. **Glove geometry** (calibration take, ~2 min, head camera worn): one long episode at working
+    distance, slowly turning the ball through every orientation so each of the 11 faces is seen many
+    times, and showing the back markers (40/41 and 46/47, both sides of the gripper) part of the time:
+    ```
+    POSE_PUB=0 python scripts/record_session.py --glove --glove_unit yuan \
+        --marker-map calib/marker_map_glove_yuan.json --cameras b0587b,fish --dataset yuan_cal_01 --num_episodes 1
+    ```
+    The server solves it with `python -m slam.collect bundles yuan_cal_01 ...` (README section 6). If the
+    original 10-13 bundles turn up, they are compared with this solve, not used instead of it.
 11. **Send** layout, holds (and cal) as in §4 and wait for the server's OK: layout
     solved, head-camera width fitted with its hold-out error, bundles in place.
 
@@ -149,7 +153,8 @@ take). `python -m slam.collect` runs the steps (`--help` for all):
 
 ```
 python -m slam.collect status                                    # what arrived, what is done
-# once per glove unit / tile placement (the unit's bundles must be in calib/ first)
+# once per glove unit / tile placement
+python -m slam.collect bundles yuan_cal_01 --unit yuan --intr <head intrinsics file>
 python -m slam.collect layout yuan_layout_01 --unit yuan --intr <head intrinsics file>
 python -m slam.collect holds  yuan_holds_01  --unit yuan --intr <head intrinsics file>
 # per session

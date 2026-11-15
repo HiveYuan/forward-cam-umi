@@ -6,14 +6,16 @@ COLLECT_REPO (<repo>/data/raw, <repo>/calib) to the inputs of an experiment conf
   python -m slam.collect import-calib <dataset>      the session's intrinsics -> calib/collected/ (never overwritten)
   python -m slam.collect layout <layout_dataset> --unit yuan --intr <file>
                                                      tile layout from the static take -> calib/workspace_tiles_<dataset>.json
+  python -m slam.collect bundles <cal_dataset> --unit yuan --intr <file>
+                                                     ball + back-marker geometry from the calibration take (README 6)
   python -m slam.collect holds  <holds_dataset> --unit yuan --intr <file> [--verify-gap MM]
                                                      head-camera width fit -> calib/head_width_glove_<unit>.json
   python -m slam.collect prep   <dataset>            detection, tile GT, ball poses, head width, wrist cross-check
   python -m slam.collect config <dataset> --exp expNNN_name     experiment config with the current defaults
   python -m slam.collect handeye-provisional --unit yuan --from yosub     (opt-in stand-in until the unit is solved)
 
-One-time order per glove unit and tile placement: import the unit's bundles (calib/glove_<unit>_{dodeca,gripper}
-_bundle.json), `layout`, `holds`; then per session `check`, `prep`, `config`, `python -m slam.run <config>`.
+One-time order per glove unit and tile placement: `bundles` (calib/glove_<unit>_{dodeca,gripper}_bundle.json),
+`layout`, `holds`; then per session `check`, `prep`, `config`, `python -m slam.run <config>`.
 The wrist camera never feeds the algorithm: `prep` only compares its width with the head camera's.
 Interpreters: V (numpy/cv2) and S (slam.head_width: cv2 + pandas), as in slam/README.md. Logs: <work>/<dataset>/logs/.
 """
@@ -230,6 +232,34 @@ def cmd_layout(a):
     print(f"layout: {out}  (git add it; sessions find it through tiles.layout_take = {ds})")
 
 
+def cmd_bundles(a):
+    """scripts/README.md section 6 on the head camera's calibration take: free bundle, dodecahedron-prior bundle,
+    then the back markers in the ball's body frame. Marker sizes from the unit's marker map."""
+    ds, unit = a.dataset, a.unit
+    mm = load(unit_files(unit)["marker map"])
+    edge = a.marker_mm or mm.get("ball_edge_mm")
+    if not edge:
+        raise SystemExit("no ball edge in the marker map; pass --marker-mm")
+    out_dir = Path(a.out_dir) if a.out_dir else C.CALIB
+    ball, back = out_dir / f"glove_{unit}_dodeca_bundle.json", out_dir / f"glove_{unit}_gripper_bundle.json"
+    if (ball.exists() or back.exists()) and not a.force:
+        raise SystemExit(f"{ball.name} / {back.name} exist: a unit's geometry is solved once (--force to redo)")
+    intr = C.CALIB / import_file(a.intr)
+    stem, lg = f"{ds}_b0587b", logs(ds)
+    detect(stem, lg / "detect_head.log")
+    npz = C.COLLECT_REPO / "calib" / f"{stem}_dodeca_detections.npz"
+    ids = ",".join(sorted(mm["ball_faces"], key=int)) if mm.get("ball_faces") else "25-35"
+    tmp = C.WORK / ds / f"tmp_bundle_{unit}.json"
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    common = [f"--npz={npz}", f"--intr={intr}", f"--marker-mm={edge}", f"--max-vel={a.max_vel}"]
+    run([V, C.REPO / "scripts/bundle_dodeca.py", *common, f"--ball-ids={ids}", f"--out={tmp}"], lg / "bundles.log")
+    run([V, C.REPO / "scripts/bundle_dodeca_ideal.py", *common, f"--init={tmp}", f"--out={ball}"], lg / "bundles.log")
+    run([V, C.REPO / "scripts/calibrate_gripper_bundle.py", stem, f"--bundle={ball}",
+         f"--marker-map={unit_files(unit)['marker map']}", str(intr), f"--out={back}"],   # intrinsics: positional
+        lg / "bundles.log", cwd=C.COLLECT_REPO)
+    print(f"bundles: {ball}, {back}  (expect ~0.5 px RMS over all 11 faces; git add them)")
+
+
 def split_holds(events, verify_gap=None):
     """Width-hold events -> (training events, verification events). The verification hold is the one at
     `verify_gap` mm, default the last hold of the take (the runbook records it last, at a new width)."""
@@ -424,6 +454,11 @@ def main():
     p = sub.add_parser("layout")
     p.add_argument("dataset"); p.add_argument("--unit", required=True); p.add_argument("--intr", required=True)
     p.add_argument("--stride", type=int, default=10); p.add_argument("--force", action="store_true")
+    p = sub.add_parser("bundles")
+    p.add_argument("dataset"); p.add_argument("--unit", required=True); p.add_argument("--intr", required=True)
+    p.add_argument("--marker-mm", type=float, help="ball face edge (default: the marker map's ball_edge_mm)")
+    p.add_argument("--max-vel", type=float, default=600.0, help="px/s frame gate (README 6: 600 at a short shutter)")
+    p.add_argument("--out-dir", help="default calib/"); p.add_argument("--force", action="store_true")
     p = sub.add_parser("holds")
     p.add_argument("dataset"); p.add_argument("--unit", required=True); p.add_argument("--intr", required=True)
     p.add_argument("--verify-gap", type=float, help="the verification hold's width in mm (default: the last hold)")
@@ -440,7 +475,7 @@ def main():
     p.add_argument("--unit", required=True); p.add_argument("--from", dest="src", required=True)
     a = ap.parse_args()
     fn = {"status": cmd_status, "check": cmd_check, "import-calib": cmd_import_calib, "layout": cmd_layout,
-          "holds": cmd_holds, "prep": cmd_prep, "config": cmd_config,
+          "bundles": cmd_bundles, "holds": cmd_holds, "prep": cmd_prep, "config": cmd_config,
           "handeye-provisional": cmd_handeye_provisional}[a.cmd]
     return fn(a) or 0
 
