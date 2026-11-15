@@ -1,11 +1,11 @@
 {
   "unit": "yuan",
-  "note": "GLOVE unit given to Yuan. glove_markers_v4 sheet (md5 a30db471…), DICT_4X4_100 ids 25-49 (bit-identical to DICT_4X4_50 for these ids — detector unchanged). Layout = robot layout at id-25: ball f0-f10 = 25-35 (15.18 mm caliper; lives in this unit's BUNDLE file glove_yuan_dodeca_bundle.json, not here); tails BACK 36/37, OUTSIDE 38/39, BOTTOM 42/43, TOP 44/45, FORWARD 48/49 (12.18 mm); bases BACK 40/41, TOP 46/47 (12.14 mm); wrist tips AprilTag 16h5 2/3 (6.14 mm). Workspace tags: see tags36h11_yuan.json. TRAPS: 4x4-27 is a real ball face — detect with --keep-27 (its 16h5-1 alias is a robot tip, never in glove footage); 16h5-2/3 decode as phantom 4x4-17 under ecr=1.0 — harmless (17 is not a glove id). Sizes are PER PHYSICAL PRINT: another unit with the same ids needs its own calipers and its own bundle solves. Caliper 2026-09-28.",
+  "note": "GLOVE unit given to Yuan. glove_markers_v4 sheet (md5 a30db471…), DICT_4X4_100 ids 25-49 (bit-identical to DICT_4X4_50 for these ids — detector unchanged). Layout = robot layout at id-25: ball f0-f10 = 25-35 (15.18 mm caliper; lives in this unit's BUNDLE file glove_yuan_dodeca_bundle.json, not here); tails BACK 36/37, OUTSIDE 38/39, BOTTOM 42/43, TOP 44/45, FORWARD 48/49 (12.18 mm); bases BACK 40/41, TOP 46/47 (12.14 mm); wrist tips AprilTag 16h5 2/3 (6.00 mm, the 2026-11-14 reprint below). Workspace tags: see tags36h11_yuan.json. TRAPS: 4x4-27 is a real ball face — detect with --keep-27 (its 16h5-1 alias is a robot tip, never in glove footage); 16h5-2/3 decode as phantom 4x4-17 under ecr=1.0 — harmless (17 is not a glove id). Sizes are PER PHYSICAL PRINT: another unit with the same ids needs its own calipers and its own bundle solves. Caliper 2026-09-28. TIPS REPRINTED 2026-11-14: the glove carried small 4x4 38/39 on the fingertips, the same ids as the tails' OUTSIDE faces (both in one head-camera frame); covered with 16h5 2 (where 38 was) and 3 (where 39 was) cut from a new print of glove_markers_v4 (100 mm bar read 100.1 mm; black square 6.0/6.0/6.1 and 6.0/5.9/6.0 mm -> 6.00 mm for the group). Tail cubes as built: BACK 37 sits on the cube with TOP 44 / FORWARD 48 / OUTSIDE 38, BACK 36 on the one with TOP 45 / FORWARD 49 (harmless: the width estimators are per marker id).",
   "tails": {"36": 12.18, "37": 12.18, "38": 12.18, "39": 12.18,
             "42": 12.18, "43": 12.18, "44": 12.18, "45": 12.18,
             "48": 12.18, "49": 12.18},
   "bases": {"40": 12.14, "41": 12.14, "46": 12.14, "47": 12.14},
-  "tips": {"2": 6.14, "3": 6.14},
+  "tips": {"2": 6.00, "3": 6.00},
   "tips_dict": "16h5",
   "ball_faces": {"25": "f0", "26": "f1", "27": "f2", "28": "f3", "29": "f4",
                  "30": "f5", "31": "f6", "32": "f7", "33": "f8", "34": "f9",
