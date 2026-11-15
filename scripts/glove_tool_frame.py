@@ -26,7 +26,7 @@ sys.path.insert(0, "scripts")
 import labels_lib as L  # noqa: E402
 
 
-def tool_frame(stems, bundle, gripper_bundle, marker_map, intrinsics, label):
+def tool_frame(stems, bundle, gripper_bundle, marker_map, intrinsics, label, data_repo="."):
     mm = json.load(open(marker_map))
     bases = {int(k): v for k, v in mm["bases"].items()}
     tails = {int(k): v for k, v in mm["tails"].items()}
@@ -37,12 +37,12 @@ def tool_frame(stems, bundle, gripper_bundle, marker_map, intrinsics, label):
     tipA, tipB, basec = [], [], []
     ta, tb = sorted(tips)
     for stem in stems:
-        det = np.load(f"calib/{stem}_dodeca_detections.npz")
-        ts = json.load(open(f"data/raw/{stem}_ts.json"))
+        det = np.load(f"{data_repo}/calib/{stem}_dodeca_detections.npz")
+        ts = json.load(open(f"{data_repo}/data/raw/{stem}_ts.json"))
         rows = {r["k"]: r for r in L.body_frames(det, ts, K, dist, Tb, dobj,
                                                  {**bases, **tails}, extra=extra)
                 if r["rms"] >= 0}
-        tdet = np.load(f"calib/{stem}_tips16h5_detections.npz")
+        tdet = np.load(f"{data_repo}/calib/{stem}_tips16h5_detections.npz")
         for k in tdet["frame_indices"]:
             k = int(k)
             r = rows.get(k)
@@ -99,6 +99,11 @@ ap.add_argument("--robot-tool-from", default=None, metavar="HANDEYE_GLOVE_JSON",
                 help="reuse T_body_tool_robot from an earlier handeye_glove_<unit>.json "
                      "(the robot ball and its mount are unchanged; the robot take's "
                      "detection cache need not exist) instead of re-solving --robot-stems")
+ap.add_argument("--glove-intr", default="calib/B0587_intrinsics.json",
+                help="intrinsics of the camera that filmed --glove-stems (default: the fixed forward camera)")
+ap.add_argument("--data-repo", default=".",
+                help="repo holding the glove stems' data/raw/<stem>_ts.json and calib/<stem>_*_detections.npz")
+ap.add_argument("--out", default=None, help="default calib/handeye_glove_<unit>.json")
 a = ap.parse_args()
 if a.robot_tool_from:
     prev = json.load(open(a.robot_tool_from))["source"]
@@ -112,17 +117,17 @@ else:
 Tg = tool_frame(a.glove_stems.split(","), f"calib/glove_{a.unit}_dodeca_bundle.json",
                 f"calib/glove_{a.unit}_gripper_bundle.json",
                 f"calib/marker_map_glove_{a.unit}.json",
-                "calib/B0587_intrinsics.json", "GLOVE")
+                a.glove_intr, "GLOVE", a.data_repo)
 he = json.load(open(a.handeye))
 Tfb_r = np.array(he["T_flange_body"])
 Tfb_g = Tfb_r @ Tr @ np.linalg.inv(Tg)
 out = {"T_cam_base": he["T_cam_base"], "T_flange_body": Tfb_g.tolist(),
        "source": {"handeye": a.handeye, "robot_stems": a.robot_stems,
-                  "glove_stems": a.glove_stems,
+                  "glove_stems": a.glove_stems, "glove_intrinsics": a.glove_intr,
                   "T_body_tool_robot": Tr.tolist(), "T_body_tool_glove": Tg.tolist()},
        "note": "glove ball -> virtual flange via matched tool frames "
                "(fingertip midpoint, finger axis, jaw axis); see scripts/glove_tool_frame.py"}
-dst = f"calib/handeye_glove_{a.unit}.json"
+dst = a.out or f"calib/handeye_glove_{a.unit}.json"
 json.dump(out, open(dst, "w"), indent=1)
 rel = np.linalg.inv(Tfb_r) @ Tfb_g
 ang = np.degrees(np.arccos(np.clip((np.trace(rel[:3, :3]) - 1) / 2, -1, 1)))

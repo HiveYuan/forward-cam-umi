@@ -8,6 +8,8 @@ COLLECT_REPO (<repo>/data/raw, <repo>/calib) to the inputs of an experiment conf
                                                      tile layout from the static take -> calib/workspace_tiles_<dataset>.json
   python -m slam.collect bundles <cal_dataset> --unit yuan --intr <file>
                                                      ball + back-marker geometry from the calibration take (README 6)
+  python -m slam.collect toolframe <cal_dataset> --unit yuan --intr <file>
+                                                     glove ball -> virtual flange -> calib/handeye_glove_<unit>.json
   python -m slam.collect holds  <holds_dataset> --unit yuan --intr <file> [--verify-gap MM]
                                                      head-camera width fit -> calib/head_width_glove_<unit>.json
   python -m slam.collect prep   <dataset>            detection, tile GT, ball poses, head width, wrist cross-check
@@ -15,7 +17,7 @@ COLLECT_REPO (<repo>/data/raw, <repo>/calib) to the inputs of an experiment conf
   python -m slam.collect handeye-provisional --unit yuan --from yosub     (opt-in stand-in until the unit is solved)
 
 One-time order per glove unit and tile placement: `bundles` (calib/glove_<unit>_{dodeca,gripper}_bundle.json),
-`layout`, `holds`; then per session `check`, `prep`, `config`, `python -m slam.run <config>`.
+`toolframe`, `layout`, `holds`; then per session `check`, `prep`, `config`, `python -m slam.run <config>`.
 The wrist camera never feeds the algorithm: `prep` only compares its width with the head camera's.
 Interpreters: V (numpy/cv2) and S (slam.head_width: cv2 + pandas), as in slam/README.md. Logs: <work>/<dataset>/logs/.
 """
@@ -130,15 +132,18 @@ def provisional(unit):
 
 # ---------------------------------------------------------------- detection
 
-def detect(stem, log, wrist=False, force=False):
-    tag = "tips16h5" if wrist else "dodeca"
-    cache = C.COLLECT_REPO / "calib" / f"{stem}_{tag}_detections.npz"
+def detect(stem, log, wrist=False, force=False, tips=False):
+    """4x4 (ball, tails, bases) always; the 16h5 fingertip tags for the wrist camera, or for a head-camera
+    take with `tips` (the tool frame needs the fingertips and the ball in the same camera)."""
+    want16 = wrist or tips
+    caches = [C.COLLECT_REPO / "calib" / f"{stem}_{t}_detections.npz" for t in (["tips16h5"] if wrist else
+                                                                             ["dodeca"] + (["tips16h5"] if tips else []))]
     mkv = raw_dir() / f"{stem}.mkv"
-    if cache.exists() and cache.stat().st_mtime > mkv.stat().st_mtime and not force:
-        print(f"= {cache.name} cached")
+    if all(c.exists() and c.stat().st_mtime > mkv.stat().st_mtime for c in caches) and not force:
+        print(f"= {', '.join(c.name for c in caches)} cached")
         return
     (C.COLLECT_REPO / "calib").mkdir(exist_ok=True)
-    flags = ["--keep-27"] + ([] if wrist else ["--no-16h5"])
+    flags = ["--keep-27"] + ([] if want16 else ["--no-16h5"])
     run([V, C.REPO / "scripts/detect_parallel.py", f"data/raw/{stem}.mkv", *flags,
          "--workers", str(min(16, os.cpu_count() or 8))], log, cwd=C.COLLECT_REPO)
 
@@ -258,6 +263,41 @@ def cmd_bundles(a):
          f"--marker-map={unit_files(unit)['marker map']}", str(intr), f"--out={back}"],   # intrinsics: positional
         lg / "bundles.log", cwd=C.COLLECT_REPO)
     print(f"bundles: {ball}, {back}  (expect ~0.5 px RMS over all 11 faces; git add them)")
+
+
+def cmd_toolframe(a):
+    """Glove ball -> virtual flange (calib/handeye_glove_<unit>.json) with scripts/glove_tool_frame.py, the way the
+    spring glove's was made: the robot side reused from an earlier glove hand-eye (the robot ball and its mount are
+    Yosub's, unchanged), the glove side from head-camera frames that see the ball and both fingertip tags."""
+    ds, unit = a.dataset, a.unit
+    for what in ("marker map", "ball bundle", "back-marker bundle"):
+        if not unit_files(unit)[what].exists():
+            raise SystemExit(f"missing {unit_files(unit)[what]}: run slam.collect bundles first")
+    dst = Path(a.out) if a.out else unit_files(unit)["hand-eye (tool frame)"]
+    if dst.exists() and not a.force:
+        raise SystemExit(f"{dst} exists (--force to replace{'; it is PROVISIONAL' if provisional(unit) else ''})")
+    intr = C.CALIB / import_file(a.intr)
+    stems = [f"{d}_b0587b" for d in [ds] + (a.more or [])]
+    for st in stems:
+        detect(st, logs(ds) / "detect_head_tips.log", tips=True)
+    def solve(sts, out):
+        run([V, C.REPO / "scripts/glove_tool_frame.py", "--unit", unit, "--robot-tool-from",
+             C.CALIB / a.robot_tool_from, "--glove-stems", ",".join(sts), "--glove-intr", intr,
+             "--data-repo", C.COLLECT_REPO, "--out", out], logs(ds) / "toolframe.log")
+        return np.array(load(out)["source"]["T_body_tool_glove"])
+
+    # consistency: each take on its own (incidental fingertip views gave 19 deg off the paper's frame on glove8)
+    if len(stems) > 1:
+        per = {st: solve([st], C.WORK / ds / f"toolframe_{st}.json") for st in stems}
+        ref = per[stems[0]]
+        for st in stems[1:]:
+            R = ref[:3, :3].T @ per[st][:3, :3]
+            ang = np.degrees(np.arccos(np.clip((np.trace(R) - 1) / 2, -1, 1)))
+            off = np.linalg.norm(ref[:3, 3] - per[st][:3, 3]) * 1000
+            print(f"tool frame {stems[0]} vs {st}: {ang:.1f} deg, origin {off:.1f} mm "
+                  f"({'consistent' if ang < 3 and off < 3 else 'NOT consistent: more fingertip views'})")
+    solve(stems, dst)
+    print(f"tool frame: {dst}  (check 'frames with both tips + ball' and the tip separation in the log; git add it)")
 
 
 def split_holds(events, verify_gap=None):
@@ -459,6 +499,12 @@ def main():
     p.add_argument("--marker-mm", type=float, help="ball face edge (default: the marker map's ball_edge_mm)")
     p.add_argument("--max-vel", type=float, default=600.0, help="px/s frame gate (README 6: 600 at a short shutter)")
     p.add_argument("--out-dir", help="default calib/"); p.add_argument("--force", action="store_true")
+    p = sub.add_parser("toolframe")
+    p.add_argument("dataset", help="a head-camera take that shows the ball and both fingertip tags (the cal take)")
+    p.add_argument("--unit", required=True); p.add_argument("--intr", required=True)
+    p.add_argument("--more", nargs="*", help="further datasets to pool")
+    p.add_argument("--robot-tool-from", default="handeye_glove_yosub.json", help="calib/ file with the robot side")
+    p.add_argument("--out"); p.add_argument("--force", action="store_true")
     p = sub.add_parser("holds")
     p.add_argument("dataset"); p.add_argument("--unit", required=True); p.add_argument("--intr", required=True)
     p.add_argument("--verify-gap", type=float, help="the verification hold's width in mm (default: the last hold)")
@@ -475,7 +521,7 @@ def main():
     p.add_argument("--unit", required=True); p.add_argument("--from", dest="src", required=True)
     a = ap.parse_args()
     fn = {"status": cmd_status, "check": cmd_check, "import-calib": cmd_import_calib, "layout": cmd_layout,
-          "bundles": cmd_bundles, "holds": cmd_holds, "prep": cmd_prep, "config": cmd_config,
+          "bundles": cmd_bundles, "toolframe": cmd_toolframe, "holds": cmd_holds, "prep": cmd_prep, "config": cmd_config,
           "handeye-provisional": cmd_handeye_provisional}[a.cmd]
     return fn(a) or 0
 
