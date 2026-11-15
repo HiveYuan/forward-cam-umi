@@ -1,0 +1,9 @@
+# exp055_rel_Gslam48_camstate: exp046_rel_Gslam48_head with the tool pose in the head camera as state (test D2c,
+# 2026-11-14): glove T_cam_tool from the ball the head camera sees (no tiles), teleop from the camera positioner
+# (slam.cam_state) + gripper, 10-D. 48 teleop (38 with a camera pose) + 194 glove episodes on the head-width SLAM
+# dataset (exp045); loss masks slam_valid and ik_unreached; anchor = the current pose. No tiles anywhere.
+experiment: exp055_rel_Gslam48_camstate
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v3, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], anchor: anchor_pose, state: campose_gripper, stats: calib/rel_action_stats_teleop172_camstate.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp055_rel_Gslam48_camstate
