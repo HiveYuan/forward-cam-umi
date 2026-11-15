@@ -134,6 +134,7 @@ New experiments start from these unless they test an alternative to them:
 | exp047_rel_T172 | glove-gain investigation B: relative actions, all 172 teleop episodes (data-scaling control) |
 | exp048_joint_T48, exp049_joint_G48 | glove-gain investigation C: Yosub's joint-space arms retrained (50k); physical chunk errors by FK (`slam.joint_physical`) |
 | exp050_rel_T48_posestate, exp051_rel_Gtile48_posestate | test D1: exp018 / exp019 with the current tool pose (robot base, from the tiles) + gripper as state, 10-D |
+| exp052_rel_T48_startstate, exp053_rel_Gslam48_startstate | test D2a (tile-free): the tool pose relative to the episode start + gripper as state; G-slam48 on the head-width SLAM dataset |
 | head_width/ | summary: the head-camera gripper width (HHs3's width source, calibration, gate change, exp039-exp046 vs exp029-exp036) |
 | glove_gain/ | summary: why glove data helps less with relative actions (anchor test, loss breakdown, B: exp047, C: exp048 / exp049 in physical units) |
 | cross_session/ | summary over glove6 take 1, glove7 and glove8: DA3 + Bnet 4.0 / 13.2% vs default 14.2 / 26.2% scale error; labels 1 s 4.8 vs 7.2 mm |
