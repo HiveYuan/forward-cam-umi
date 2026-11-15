@@ -34,6 +34,21 @@ class FocusTests(unittest.TestCase):
         self.assertTrue(results[0][2] < results[1][2] < results[2][2])
         self.assertTrue(results[0][1] > results[1][1] > results[2][1])
 
+    def test_wrist_measures_and_follows_its_fingertip_tags_before_a_bigger_tile(self):
+        image = scene()                                         # two big 36h11 tiles
+        tip = cv2.aruco.generateImageMarker(
+            cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_16h5), 2, 60)
+        image[500:560, 600:660] = tip[:, :, None]
+        image = cv2.GaussianBlur(image, (0, 0), 0.6)
+        _, _, edge_head, markers_head = focus.measure(image, (640, 360), (300, 260), focus.detectors_for("head"))
+        _, _, edge_wrist, markers_wrist = focus.measure(image, (640, 360), (300, 260), focus.detectors_for("fish"))
+        tip_box = lambda m: m[0][:, 1].mean() > 480             # the 16h5 tag sits low in the frame
+        self.assertFalse(any(tip_box(m) for m in markers_head))  # head: tiles and 4x4 only
+        self.assertTrue(tip_box(markers_wrist[0]))               # wrist: the tip comes first ...
+        self.assertEqual(len(markers_wrist), 3)                  # ... then the (bigger) tiles
+        self.assertFalse(np.isnan(edge_wrist))
+        self.assertFalse(np.isnan(edge_head))
+
     def test_native_refinement_does_not_measure_neighbor_marker(self):
         detector = Mock()
         quad = np.array([[[10, 10], [40, 10], [40, 40], [10, 40]]], np.float32)

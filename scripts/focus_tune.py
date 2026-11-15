@@ -98,10 +98,20 @@ p36.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_APRILTAG
 p4 = cv2.aruco.DetectorParameters()
 p4.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_APRILTAG
 p4.errorCorrectionRate = 1.0
-DETS = [cv2.aruco.ArucoDetector(
-            cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11), p36),
-        cv2.aruco.ArucoDetector(
-            cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50), p4)]
+p16 = cv2.aruco.DetectorParameters()
+p16.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_APRILTAG
+D36 = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11), p36)
+D4 = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50), p4)
+D16 = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_16h5), p16)
+# What each camera focuses on, in priority order: the first dictionary with a decoded marker gives
+# 'edge px' and the crop follows it. Forward/head: tiles (big, static), then ball/tail faces. Wrist:
+# the 16h5 fingertip tags it exists to read (tips 4-8 cm away; a tile cannot be held at that range).
+DETS = [D36, D4]
+WRIST_DETS = [D16, D36, D4]
+
+
+def detectors_for(role):
+    return WRIST_DETS if role in ("wrist", "fish") else DETS
 
 
 def edge_px(g, quad):
@@ -135,13 +145,16 @@ def edge_px(g, quad):
     return float(np.median(widths)) if widths else float("nan")
 
 
-def measure(img, crop_xy, crop_wh):
+def measure(img, crop_xy, crop_wh, dets=None):
     """-> (gray, sharp, edge, markers[(quad, edge)]).  Markers are FOUND at
     half resolution (a full-res 4K pass is ~1.5 s, too slow to turn a barrel
     against) and then RE-DETECTED inside a full-res window around each, so
-    the corners used for the edge width are full-res. 'edge' is the median
-    over 36h11 tiles when any are decoded — big and static — else over the
-    4x4 faces (small, often moving)."""
+    the corners used for the edge width are full-res. `dets` is the camera's
+    focus target in priority order (DETS: 36h11 tiles — big and static — then
+    4x4 faces; WRIST_DETS: the 16h5 fingertip tags first). 'edge' is the
+    median over the first dictionary with a decoded marker, and markers come
+    back in follow order: by that priority, then largest first."""
+    dets = DETS if dets is None else dets
     g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     cx, cy = crop_xy
     cw, ch = crop_wh
@@ -149,9 +162,9 @@ def measure(img, crop_xy, crop_wh):
     sharp = float(cv2.Laplacian(c, cv2.CV_64F).var())
     small = cv2.resize(g, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
     markers, by_dict = [], []
-    for det in DETS:
+    for det in dets:
         corners, ids, _ = det.detectMarkers(small)
-        found = []
+        found, group = [], []
         if ids is not None:
             for q, marker_id in zip(corners, ids.ravel()):
                 q2 = q.reshape(4, 2) * 2.0
@@ -168,11 +181,12 @@ def measure(img, crop_xy, crop_wh):
                     continue
                 q2 = cr[matches[0]].reshape(4, 2) + np.array([xa, ya], np.float32)
                 e = edge_px(g, q2)
-                markers.append((q2, e))
+                group.append((q2, e))
                 if not np.isnan(e):
                     found.append(e)
+        markers += sorted(group, key=lambda m: -np.linalg.norm(m[0][0] - m[0][2]))
         by_dict.append(found)
-    edges = by_dict[0] or by_dict[1]
+    edges = next((f for f in by_dict if f), [])
     edge = float(np.median(edges)) if edges else float("nan")
     return g, sharp, edge, markers
 
@@ -211,8 +225,8 @@ def panel(img, g, markers, crop_xy, crop_wh, label, sharp, peak, edge,
 
 
 class Tuner:
-    def __init__(self, dev, label, width, height, config=None):
-        self.dev, self.label = dev, label
+    def __init__(self, dev, label, width, height, config=None, dets=None):
+        self.dev, self.label, self.dets = dev, label, dets
         self.width, self.height = width, height
         self.cap = open_cam(dev, width, height, config)
         self.crop_xy = [width // 2, height // 2]
@@ -226,11 +240,10 @@ class Tuner:
             ok, img = self.cap.read()
         if not ok:
             return None
-        g, sharp, edge, markers = measure(img, self.crop_xy, crop_wh)
-        # crop follows a decoded marker: tiles first (big, static), then by size
-        order = sorted(markers, key=lambda m: -np.linalg.norm(m[0][0] - m[0][2]))
-        if self.follow >= 0 and order:
-            q = order[self.follow % len(order)][0]
+        g, sharp, edge, markers = measure(img, self.crop_xy, crop_wh, self.dets)
+        # crop follows a decoded marker, in measure's order: the camera's focus target first, then by size
+        if self.follow >= 0 and markers:
+            q = markers[self.follow % len(markers)][0]
             self.crop_xy = [int(q[:, 0].mean()), int(q[:, 1].mean())]
         elif self.follow < 0:
             self.crop_xy = [self.width // 2, self.height // 2]
@@ -241,15 +254,18 @@ class Tuner:
 def main(argv=None):
     args = parse_args(argv)
     config = getattr(args, "config", None)
+    role = ref_role = None              # Linux passes device paths: the default (tile) focus target
     if sys.platform == "darwin":
         from camera_config import resolve_spec
         args.dev = args.role or args.dev
         spec = resolve_spec(args.dev, config)
+        role = spec.role
         W, H = spec.width, spec.height
         if args.size and tuple(int(x) for x in args.size.lower().split("x")) != (W, H):
             raise ValueError("--size must match the saved macOS recording mode")
         if args.ref:
             reference = resolve_spec(args.ref, config)
+            ref_role = reference.role
             if (reference.width, reference.height) != (W, H):
                 raise ValueError("--ref must have the same capture size as the main camera")
         print(f"{spec.role}: {spec.device_id}, {W}x{H} @ {spec.fps:g} fps, rotation {spec.rotation_degrees}°")
@@ -259,10 +275,10 @@ def main(argv=None):
     VIEW_W = 960 if args.ref else 1280           # per-camera column width
     CROP = (VIEW_W, 360)                           # 1:1 crop size (w, h)
     PANEL_H = int(H * VIEW_W / W) + CROP[1]
-    main = Tuner(args.dev, "THIS", W, H, config)
+    main = Tuner(args.dev, "THIS", W, H, config, detectors_for(role))
     ref = sink = None
     try:
-        ref = Tuner(args.ref, "REF", W, H, config) if args.ref else None
+        ref = Tuner(args.ref, "REF", W, H, config, detectors_for(ref_role)) if args.ref else None
         ncol = 2 if ref else 1
         sink = open_sink("focus_tune", VIEW_W * ncol, PANEL_H)
     except BaseException:
@@ -271,8 +287,10 @@ def main(argv=None):
             ref.cap.release()
         raise
 
-    print(f"{args.dev}: turn the focus barrel by hand. Minimise 'edge px' on a "
-          "marker (2-3 px = sharp B0587 at 1 m); 'sharp' peaks at best focus.\n"
+    target = ("the 16h5 fingertip tags (open and closed)" if detectors_for(role) is WRIST_DETS
+              else "a marker (2-3 px = sharp B0587 at 1 m)")
+    print(f"{args.dev}: turn the focus barrel by hand. Minimise 'edge px' on "
+          f"{target}; 'sharp' peaks at best focus.\n"
           "keys here in the terminal: q quit, r reset peak, n next marker, "
           "c centre crop.\n")
     import select
