@@ -133,6 +133,7 @@ Best checkpoints re-evaluated on episodes 15, 52, 73, 84. These episodes are eas
 | D1 G-tile48 (exp051) | tiles | 0.326 | 30.9 / 55.5 / 96.3 / 58.5 | 12.1° | 0.102 |
 | D2a G-slam48 (exp053) | SLAM | 0.342 | 36.2 / 61.5 / 88.6 / 63.2 | 13.0° | 0.096 |
 | D2c G-slam48 (exp055) | SLAM | 0.323 | 31.9 / 65.6 / 116.0 / 67.1 | 11.8° | 0.103 |
+| D2d G-slam48 (exp057) | SLAM | 0.328 | 33.1 / 48.5 / 93.9 / 57.2 | 13.6° | 0.097 |
 
 The glove gain (T48 -> G48 of the same state) on these episodes:
 
@@ -142,6 +143,7 @@ The glove gain (T48 -> G48 of the same state) on these episodes:
 | D1 | -16% | -20% | -21% | -18% |
 | D2a | -17% | -20% | -26% | -15% |
 | D2c | -16% | -5% | -8% | -18% |
+| D2d | -17% | -21% | -30% | -10% |
 | joint space | -25% | -18% | -11% | -15% |
 
 ### Reading
@@ -150,8 +152,11 @@ The glove gain (T48 -> G48 of the same state) on these episodes:
   baseline is worse, though.
 - **D2c** gives the best rotation of all arms but no position gain. The positioner keeps the gripper at the same place
   in the image, so the camera-frame pose mostly carries the tool's orientation relative to the view.
-- **Best tile-free arm so far:** D2a, 63.2 mm, against 58.5 mm for D1 (tiles) and 52.5 mm for Yosub's joint-space G48.
-  D2d combines both states.
+- **D2d** (both states) is the best relative arm: 57.2 mm, level with D1 (58.5 mm, tiles; one seed each, so the
+  difference is within the spread between runs) and 52.5 mm for Yosub's joint-space G48. It has the best step-49 error
+  of the relative arms (48.5 mm against 43.4 mm for Yosub's) and the largest glove gain (-21% chunk mean, -30% at
+  step 99). Its rotation (13.6°) is worse than D2c's, and its step 99 slightly worse than D2a's.
+- **Best tile-free arm:** D2d (exp057). It needs the positioner's camera pose at deployment; D2a (exp053) does not.
 
 ## Deployment (slam.deploy_rel, eval_grid)
 
