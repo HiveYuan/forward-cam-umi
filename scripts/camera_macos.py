@@ -59,6 +59,17 @@ def request_camera_access():
         raise RuntimeError("camera access unavailable; check macOS Privacy & Security > Camera")
 
 
+def lock_frame_duration(device, duration):
+    """Pin the device to one frame duration. AVFoundation keeps min <= max and silently ignores a call
+    that would break it, so a slower rate than the current maximum duration allows sets the max first."""
+    if CM.CMTimeCompare(duration, device.activeVideoMaxFrameDuration()) > 0:
+        device.setActiveVideoMaxFrameDuration_(duration)
+        device.setActiveVideoMinFrameDuration_(duration)
+    else:
+        device.setActiveVideoMinFrameDuration_(duration)
+        device.setActiveVideoMaxFrameDuration_(duration)
+
+
 @dataclass(frozen=True)
 class PreviewFrame:
     image: np.ndarray
@@ -206,15 +217,34 @@ or preview independently.
             try:
                 fmt, duration, self.negotiated_fps = matching[0]
                 device.setActiveFormat_(fmt)
-                device.setActiveVideoMinFrameDuration_(duration)
-                device.setActiveVideoMaxFrameDuration_(duration)
+                lock_frame_duration(device, duration)
             finally:
                 device.unlockForConfiguration()
         finally:
             self.session.commitConfiguration()
         self._check_source_dimensions(device, "after configuration")
+        self._check_frame_duration(device, duration, "after configuration")
         self.session.startRunning()
         self._check_source_dimensions(device, "after startup")
+        # startRunning re-applies the format's default rate range (B0587 1080p: 16.67-33.33 ms, i.e. it
+        # runs at 60 fps when 30 was pinned), so pin the duration again on the running session.
+        locked, error = device.lockForConfiguration_(None)
+        if not locked:
+            raise RuntimeError(f"cannot configure camera: {error}")
+        try:
+            lock_frame_duration(device, duration)
+        finally:
+            device.unlockForConfiguration()
+        self._check_frame_duration(device, duration, "after startup")
+
+    def _check_frame_duration(self, device, duration, stage):
+        # A format with several rates (B0587 1080p: 30 and 60) silently kept 60 fps when 30 was asked.
+        got = (device.activeVideoMinFrameDuration(), device.activeVideoMaxFrameDuration())
+        if any(CM.CMTimeCompare(d, duration) != 0 for d in got):
+            ms = [1000 * d.value / d.timescale for d in got]
+            raise RuntimeError(f"camera frame duration {stage} is {ms[0]:.2f}-{ms[1]:.2f} ms, expected "
+                               f"{1000 * duration.value / duration.timescale:.2f} ms "
+                               f"({self.spec.fps:g} fps); refusing a different frame rate")
 
     def _check_source_dimensions(self, device, stage):
         # Checking output buffers alone could accept scaled-up frames. Require

@@ -43,6 +43,8 @@ class NativeCameraTests(unittest.TestCase):
         fmt.videoSupportedFrameRateRanges.return_value = [rate]
         device.formats.return_value = [fmt]
         device.lockForConfiguration_.return_value = (True, None)
+        device.activeVideoMinFrameDuration.return_value = CM.CMTimeMake(1, 25)
+        device.activeVideoMaxFrameDuration.return_value = CM.CMTimeMake(1, 25)
         session, output, capture_input = Mock(), Mock(), Mock()
         # Reproduce the platform's rejection; startup must never call it.
         session.setSessionPreset_.side_effect = RuntimeError("unsupported preset")
@@ -64,8 +66,9 @@ class NativeCameraTests(unittest.TestCase):
             with cap:
                 session.setSessionPreset_.assert_not_called()
                 device.setActiveFormat_.assert_called_once_with(fmt)
-                device.setActiveVideoMinFrameDuration_.assert_called_once_with(CM.CMTimeMake(1, 25))
-                device.setActiveVideoMaxFrameDuration_.assert_called_once_with(CM.CMTimeMake(1, 25))
+                # pinned while configuring and again on the running session (startRunning resets it)
+                for setter in (device.setActiveVideoMinFrameDuration_, device.setActiveVideoMaxFrameDuration_):
+                    self.assertEqual([c.args for c in setter.call_args_list], [(CM.CMTimeMake(1, 25),)] * 2)
                 output.setVideoSettings_.assert_called_once_with({
                     CV.kCVPixelBufferPixelFormatTypeKey: CV.kCVPixelFormatType_32BGRA,
                     CV.kCVPixelBufferWidthKey: 5,
@@ -80,8 +83,40 @@ class NativeCameraTests(unittest.TestCase):
                 self.assertLess(names.index("session.commitConfiguration"), source_checks[0])
                 self.assertLess(source_checks[0], names.index("session.startRunning"))
                 self.assertLess(names.index("session.startRunning"), source_checks[1])
+                pins = [i for i, name in enumerate(names) if name == "device.setActiveVideoMinFrameDuration_"]
+                self.assertLess(pins[0], names.index("session.startRunning"))
+                self.assertLess(names.index("session.startRunning"), pins[1])
             session.stopRunning.assert_called_once()
             output.setSampleBufferDelegate_queue_.assert_called_with(None, None)
+
+    def test_slower_rate_is_pinned_although_the_platform_ignores_min_above_max(self):
+        class Device:            # AVFoundation: a duration call that would make min > max is ignored
+            def __init__(self, d):
+                self.lo = self.hi = d
+            def activeVideoMinFrameDuration(self):
+                return self.lo
+            def activeVideoMaxFrameDuration(self):
+                return self.hi
+            def setActiveVideoMinFrameDuration_(self, d):
+                if CM.CMTimeCompare(d, self.hi) <= 0:
+                    self.lo = d
+            def setActiveVideoMaxFrameDuration_(self, d):
+                if CM.CMTimeCompare(d, self.lo) >= 0:
+                    self.hi = d
+        for start, want in (((1, 60), (1, 30)), ((1, 30), (1, 60)), ((1, 25), (1, 25))):
+            with self.subTest(start=start, want=want):
+                device = Device(CM.CMTimeMake(*start))     # B0587 1080p opens at 60 fps
+                native.lock_frame_duration(device, CM.CMTimeMake(*want))
+                for got in (device.lo, device.hi):
+                    self.assertEqual(CM.CMTimeCompare(got, CM.CMTimeMake(*want)), 0)
+
+    def test_frame_duration_mismatch_refuses_capture(self):
+        device = Mock()
+        device.activeVideoMinFrameDuration.return_value = CM.CMTimeMake(1, 60)
+        device.activeVideoMaxFrameDuration.return_value = CM.CMTimeMake(1, 30)
+        cap = native.PreviewCapture(CameraSpec("b0587b", "head-id", "Twin", 1920, 1080, 30))
+        with self.assertRaisesRegex(RuntimeError, "refusing a different frame rate"):
+            cap._check_frame_duration(device, CM.CMTimeMake(1, 30), "after startup")
 
     def test_rejects_source_fallback_even_when_output_size_is_requested(self):
         cap = native.PreviewCapture(CameraSpec("b0587", "test", "test", 3840, 2160, 25))
