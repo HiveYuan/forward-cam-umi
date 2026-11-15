@@ -104,14 +104,20 @@ D36 = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_A
 D4 = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50), p4)
 D16 = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_16h5), p16)
 # What each camera focuses on, in priority order: the first dictionary with a decoded marker gives
-# 'edge px' and the crop follows it. Forward/head: tiles (big, static), then ball/tail faces. Wrist:
-# the 16h5 fingertip tags it exists to read (tips 4-8 cm away; a tile cannot be held at that range).
+# 'edge px' and the crop follows it. Forward (fixed, glove ~1 m away): tiles (big, static), then
+# ball/tail faces. Head (worn): the glove's ball/tail faces at arm's length (35-60 cm), then tiles --
+# a head focused on a tile at 1 m leaves the 15 mm ball faces soft (2026-11-15, yuan: tiles sharp,
+# ball and tips blurred), and the 60 mm tiles still decode slightly out of focus. Wrist: the 16h5
+# fingertip tags it exists to read (tips 4-8 cm away; a tile cannot be held at that range).
 DETS = [D36, D4]
+HEAD_DETS = [D4, D36]
 WRIST_DETS = [D16, D36, D4]
 
 
 def detectors_for(role):
-    return WRIST_DETS if role in ("wrist", "fish") else DETS
+    if role in ("wrist", "fish"):
+        return WRIST_DETS
+    return HEAD_DETS if role in ("head", "b0587b") else DETS
 
 
 def edge_px(g, quad):
@@ -287,8 +293,10 @@ def main(argv=None):
             ref.cap.release()
         raise
 
-    target = ("the 16h5 fingertip tags (open and closed)" if detectors_for(role) is WRIST_DETS
-              else "a marker (2-3 px = sharp B0587 at 1 m)")
+    dets = detectors_for(role)
+    target = ("the 16h5 fingertip tags (open and closed)" if dets is WRIST_DETS else
+              "the glove's ball faces held where you grasp (~45 cm), then check a tile still "
+              "decodes" if dets is HEAD_DETS else "a marker (2-3 px = sharp B0587 at 1 m)")
     print(f"{args.dev}: turn the focus barrel by hand. Minimise 'edge px' on "
           f"{target}; 'sharp' peaks at best focus.\n"
           "keys here in the terminal: q quit, r reset peak, n next marker, "

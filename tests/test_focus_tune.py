@@ -49,6 +49,19 @@ class FocusTests(unittest.TestCase):
         self.assertFalse(np.isnan(edge_wrist))
         self.assertFalse(np.isnan(edge_head))
 
+    def test_head_follows_the_glove_faces_before_a_bigger_tile_forward_the_tile(self):
+        image = scene()                                         # two big 36h11 tiles
+        face = cv2.aruco.generateImageMarker(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50), 25, 70)
+        image[500:570, 600:670] = face[:, :, None]              # a small ball face, low in the frame
+        face_first = lambda markers: markers[0][0][:, 1].mean() > 480
+        for role in ("head", "b0587b"):
+            _, _, edge, markers = focus.measure(image, (640, 360), (300, 260), focus.detectors_for(role))
+            self.assertTrue(face_first(markers), role)
+            self.assertEqual(len(markers), 3)                   # the tiles still follow
+            self.assertFalse(np.isnan(edge))
+        _, _, _, markers = focus.measure(image, (640, 360), (300, 260), focus.detectors_for("b0587"))
+        self.assertFalse(face_first(markers))                   # fixed forward camera: the tile
+
     def test_native_refinement_does_not_measure_neighbor_marker(self):
         detector = Mock()
         quad = np.array([[[10, 10], [40, 10], [40, 40], [10, 40]]], np.float32)

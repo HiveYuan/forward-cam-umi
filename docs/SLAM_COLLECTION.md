@@ -48,8 +48,11 @@ Dataset names used below:
    `uvc-util`) at 16.7 ms removes the bands at 4K (2 % depth) but overexposes at minimum
    gain (239/255, no tile decoded). Note 1080p@60 is also softer (tile edges ~7 px vs
    1-3 px for 4K shrunk to 1080p): it trades corner accuracy for no rolling bands. Then
-   `python scripts/focus_tune.py head` and `... wrist`. Lock the head focus and put a witness
-   mark on the barrel.
+   `python scripts/focus_tune.py head` and `... wrist`, each on what that camera reads:
+   **head** on the glove's ball faces held where you grasp (~45 cm, worn), then check a tile
+   still decodes; not on a tile at 1 m, which leaves the 15 mm ball faces and the fingertip
+   tags soft (2026-11-15). **Wrist** on the 16h5 fingertip tags (4-8 cm), jaws open and closed.
+   Lock both and put a witness mark on each barrel.
 4. **Intrinsics.** If the head camera's focus moved since its last calibration, or there
    is none, calibrate (caliper the ChArUco board first):
    ```
