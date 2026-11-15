@@ -42,7 +42,12 @@ Dataset names used below:
    B0587's only 4K rate (25 fps, measured 26.3) shows rolling flicker bands under LED light,
    and macOS has no exposure/anti-flicker control; 1080p@30 drops to ~15 fps under auto
    exposure indoors; 1080p@60 runs at 58.8 fps with no bands (2026-11-14, yuan kitchen).
-   Under flicker-free light 4K@25 remains possible. Then
+   Under flicker-free light 4K@25 remains possible. The UVC route does not help under bright
+   flickering light: the B0587's power-line-frequency is already 60 Hz by default, but auto
+   exposure picks less than one 8.33 ms flicker period; manual exposure (over UVC, e.g.
+   `uvc-util`) at 16.7 ms removes the bands at 4K (2 % depth) but overexposes at minimum
+   gain (239/255, no tile decoded). Note 1080p@60 is also softer (tile edges ~7 px vs
+   1-3 px for 4K shrunk to 1080p): it trades corner accuracy for no rolling bands. Then
    `python scripts/focus_tune.py head` and `... wrist`. Lock the head focus and put a witness
    mark on the barrel.
 4. **Intrinsics.** If the head camera's focus moved since its last calibration, or there
