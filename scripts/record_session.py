@@ -33,6 +33,7 @@ import threading
 import time
 from pathlib import Path
 
+from camera_config import ROLE_ALIASES
 from marker_config import WristMarkers, load_marker_map, resolve_marker_map, save_snapshot
 
 # Resolve the DIRECTORY, not the file: this script may be reached through a
@@ -122,36 +123,55 @@ def _tail_frame(stem):
 
 
 _DETS = {}
+_HEAD_STEM = "_" + ROLE_ALIASES["head"]
+
+
+def _detector(kind):
+    import cv2
+    if kind not in _DETS:
+        p = cv2.aruco.DetectorParameters()
+        p.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_APRILTAG
+        dic = {"16h5": cv2.aruco.DICT_APRILTAG_16h5, "36h11": cv2.aruco.DICT_APRILTAG_36h11,
+               "4x4": cv2.aruco.DICT_4X4_50}[kind]
+        _DETS[kind] = cv2.aruco.ArucoDetector(
+            cv2.aruco.getPredefinedDictionary(dic), p)
+    return _DETS[kind]
+
+
+def _health_families(stem, wrist_markers):
+    """The marker families a stream is guaranteed to see: the configured tips
+    (or any 16h5) on the wrist fisheye, the dodeca/tails (4x4) on the forward
+    cams. The head camera also has the 36h11 workspace tiles, which are in
+    its view when the glove is not (a layout take, the glove lowered between
+    episodes)."""
+    if stem.endswith("_fish"):
+        return (wrist_markers.family if wrist_markers else "16h5",)
+    return ("4x4", "36h11") if stem.endswith(_HEAD_STEM) else ("4x4",)
 
 
 def _frame_health(stem, img, wrist_markers=None):
     """(brightness, marker count, black level, contrast). The marker count is the
     FUNCTIONAL check: exposure, focus, lens smudge, and framing all gate
-    it, and the rig guarantees markers in view (dodeca/tails for the
-    forward cams, configured tips for the wrist fisheye). Without a map,
-    keep the legacy any-16h5 wrist check."""
+    it, and the rig guarantees markers in view (_health_families). Without
+    a map, keep the legacy any-16h5 wrist check."""
     import cv2
-    wrist = stem.endswith("_fish")
-    expected = wrist_markers if wrist else None
-    kind = expected.family if expected else ("16h5" if wrist else "4x4")
-    if kind not in _DETS:
-        p = cv2.aruco.DetectorParameters()
-        p.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_APRILTAG
-        dic = (cv2.aruco.DICT_APRILTAG_16h5 if kind == "16h5"
-               else cv2.aruco.DICT_4X4_50)
-        _DETS[kind] = cv2.aruco.ArucoDetector(
-            cv2.aruco.getPredefinedDictionary(dic), p)
+    expected = wrist_markers if stem.endswith("_fish") else None
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    corners, ids, _ = _DETS[kind].detectMarkers(gray)
-    if ids is None or not len(ids):
+    corners = []
+    for kind in _health_families(stem, wrist_markers):
+        found, ids, _ = _detector(kind).detectMarkers(gray)
+        if ids is None or not len(ids):
+            continue
+        if expected:
+            # Count only the configured pair. Unrelated tags and duplicate IDs
+            # cannot stand in for a missing jaw marker.
+            from collections import Counter
+            counts = Counter(int(i) for i in ids.ravel())
+            found = [c for c, i in zip(found, ids.ravel())
+                     if int(i) in expected.sizes_mm and counts[int(i)] == 1]
+        corners += list(found)
+    if not corners:
         return float(gray.mean()), 0, None, None
-    if expected:
-        # Count only the configured pair. Unrelated tags and duplicate IDs
-        # cannot stand in for a missing jaw marker.
-        from collections import Counter
-        counts = Counter(int(i) for i in ids.ravel())
-        corners = [c for c, i in zip(corners, ids.ravel())
-                   if int(i) in expected.sizes_mm and counts[int(i)] == 1]
     # contrast at the decoded markers: a stuck ISP (seen on the wrist
     # fisheye, fixed only by replugging) lifts the black cells to ~180 while
     # the frame mean looks normal and a tag or two still decodes — the
@@ -179,7 +199,7 @@ def _required_markers(stem, wrist_markers):
 def _marker_expectation(stem, wrist_markers):
     if wrist_markers and stem.endswith("_fish"):
         return wrist_markers.description
-    return "16h5 markers" if stem.endswith("_fish") else "4x4 markers"
+    return " or ".join(f"{kind} markers" for kind in _health_families(stem, wrist_markers))
 
 
 # Fail thresholds. Measured 2026-10-06 on real frames: stuck-ISP wrist cam

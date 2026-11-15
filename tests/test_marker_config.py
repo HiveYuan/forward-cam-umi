@@ -26,7 +26,8 @@ def marker_map(family="4x4"):
 
 
 def image_of(family, ids):
-    code = cv2.aruco.DICT_4X4_50 if family == "4x4" else cv2.aruco.DICT_APRILTAG_16h5
+    code = {"4x4": cv2.aruco.DICT_4X4_50, "16h5": cv2.aruco.DICT_APRILTAG_16h5,
+            "36h11": cv2.aruco.DICT_APRILTAG_36h11}[family]
     dictionary = cv2.aruco.getPredefinedDictionary(code)
     image = np.full((240, 220 * len(ids) + 20), 255, np.uint8)
     for n, marker_id in enumerate(ids):
@@ -52,6 +53,18 @@ class MarkerConfigurationTests(unittest.TestCase):
         self.assertEqual(record_session._frame_health("take_fish", image_of("16h5", (2, 3)))[1], 2)
         self.assertEqual(record_session._required_markers("take_fish", None), 1)
         self.assertEqual(record_session._frame_health("fish_trial_b0587", image_of("4x4", (40,)))[1], 1)
+
+    def test_head_camera_health_counts_workspace_tiles_forward_camera_does_not(self):
+        tiles = image_of("36h11", (2, 3))
+        # a layout take: tiles only, no glove in the head view
+        self.assertEqual(record_session._frame_health("yuan_layout_01_b0587b", tiles)[1], 2)
+        self.assertEqual(record_session._frame_health("take_b0587b", image_of("4x4", (40,)))[1], 1)
+        self.assertEqual(record_session._frame_health("take_b0587", tiles)[1], 0)
+        self.assertEqual(record_session._frame_health("take_fish", tiles)[1], 0)
+        self.assertEqual(record_session._required_markers("take_b0587b", None), 1)
+        self.assertEqual(record_session._marker_expectation("take_b0587b", None),
+                         "4x4 markers or 36h11 markers")
+        self.assertEqual(record_session._marker_expectation("take_b0587", None), "4x4 markers")
 
     def test_invalid_identity_or_scale_fails_before_capture(self):
         for changes in ({"tips_dict": "36h11"}, {"tips": {"38": 12.18}},
