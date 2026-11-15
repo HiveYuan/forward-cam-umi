@@ -14,6 +14,8 @@ returns, for an anchor step t:
                            state="campose_gripper" (10,) = the tool pose in the head camera (xyz + 6D rotation, from
                            <root>/meta/cam_tool_pose.npz, slam.cam_state: glove from the ball, teleop from the camera
                            positioner) + gripper; tile-free (test D2c, 2026-11-14). Steps without it are not sampled.
+                           state="startcam_gripper" (19,) = both: the start-relative pose (9) + the camera-frame
+                           pose (9) + gripper (test D2d, 2026-11-14); steps need both.
                            state="startpose_gripper" (10,) = the current tool pose relative to the episode's start
                            pose (T_start^-1 . T_t: xyz + 6D rotation) + gripper; tile-free (test D2a, 2026-11-14).
                            T_start = the anchor pose at the episode's first step with a valid pose (slam_valid where
@@ -99,9 +101,19 @@ def valid_anchors(df, masks, anchor="anchor_pose"):
 
 
 ANCHORS = ("anchor_pose", "prev_action")
-STATES = ("gripper", "pose_gripper", "startpose_gripper", "campose_gripper")
+STATES = ("gripper", "pose_gripper", "startpose_gripper", "campose_gripper", "startcam_gripper")
 _POSE10 = ["x", "y", "z", "r00", "r10", "r20", "r01", "r11", "r21", "gripper.pos"]
-STATE_NAMES = {"gripper": ["gripper.pos"], "pose_gripper": _POSE10, "startpose_gripper": _POSE10, "campose_gripper": _POSE10}
+STATE_NAMES = {"gripper": ["gripper.pos"], "pose_gripper": _POSE10, "startpose_gripper": _POSE10, "campose_gripper": _POSE10,
+               "startcam_gripper": [f"start_{n}" for n in _POSE10[:9]] + [f"cam_{n}" for n in _POSE10[:9]] + ["gripper.pos"]}
+USES_START = ("startpose_gripper", "startcam_gripper")
+USES_CAM = ("campose_gripper", "startcam_gripper")
+
+
+def startcam_state(start6, cur6, cam6, grip):
+    """(N, 19): the start-relative pose (9) + the tool pose in the head camera (9) + gripper."""
+    a = startpose_state(start6, cur6, grip)
+    b = pose_state(cam6, grip)
+    return np.concatenate([a[:, :9], b[:, :9], a[:, 9:]], 1)
 
 
 def cam_poses(root, df):
@@ -142,8 +154,8 @@ def check_state_dataset(root, state):
     """A pose state needs absolute poses in the robot base: the tile variant of slam.rel_dataset."""
     if state not in STATES:
         raise ValueError(f"state must be one of {STATES}, got {state!r}")
-    if state == "campose_gripper" and not (Path(root) / "meta" / "cam_tool_pose.npz").exists():
-        raise ValueError(f"state 'campose_gripper' needs {root}/meta/cam_tool_pose.npz (python -m slam.cam_state build)")
+    if state in USES_CAM and not (Path(root) / "meta" / "cam_tool_pose.npz").exists():
+        raise ValueError(f"state {state!r} needs {root}/meta/cam_tool_pose.npz (python -m slam.cam_state build)")
     if state == "pose_gripper":
         meta = json.load(open(Path(root) / "meta" / "relative_labels.json"))
         if meta.get("variant") != "tile":
@@ -183,8 +195,8 @@ def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT, anchor="an
     act = np.stack(df["action"].values).astype(float)
     anc = anchor_poses(df, anchor)
     cur = np.stack(df["anchor_pose"].values).astype(float)
-    starts = start_poses(df) if state == "startpose_gripper" else {}
-    if state == "campose_gripper":                       # state rows only where the camera pose exists; the
+    starts = start_poses(df) if state in USES_START else {}
+    if state in USES_CAM:                                # state rows only where the camera pose exists; the
         cam, cam_ok = cam_poses(root, df)                   # action stats keep every anchor (comparable losses)
     ep = df["episode_index"].values
     bad = ~valid_anchors(df, masks)
@@ -204,10 +216,14 @@ def compute_stats(root, episodes, masks=MASK_KEYS, horizon=H_DEFAULT, anchor="an
             ok = ~bad_anchor[r]
             if int(e) in starts and ok.any():
                 states.append(startpose_state(starts[int(e)], cur[r][ok], grip[ok]))
-        else:
+        elif state == "campose_gripper":
             ok = ~bad_anchor[r] & cam_ok[r]
             if ok.any():
                 states.append(pose_state(cam[r][ok], grip[ok]))
+        else:
+            ok = ~bad_anchor[r] & cam_ok[r]
+            if int(e) in starts and ok.any():
+                states.append(startcam_state(starts[int(e)], cur[r][ok], cam[r][ok], grip[ok]))
         for t in np.where(~bad_anchor[r])[0]:
             j = np.arange(t, min(t + horizon, len(r)))
             j = j[~b[j]]
@@ -275,11 +291,11 @@ class RelChunkDataset:
         # LeRobotDataset orders frames by the selected episodes' order in the files (= sorted episode index)
         if not np.array_equal(df["episode_index"].values, np.sort(df["episode_index"].values)):
             raise RuntimeError("source frames are not sorted by episode")
-        self.starts = start_poses(df) if state == "startpose_gripper" else {}
-        if state == "startpose_gripper":                  # an anchor needs its episode's start pose
+        self.starts = start_poses(df) if state in USES_START else {}
+        if state in USES_START:                           # an anchor needs its episode's start pose
             ok &= np.isin(df["episode_index"].values, list(self.starts))
         self.cam = {}
-        if state == "campose_gripper":                    # an anchor needs its tool pose in the head camera
+        if state in USES_CAM:                             # an anchor needs its tool pose in the head camera
             cam, cam_ok = cam_poses(root, df)
             ok &= cam_ok
             self.cam = {int(i): cam[k] for k, i in enumerate(df["index"].values) if cam_ok[k]}
@@ -324,9 +340,14 @@ class RelChunkDataset:
             pose = item["anchor_pose"].double().numpy().reshape(6)
             start = self.starts[int(item["episode_index"])]
             item["observation.state"] = torch.as_tensor(startpose_state(start, pose, grip)[0], dtype=torch.float32)
-        else:                                             # the tool pose in the head camera
+        elif self.state == "campose_gripper":             # the tool pose in the head camera
             item["observation.state"] = torch.as_tensor(pose_state(self.cam[int(item["index"])], grip)[0],
                                                         dtype=torch.float32)
+        else:                                             # both
+            pose = item["anchor_pose"].double().numpy().reshape(6)
+            start = self.starts[int(item["episode_index"])]
+            item["observation.state"] = torch.as_tensor(
+                startcam_state(start, pose, self.cam[int(item["index"])], grip)[0], dtype=torch.float32)
         for k in ("anchor_pose", *self.masks):
             item.pop(k, None)
             item.pop(f"{k}_is_pad", None)
@@ -386,8 +407,10 @@ def main():
                 ref_state = pose_state(cur_t, g_t)[0]
             elif a.state == "startpose_gripper":
                 ref_state = startpose_state(start_poses(df)[int(ep[t])], cur_t, g_t)[0]
-            else:
+            elif a.state == "campose_gripper":
                 ref_state = pose_state(cam_poses(a.root, df.iloc[[t]])[0][0], g_t)[0]
+            else:
+                ref_state = startcam_state(start_poses(df)[int(ep[t])], cur_t, cam_poses(a.root, df.iloc[[t]])[0][0], g_t)[0]
             worst = max(worst, float(np.abs(item["observation.state"].numpy() - ref_state).max()))
         n += 1
     print(f"{n} items; {rd.num_frames} anchors in {rd.num_episodes} episodes ({rd.dropped_anchors} masked anchors "

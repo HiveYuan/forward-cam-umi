@@ -136,6 +136,7 @@ New experiments start from these unless they test an alternative to them:
 | exp050_rel_T48_posestate, exp051_rel_Gtile48_posestate | test D1: exp018 / exp019 with the current tool pose (robot base, from the tiles) + gripper as state, 10-D |
 | exp052_rel_T48_startstate, exp053_rel_Gslam48_startstate | test D2a (tile-free): the tool pose relative to the episode start + gripper as state; G-slam48 on the head-width SLAM dataset |
 | exp054_rel_T48_camstate, exp055_rel_Gslam48_camstate | test D2c (tile-free): the tool pose in the head camera + gripper as state (glove from the ball, teleop from the camera positioner; slam.cam_state) |
+| exp056_rel_T48_startcamstate, exp057_rel_Gslam48_startcamstate | test D2d (tile-free): both states, start-relative pose (D2a) + camera-frame pose (D2c) + gripper, 19-D |
 | head_width/ | summary: the head-camera gripper width (HHs3's width source, calibration, gate change, exp039-exp046 vs exp029-exp036) |
 | glove_gain/ | summary: why glove data helps less with relative actions (anchor test, loss breakdown, B: exp047, C: exp048 / exp049 in physical units) |
 | cross_session/ | summary over glove6 take 1, glove7 and glove8: DA3 + Bnet 4.0 / 13.2% vs default 14.2 / 26.2% scale error; labels 1 s 4.8 vs 7.2 mm |
