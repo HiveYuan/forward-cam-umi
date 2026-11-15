@@ -1,0 +1,23 @@
+{
+ "invocations": [
+  {
+   "git_commit": "192e4ef7be61cff8afa2b59a4415b034a2bc1703",
+   "git_clean": true,
+   "lerobot_checkout": "0cae109fb8b793b9049709dc6a79e61514511016",
+   "packages": {
+    "lerobot": "0.5.2",
+    "torch": "2.11.0",
+    "torchvision": "0.26.0",
+    "torchcodec": "0.11.1",
+    "numpy": "2.2.6"
+   },
+   "gpu": "NVIDIA GeForce RTX 3090",
+   "config": "experiments/exp057_rel_Gslam48_startcamstate/config.yaml",
+   "output_dir": "/home/student/yuanliu-hawaii/work/train/exp057_rel_Gslam48_startcamstate",
+   "steps": 50000,
+   "seed": 1000,
+   "start": "2026-11-14T21:34:10-10:00",
+   "end": "2026-11-14T22:25:05-10:00"
+  }
+ ]
+}
