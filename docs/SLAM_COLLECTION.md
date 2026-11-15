@@ -37,7 +37,12 @@ Dataset names used below:
    The rehearsal's `field_qc` prints which ids the wrist camera actually sees.
 3. **Cameras.** `python scripts/cameras_setup.py --require head,wrist` (roles: `b0587b` head,
    `fish` wrist; no forward camera on this rig), then
-   `python scripts/cameras_setup.py --check-config --require head,wrist`. Then
+   `python scripts/cameras_setup.py --check-config --require head,wrist`.
+   **Head mode under 60 Hz mains light: `1920x1080@60`** (type it at the mode prompt). The
+   B0587's only 4K rate (25 fps, measured 26.3) shows rolling flicker bands under LED light,
+   and macOS has no exposure/anti-flicker control; 1080p@30 drops to ~15 fps under auto
+   exposure indoors; 1080p@60 runs at 58.8 fps with no bands (2026-11-14, yuan kitchen).
+   Under flicker-free light 4K@25 remains possible. Then
    `python scripts/focus_tune.py head` and `... wrist`. Lock the head focus and put a witness
    mark on the barrel.
 4. **Intrinsics.** If the head camera's focus moved since its last calibration, or there
