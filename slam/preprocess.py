@@ -20,6 +20,7 @@ Writes <segments_dir>/epNN/:
 """
 import argparse
 import bisect
+import functools
 import json
 import shutil
 import subprocess
@@ -38,6 +39,17 @@ def packet_pts(video):
                           "packet=pts_time", "-of", "csv=p=0", str(video)],
                          capture_output=True, text=True, check=True).stdout.split()
     return np.array([float(x) for x in out])
+
+
+@functools.lru_cache(maxsize=None)
+def video_size(video):
+    """(width, height) of the video's first stream. Raw frames are decoded at the size the camera was
+    recorded at (4K@25 for the paper's head camera, 1080p@30 for a head camera under 60 Hz mains light)."""
+    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                          "stream=width,height", "-of", "csv=p=0:s=x", str(video)],
+                         capture_output=True, text=True, check=True).stdout.strip()
+    w, h = out.split("x")
+    return int(w), int(h)
 
 
 def output_geometry(K, D, W, H, alpha, width):

@@ -35,14 +35,16 @@ from slam import config as C
 from slam import geometry as G
 from slam import relative as Rl
 from slam.labels import FPS, RefPoses
-from slam.preprocess import packet_pts
+from slam.preprocess import packet_pts, video_size
 
 IMKEY = "observation.images.b0587b"
 OBS = (640, 360)
 
 
-def decode_frames(video, pts, ks, W=3840, H=2160):
-    """Raw frames for sorted original indices ks (one ffmpeg pass over [ks[0], ks[-1]])."""
+def decode_frames(video, pts, ks):
+    """Raw frames for sorted original indices ks (one ffmpeg pass over [ks[0], ks[-1]]), decoded at the
+    video's recorded size."""
+    W, H = video_size(str(video))
     k0, k1 = int(ks[0]), int(ks[-1])
     t0, t1 = pts[k0] - 0.01, pts[k1] + 0.01
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-copyts", "-ss", f"{max(t0 - 1, 0):.3f}", "-i", str(video),

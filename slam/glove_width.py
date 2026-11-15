@@ -39,7 +39,7 @@ import numpy as np
 import pandas as pd
 
 from slam import config as C
-from slam.preprocess import packet_pts
+from slam.preprocess import packet_pts, video_size
 
 DS = Path.home() / ".cache/huggingface/lerobot/pilot_glove_HHs3"
 
@@ -51,7 +51,8 @@ def video_frame(path, t, size=(640, 360)):
     return np.frombuffer(out, np.uint8).reshape(size[1], size[0], 3) if len(out) == size[0] * size[1] * 3 else None
 
 
-def raw_frame(video, pts, k, W=3840, H=2160):
+def raw_frame(video, pts, k):
+    W, H = video_size(str(video))
     t = pts[k]
     out = subprocess.run(["ffmpeg", "-v", "error", "-copyts", "-ss", f"{max(t - 1, 0):.3f}", "-i", str(video),
                           "-vf", f"select='between(t,{t - 0.01:.4f},{t + 0.01:.4f})'", "-fps_mode", "passthrough",

@@ -43,6 +43,19 @@ class FrameReaderTests(unittest.TestCase):
                     if allow_raw:
                         self.assertTrue(src.raw)       # complete JPEGs decode on their own
 
+    @unittest.skipUnless(shutil.which("ffmpeg"), "requires ffmpeg")
+    def test_head_is_searched_at_about_1080p_for_4k_and_1080p_takes(self):
+        with tempfile.TemporaryDirectory() as d:
+            for (w, h), scale in (((3840, 2160), 2), ((1920, 1080), 1)):
+                stem = f"t{w}_b0587b"
+                rec = MJPEGWriter(d, stem, w, h, 25, 1.0)
+                rec.prepare()
+                ok, jpeg = cv2.imencode(".jpg", np.zeros((h, w, 3), np.uint8))
+                rec.write(jpeg, 1791600000.0)
+                rec.close()
+                rec.finalize()
+                self.assertEqual(Q.head_detect_scale(Path(d) / f"{stem}.mkv"), scale)
+
 
 class TurnSpeedTests(unittest.TestCase):
     def test_tile_rotation_recovers_a_known_camera_turn(self):

@@ -8,8 +8,9 @@ spot instead of being found days later on the server.
 Defaults for --unit / --head-intr / --tags come from data/raw/<dataset>_session.json
 (scripts/session_meta.py) when present. Reads data/raw/<dataset>_{b0587b,fish}.*,
 <dataset>_glove_episodes.json and, for a width-holds session, <dataset>_glove_log.json.
-Detection is on decoded frames in the episode windows only (half resolution for the
-4K head camera), so a 15-episode session takes a few minutes. Writes
+Detection is on decoded frames in the episode windows only (at about 1080p: half
+resolution for a 4K head camera, full for a 1080p one), so a 15-episode session takes a
+few minutes. Writes
 data/raw/<dataset>_field_qc.json; exit code 1 if any episode FAILs.
 
 Per episode (FAIL = re-record it, WARN = note it):
@@ -126,6 +127,19 @@ class Frames:
 
 
 # ---------------------------------------------------------------- detection
+
+def head_detect_scale(path):
+    """Head frames are searched at about 1080p: a 4K take is decoded at half size (corners scaled by 2),
+    a 1080p@30 take (a head camera under 60 Hz mains light) at full size."""
+    cap = cv2.VideoCapture(str(path), cv2.CAP_FFMPEG)
+    try:
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    finally:
+        cap.release()
+    if width <= 0:
+        raise RuntimeError(f"cannot read the frame size of {path}")
+    return 2 if width > 2000 else 1
+
 
 def _detector(dictionary, ecr=None):
     p = cv2.aruco.DetectorParameters()
@@ -342,10 +356,11 @@ def main():
     det = Detect()
     t0 = time.time()
     print(f"[head] {head_stem}: decoding {len(want)} of {len(hw)} frames ...", flush=True)
-    src = Frames(raw / f"{head_stem}.mkv", half=True)
+    scale = head_detect_scale(raw / f"{head_stem}.mkv")
+    src = Frames(raw / f"{head_stem}.mkv", half=scale == 2)
     H = {}                                   # frame -> (tile ids, glove marker ids, {tile: R})
     for k, g in src.read(want):
-        tiles, glove = det.head(g, 2.0)
+        tiles, glove = det.head(g, float(scale))
         tiles = {i: c for i, c in tiles.items() if i in tile_ids}
         rots = tile_rotations(tiles, K, dist, edge_m) if (K is not None and k in pre_want) else {}
         H[k] = (set(tiles), glove, rots)
