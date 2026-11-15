@@ -166,6 +166,62 @@ class RelativeActPolicy:
         return out[0].double().cpu().numpy() * self.std + self.mean
 
 
+class RelativeRunner:
+    """scripts/eval_grid.py's Runner interface (reset / obs(q, g) / act(obs) -> 7 absolute joint commands) for a relative-
+    action arm, so the grid's loop (slew limit, gripper clamp, logging) runs it unchanged.
+
+    ARMS entry: {"cam": "head", "relative": {"state": <relative_dataset state>, "horizon": None},
+                 "act": (<dataset repo, unused>, <train_runs/... checkpoint dir>)}.
+    kin: i2rt Kinematics (grasp_site). head: the head-camera reader (.frame, BGR). cam_pose: callable -> T_base_cam
+    (4x4) of the positioner's camera now, needed only by the camera-frame states. ensemble: ACT's coefficient (oldest
+    prediction weighted 1); horizon: how many steps of each chunk enter the ensemble (None = all)."""
+
+    def __init__(self, name, model_dir, state, kin, head, device, task, ensemble=0.01, horizon=None, cam_pose=None,
+                 crop=1.0):
+        self.name, self.cam, self.head, self.kin, self.device, self.task = name, "head", head, kin, device, task
+        self.crop = float(crop)
+        self.img_keys = ["observation.images.b0587b"]
+        self.policy = RelativeActPolicy(model_dir, device)
+        self.planner = RelativeChunkPlanner(ensemble, horizon)
+        self.sb = StateBuilder(state)
+        self.cam_pose = cam_pose
+        if state in RD.USES_CAM and cam_pose is None:
+            raise ValueError(f"{name}: state {state!r} needs the camera positioner's pose (cam_pose)")
+        self.reset()
+
+    def reset(self):
+        self.planner.reset()
+        self.tick, self.started, self.q, self.T = 0, False, None, None
+
+    def obs(self, q, g):
+        import cv2
+        self.q = np.asarray(q, float)
+        self.T = np.asarray(self.kin.fk(self.q), float)
+        if not self.started:                                 # the rollout's start pose (start-relative states)
+            self.sb.reset(self.T)
+            self.started = True
+        T_cam_tool = G.inv(np.asarray(self.cam_pose(), float)[None])[0] @ self.T if self.sb.kind in RD.USES_CAM else None
+        rgb = self.head.frame[:, :, ::-1]
+        if self.crop < 1.0:
+            H, W = rgb.shape[:2]
+            ch, cw = int(round(H * self.crop)), int(round(W * self.crop))
+            y0, x0 = (H - ch) // 2, (W - cw) // 2
+            rgb = rgb[y0:y0 + ch, x0:x0 + cw]
+        return {"observation.state": self.sb(self.T, g, T_cam_tool),
+                "observation.images.b0587b": np.ascontiguousarray(cv2.resize(rgb, (640, 360), interpolation=cv2.INTER_AREA))}
+
+    def act(self, obs):
+        import torch
+        from lerobot.policies.utils import prepare_observation_for_inference
+        batch = prepare_observation_for_inference(obs, torch.device(self.device), self.task, "yam")
+        chunk = self.policy(batch)
+        self.planner.add(self.tick, self.T, chunk)
+        T, g, _ = self.planner.current(self.tick)
+        self.tick += 1
+        ok, q = self.kin.ik(T, "grasp_site", init_q=self.q.copy(), pos_threshold=1e-3, ori_threshold=1e-2, max_iters=60)
+        return np.concatenate([np.asarray(q[:6], float), [g]])
+
+
 # ---------------------------------------------------------------- offline replay
 def replay_policy(cfg_path, episode, out_dir, device="cuda"):
     import torch
