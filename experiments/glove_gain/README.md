@@ -91,7 +91,89 @@ Robot val, best checkpoint, chunk with VAE latent 0, median per step:
    Relative actions have to infer the remaining motion from the image, where glove and teleop look
    different.
 
-## Proposed next tests (not run)
+## State tests D1 / D2 (2026-11-13 / 14)
+
+D1 gives the relative policy the current tool pose as state; the D2 variants do so without tiles.
+
+| test | state (10-D unless noted) | runs | where the pose comes from |
+|---|---|---|---|
+| D1 | tool pose in the robot base + gripper | exp050 (T48), exp051 (G-tile48) | FK; glove: the tile chain (tiles in training labels only; at deployment FK) |
+| D2a | pose relative to the episode start + gripper | exp052, exp053 (G-slam48, SLAM v3) | FK / SLAM, no tiles |
+| D2c | tool pose in the head camera + gripper | exp054, exp055 | teleop: the SO-101 positioner's joints (slam.cam_state); glove: the ball; no tiles |
+| D2d | D2a + D2c + gripper, 19-D | exp056, exp057 | both |
+
+Two caveats:
+- **Episode starts:** teleop episodes start at the robot's home pose (spread 1 cm), glove episodes 14 cm away on average
+  (spread 10 cm). So the start-relative pose means different things in the two halves.
+- **Missing positioner log:** yam_head13 has none, so D2c / D2d use 38 of the 48 teleop episodes and 4 of the 6
+  robot-val episodes (15, 52, 73, 84).
+
+### Six val episodes
+
+D1, the first test:
+
+| arm | robot val | pos mm j14 / j49 / j99 / chunk mean | rot |
+|---|---|---|---|
+| relative T48 + pose (exp050) | 0.4873 | 33.3 / 71.6 / 163.5 / 81.7 | 18.2° |
+| relative G-tile48 + pose (exp051) | 0.4039 | 31.3 / 55.3 / 106.8 / 63.2 | 14.5° |
+| joint G48, Yosub's arm (exp049) | 0.2908 | 36.5 / 50.0 / 105.5 / 65.2 | 16.2° |
+
+The glove gain is -23% in chunk mean position and -35% at step 99, where it was -4% with the gripper state.
+
+### The four val episodes every arm can use
+
+Best checkpoints re-evaluated on episodes 15, 52, 73, 84. These episodes are easier: all numbers are lower than on six.
+
+| arm | glove labels | robot val | pos mm j14 / j49 / j99 / chunk mean | rot | gripper |
+|---|---|---|---|---|---|
+| Yosub's G48, joint space (exp049; paper 0.295 on 6) | tiles | 0.206 | 33.6 / 43.4 / 77.5 / 52.5 | 13.2° | 0.083 |
+| joint T48 (exp048) | – | 0.275 | 43.0 / 50.2 / 87.4 / 63.8 | 15.5° | 0.095 |
+| relative T48, gripper (exp018) | – | 0.412 | 32.5 / 74.2 / 121.1 / 72.3 | 15.7° | 0.112 |
+| relative G-slam48, gripper (exp046) | SLAM | 0.365 | 31.0 / 60.3 / 111.9 / 68.6 | 14.4° | 0.133 |
+| D1 G-tile48 (exp051) | tiles | 0.326 | 30.9 / 55.5 / 96.3 / 58.5 | 12.1° | 0.102 |
+| D2a G-slam48 (exp053) | SLAM | 0.342 | 36.2 / 61.5 / 88.6 / 63.2 | 13.0° | 0.096 |
+| D2c G-slam48 (exp055) | SLAM | 0.323 | 31.9 / 65.6 / 116.0 / 67.1 | 11.8° | 0.103 |
+
+The glove gain (T48 -> G48 of the same state) on these episodes:
+
+| state | val | chunk mean position | step 99 | rotation |
+|---|---|---|---|---|
+| gripper | -11% | -5% | -8% | -8% |
+| D1 | -16% | -20% | -21% | -18% |
+| D2a | -17% | -20% | -26% | -15% |
+| D2c | -16% | -5% | -8% | -18% |
+| joint space | -25% | -18% | -11% | -15% |
+
+### Reading
+
+- **D2a** recovers D1's position gain without tiles, and has the best step-99 error of the relative arms. Its T48
+  baseline is worse, though.
+- **D2c** gives the best rotation of all arms but no position gain. The positioner keeps the gripper at the same place
+  in the image, so the camera-frame pose mostly carries the tool's orientation relative to the view.
+- **Best tile-free arm so far:** D2a, 63.2 mm, against 58.5 mm for D1 (tiles) and 52.5 mm for Yosub's joint-space G48.
+  D2d combines both states.
+
+## Deployment (slam.deploy_rel, eval_grid)
+
+**At each tick:**
+1. The state is built exactly as in training (StateBuilder).
+2. The chunk's relative actions become targets in the robot base: FK at prediction time . rel_j.
+3. Every chunk that predicted the tick is ensembled in the base frame with ACT's weights. LeRobot's own ensembler is
+   not used, since it would average relative vectors from different anchors.
+4. grasp_site IK, warm-started at the measured joints, gives the joint command.
+
+eval_grid runs relative arms through RelativeRunner. The ARMS entries are rel_Gslam48 (exp046), rel_Gtile48_pose
+(exp051) and rel_Gslam48_start (exp053).
+
+**Offline replay** of exp053 on val episode 15:
+- The states equal the training states exactly.
+- IK converges on all 223 ticks, at 1 ms each.
+- The newest chunk's target is 7.9 mm (median) from the teleoperator's recorded command, the policy's own accuracy.
+- Ensembling the full chunk in open loop lags: 56 mm, or 18 mm over 15 steps. The setting has to be chosen on the robot.
+
+**Not wired yet:** the camera-frame states (D2c / D2d) need the positioner's live camera pose at deployment.
+
+## Proposed next tests (2026-11-13; D1 and D2 run since, above)
 
 - **D1:** relative actions plus the current tool pose as state (robot frame, from the tile chain), for
   T48 and G-tile48. Does the glove gain come back?
