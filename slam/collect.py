@@ -5,7 +5,7 @@ COLLECT_REPO (<repo>/data/raw, <repo>/calib) to the inputs of an experiment conf
   python -m slam.collect check  <dataset>            arrival: files, transport, metadata, field QC
   python -m slam.collect import-calib <dataset>      the session's intrinsics -> calib/collected/ (never overwritten)
   python -m slam.collect layout <layout_dataset> --unit yuan --intr <file>
-                                                     tile layout from the static take -> calib/workspace_tiles_<dataset>.json
+                                                     tile layout from the layout take -> calib/workspace_tiles_<dataset>.json
   python -m slam.collect bundles <cal_dataset> --unit yuan --intr <file>
                                                      ball + back-marker geometry from the calibration take (README 6)
   python -m slam.collect toolframe <cal_dataset> --unit yuan --intr <file>

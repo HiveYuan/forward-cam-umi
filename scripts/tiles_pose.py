@@ -9,8 +9,11 @@ script gives camera -> world.
 
 Two commands:
 
-  layout  — export the tile layout from a static camera's footage. Per-tile
-            PnP on sampled frames, medians, then a world frame anchored on
+  layout  — export the tile layout from footage that sees the tiles: a static
+            camera, or a worn one held as still as possible (each frame is
+            registered onto a reference camera frame by a rigid fit of its
+            tile centres, register_frames). Per-tile PnP on sampled frames,
+            medians in that frame, then a world frame anchored on
             the tiles themselves (origin = tile ORIGIN's centre, x toward
             tile XREF's centre, z = mean tile normal pointing up). Writes
             calib/workspace_tiles_<name>.json with every tile's pose in the
@@ -104,19 +107,66 @@ def to_T(rv, tv):
     return T
 
 
+def rigid_fit(P, Q):
+    """4x4 rigid transform A minimising |A P - Q| over corresponding 3D points (rows), Kabsch."""
+    mp, mq = P.mean(0), Q.mean(0)
+    U, _, Vt = np.linalg.svd((P - mp).T @ (Q - mq))
+    R = Vt.T @ np.diag([1.0, 1.0, np.sign(np.linalg.det(Vt.T @ U.T))]) @ U.T
+    A = np.eye(4)
+    A[:3, :3], A[:3, 3] = R, mq - R @ mp
+    return A
+
+
+def register_frames(frames, min_tiles=3, rounds=3):
+    """Every frame's tile poses expressed in ONE reference camera frame.
+
+    frames: per sampled frame, {tile id: T_cam_tile}. The layout's per-tile medians are only meaningful
+    in a common camera frame; a static camera gives one for free, a worn camera moves. Each frame is
+    therefore mapped onto the reference by a rigid fit of its tile CENTRES (>= min_tiles shared): the
+    tiles span the workspace, so the fitted rotation has a long lever arm, unlike any single tag's own
+    (IPPE) orientation. The reference starts as the frame with the most tiles and is refined to the
+    per-tile median centres. For a static camera every fit is the identity and nothing changes.
+
+    Returns ({tile id: [T_ref_tile, ...]}, [per registered frame: (rotation deg, translation mm)]).
+    Frames sharing fewer than min_tiles tiles with the reference are dropped; if no frame has
+    min_tiles tiles at all, the camera is taken as static (the legacy behaviour)."""
+    seed = max(frames, key=len, default={})
+    if len(seed) < min_tiles:
+        poses = {}
+        for f in frames:
+            for i, T in f.items():
+                poses.setdefault(i, []).append(T)
+        return poses, []
+    ref = {i: T[:3, 3] for i, T in seed.items()}
+    for _ in range(rounds):
+        poses, motion = {}, []
+        for f in frames:
+            shared = [i for i in f if i in ref]
+            if len(shared) < min_tiles:
+                continue
+            A = rigid_fit(np.array([f[i][:3, 3] for i in shared]), np.array([ref[i] for i in shared]))
+            angle = np.degrees(np.arccos(np.clip((np.trace(A[:3, :3]) - 1) / 2, -1.0, 1.0)))
+            motion.append((float(angle), float(np.linalg.norm(A[:3, 3]) * 1000)))
+            for i, T in f.items():
+                poses.setdefault(i, []).append(A @ T)
+        ref = {i: np.median(np.array(Ts)[:, :3, 3], 0) for i, Ts in poses.items()}
+    return poses, motion
+
+
 def cmd_layout(a):
     K, dist = L.load_intrinsics(a.intr)
     with Path(a.tags).open() as stream:
         tags = json.load(stream)
     ids_ok = set(int(i) for i in tags["ids"])
     det = detector()
-    poses = {}
+    frames = []
     n_frames = 0
     for k, g in sample_frames(a.stem, a.stride):
         n_frames += 1
         cs, ids, _ = det.detectMarkers(g)
         if ids is None:
             continue
+        frame = {}
         for i, c in zip(ids.ravel(), cs):
             i = int(i)
             if i not in ids_ok:
@@ -125,9 +175,17 @@ def cmd_layout(a):
             ok, rv, tv = cv2.solvePnP(obj, c.reshape(4, 2).astype(float), K, dist,
                                       flags=cv2.SOLVEPNP_IPPE_SQUARE)
             if ok:
-                poses.setdefault(i, []).append(to_T(rv, tv))
+                frame[i] = to_T(rv, tv)
+        if frame:
+            frames.append(frame)
+    poses, motion = register_frames(frames)
     if not poses:
         sys.exit("no tiles decoded")
+    if motion:
+        m = np.array(motion)
+        print(f"camera motion vs the reference frame ({len(m)}/{len(frames)} frames registered on the tile "
+              f"centres): rotation median {np.median(m[:, 0]):.2f} deg, max {m[:, 0].max():.2f}; "
+              f"translation median {np.median(m[:, 1]):.1f} mm, max {m[:, 1].max():.1f}")
     med = {}
     for i, Ts in poses.items():
         Ts = np.array(Ts)

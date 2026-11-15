@@ -64,17 +64,29 @@ Dataset names used below:
    second terminal), no other camera app open. Free disk: the recorder prints its own
    estimate at start; plan on ~8 GB per recorded minute (head + wrist, macOS re-encode)
    and twice the footage during the final remux (~130 GB free for a 15-episode session).
-7. **Tiles.** Use the `yuan` print (`calib/tags36h11_yuan.json`: 36h11 ids 1–5, 60.16 mm;
-   never id 0). Tape all four flat and firmly:
+7. **Tiles.** Use the `yuan` print (`calib/tags36h11_yuan.json`: 36h11 ids 1–5, the caliper
+   edge in its `edge_mm`; never id 0). Tape all four flat and firmly, the tape on the white
+   margin only (never over the black border or bits), nothing lying on them (cables!):
    - where your gaze lands while grasping, so that **at least two** are in view during
      every episode, with one right next to the bin;
    - spread over the whole workspace the task covers;
    - **no other tag or marker anywhere in the scene** (posters, spare tiles, robot markers).
 
+   Check the placement before taping for good: wear the head camera and run through the
+   task (near, far, both sides, the bin); `field_qc` WARNs when fewer than 50 % of frames
+   see two tiles, and the SLAM evaluation uses only those frames. Yuan, 2026-11-15: a USB
+   hub's cables lying across tile 4 kept it from decoding (2 % of frames); moved, 81 % of
+   frames saw two or more tiles.
+
    The tiles must not move for the rest of the collection. If one is bumped: note it
    (`session_meta.py --tiles-moved`) and record a new layout take.
-8. **Layout take.** Take the head camera off, put it on a stand or the table so that all
-   four tiles are in view, and record 20 s without touching it:
+8. **Layout take.** All four tiles in view, the glove and anything else carrying a marker
+   out of view, 20 s. A camera on a stand is best; worn also works: stand still, look so that
+   all four tiles are in the frame, and hold your head as still as you can. The layout solve
+   (`scripts/tiles_pose.py layout`) registers every frame on the tile centres, so head sway
+   does not bias it (2026-11-15, worn, sway up to 6° / 4 cm: per-tile spread ~1 mm, the two
+   halves of the take agree within 1.2 mm). The head camera's pre-flight accepts the tiles
+   (no glove needed). Start it from the keyboard and keep your hands off the table:
    ```
    python scripts/record_session.py --cameras_only --cameras b0587b --dataset yuan_layout_01 --duration 20 --num_episodes 1 --no_preview
    ```

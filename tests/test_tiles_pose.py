@@ -104,6 +104,45 @@ class TilesPoseTests(unittest.TestCase):
             self.assertEqual(output["measurement_revision"], revision)
             self.assertAlmostEqual(np.linalg.norm(np.array(output["tiles"]["4"]["xyz_mm"])), 500., places=1)
 
+    def test_layout_from_a_moving_camera_matches_the_static_layout(self):
+        # A worn camera: the pose drifts by centimetres and degrees between frames. Per-tile medians
+        # in the raw camera frame would mix camera poses; registering the frames on the tile centres
+        # recovers the true layout (and is the identity for a static camera).
+        rng = np.random.default_rng(0)
+        frames = []
+        for f in range(12):
+            rv, tv = RV + rng.normal(0, .03, 3), TV + rng.normal(0, .03, 3)
+            visible = [i for i in POSITIONS if not (f % 4 == 3 and i == 2)]     # tile 2 sometimes missing
+            frames.append({i: cv2.projectPoints(T.tag_obj(EDGES[str(i)] / 1000) + np.array(POSITIONS[i]),
+                                                rv, tv, K, DIST)[0].reshape(4, 2) for i in visible})
+        detections = [([c.reshape(1, 4, 2) for c in fr.values()],
+                       np.array(list(fr), dtype=np.int32).reshape(-1, 1), None) for fr in frames]
+        detector = SimpleNamespace(detectMarkers=lambda _, it=iter(detections): next(it))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root/"calib").mkdir()
+            intr, tags = root/"intr.json", root/"tags.json"
+            intr.write_text(json.dumps({"camera_matrix": K.tolist(), "dist_coeffs": DIST.tolist()}))
+            tags.write_text(json.dumps({"ids": list(POSITIONS), "edge_mm": 60.14, "marker_edges_mm": EDGES}))
+            args = SimpleNamespace(intr=str(intr), tags=str(tags), stem="worn",
+                                   stride=1, origin=5, xref=4, name="worn")
+            printed = io.StringIO()
+            with patch.object(T, "ROOT", root), patch.object(T, "detector", return_value=detector), \
+                 patch.object(T, "sample_frames", return_value=iter([(k, None) for k in range(len(frames))])), \
+                 redirect_stdout(printed):
+                T.cmd_layout(args)
+            tiles = json.loads((root/"calib/workspace_tiles_worn.json").read_text())["tiles"]
+        expected = {"5": [0, 0, 0], "4": [500, 0, 0], "2": [0, 350, 0], "3": [500, 350, 0]}
+        for i, xyz in expected.items():
+            np.testing.assert_allclose(tiles[i]["xyz_mm"], xyz, atol=0.2)
+        self.assertIn("12/12 frames registered", printed.getvalue())
+
+    def test_registration_is_the_identity_for_a_static_camera(self):
+        Ts = {i: T.to_T(RV, TV) @ T.to_T([0, 0, 0], p) for i, p in POSITIONS.items()}
+        poses, motion = T.register_frames([dict(Ts) for _ in range(5)])
+        self.assertTrue(all(a < 1e-4 and t < 1e-6 for a, t in motion))    # deg (arccos near 1), mm
+        for i, Tc in Ts.items():
+            np.testing.assert_allclose(poses[i][0], Tc, atol=1e-9)
+
 
 if __name__ == "__main__":
     unittest.main()
