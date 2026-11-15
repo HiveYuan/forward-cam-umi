@@ -28,8 +28,13 @@ There is no separate Python GUI or Qt dependency. Install with Python 3.12:
 brew install ffmpeg                       # includes ffplay; mpv is also supported
 python -m pip install -r scripts/requirements-macos.txt
 python scripts/cameras_setup.py --list --formats
-python scripts/cameras_setup.py --require-head
+python scripts/cameras_setup.py --require-head          # forward + head + wrist
+python scripts/cameras_setup.py --require head,wrist    # rig without the forward camera (tile-free SLAM collection)
 ```
+
+`--require ROLES` names the roles the rig must have (role names or the aliases
+`forward`, `head`, `wrist`); without it setup requires forward + wrist, and
+`--require-head` adds the head camera. `--check-config` takes the same flags.
 
 Like Linux setup, each device gets a preview, then the terminal asks for its
 role: `b0587` (forward), `b0587b` (head), `fish` (wrist), or `-` to skip.

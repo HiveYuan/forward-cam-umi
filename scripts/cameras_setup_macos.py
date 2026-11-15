@@ -12,10 +12,35 @@ import time
 
 import cv2
 
-from camera_config import (CameraSpec, CaptureSource, DEFAULT_CONFIG, load_config,
+from camera_config import (CameraSpec, CaptureSource, DEFAULT_CONFIG, ROLE_ALIASES, load_config,
                            resolve_spec, save_config, supported_frame_rate)
 from cameras_setup import ROLES
 from preview_sink import open_sink, close_sink
+
+# The forward-camera rig (label camera over the workspace + wrist fisheye). Other rigs say what they
+# need with --require, e.g. the tile-free SLAM collection: --require head,wrist.
+FORWARD_RIG = ('b0587', 'fish')
+
+
+def parse_roles(text):
+    """'head,wrist' -> ('b0587b', 'fish'): role names or their aliases, in canonical role order."""
+    roles = set()
+    for part in text.split(','):
+        name = part.strip()
+        role = ROLE_ALIASES.get(name, name)
+        if role not in ROLES:
+            known = ', '.join(f'{r} ({a})' for a, r in ROLE_ALIASES.items())
+            raise argparse.ArgumentTypeError(f'unknown role {name!r}; roles: {known}')
+        roles.add(role)
+    return tuple(r for r in ROLES if r in roles)
+
+
+def required_roles(args, default):
+    """The roles this rig must have bound: --require (else `default`), plus the head with --require-head."""
+    roles = set(args.require if args.require is not None else default)
+    if args.require_head:
+        roles.add('b0587b')
+    return tuple(r for r in ROLES if r in roles)
 
 
 def identity_source(info):
@@ -155,13 +180,13 @@ def wizard(inventory, args):
                 continue
             assigned[answer] = spec
             break
-    required = ('b0587', 'b0587b', 'fish') if args.require_head else ('b0587', 'fish')
-    missing = [role for role in required if role not in assigned]
+    missing = [role for role in required_roles(args, FORWARD_RIG) if role not in assigned]
     if missing:
         raise ValueError(f'required roles not assigned: {missing}; existing bindings kept')
     write_bindings(args.config, [assigned[r] for r in ROLES if r in assigned])
     print(f'\nwrote {args.config}')
-    print('next: python scripts/focus_tune.py forward')
+    first = next(alias for alias, role in ROLE_ALIASES.items() if role in assigned)
+    print(f'next: python scripts/focus_tune.py {first}')
 
 
 def main(argv=None):
@@ -172,7 +197,11 @@ def main(argv=None):
     action.add_argument('--check-config', action='store_true', help='check saved IDs and modes without capture')
     parser.add_argument('--formats', action='store_true', help='list supported resolutions and frame rates')
     parser.add_argument('--config', type=Path, default=DEFAULT_CONFIG)
-    parser.add_argument('--require-head', action='store_true', help='require all three camera roles')
+    parser.add_argument('--require', type=parse_roles, metavar='ROLES',
+                        help='comma-separated roles this rig must have, by role or alias '
+                             '(forward, head, wrist); setup default: forward,wrist. '
+                             'Tile-free SLAM collection: --require head,wrist')
+    parser.add_argument('--require-head', action='store_true', help='also require the head camera (b0587b)')
     parser.add_argument('--seconds', type=float, default=8, help='duration of each preview')
     args = parser.parse_args(argv)
     if not 0 < args.seconds <= 300:
@@ -186,8 +215,9 @@ def main(argv=None):
             preview(spec, args.seconds)
         elif args.check_config:
             specs = load_config(args.config)
-            if args.require_head and 'b0587b' not in {s.role for s in specs}:
-                raise ValueError('head camera is required but not configured')
+            missing = [r for r in required_roles(args, ()) if r not in {s.role for s in specs}]
+            if missing:
+                raise ValueError(f'required roles not configured: {missing}')
             for spec in specs:
                 validate_device(spec, inventory)
             print('Device IDs, names and requested modes match (no camera opened).')

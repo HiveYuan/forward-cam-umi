@@ -27,8 +27,8 @@ class CameraSetupTests(unittest.TestCase):
                       CameraSpec('b0587b', 'head-id', 'Twin camera', 3840, 2160, 25, 180),
                       CameraSpec('fish', 'wrist-id', 'Wrist camera', 1920, 1080, 30)]
 
-    def run_wizard(self, path, answers, preview_effect=None):
-        args = SimpleNamespace(config=path, seconds=1, require_head=True)
+    def run_wizard(self, path, answers, preview_effect=None, require=None, require_head=True):
+        args = SimpleNamespace(config=path, seconds=1, require=require, require_head=require_head)
         with patch.object(setup.sys.stdin, 'isatty', return_value=True), \
                 patch('builtins.input', side_effect=answers), \
                 patch.object(setup, 'preview', side_effect=preview_effect) as preview, \
@@ -69,6 +69,45 @@ class CameraSetupTests(unittest.TestCase):
                     self.run_wizard(path, answers)
                 self.assertEqual(path.read_bytes(), before)
                 self.assertEqual(list(Path(d).iterdir()), [path])
+
+    def test_head_and_wrist_rig_binds_without_forward_camera(self):
+        # Tile-free SLAM collection: no forward camera is plugged in.
+        inventory, self.inventory = self.inventory, self.inventory[1:]
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                path = Path(d) / 'cameras.local.json'
+                self.run_wizard(path, ['b0587b', '180', '', 'y', 'fish', '', '', 'y'],
+                                require=setup.parse_roles('head,wrist'), require_head=False)
+                self.assertEqual(load_config(path), self.specs[1:])
+                # The default (forward) rig still refuses a setup without the forward camera.
+                with self.assertRaisesRegex(ValueError, r"required roles not assigned: \['b0587'\]"):
+                    self.run_wizard(Path(d) / 'other.local.json',
+                                    ['b0587b', '180', '', 'y', 'fish', '', '', 'y'], require_head=False)
+        finally:
+            self.inventory = inventory
+
+    def test_required_roles_accept_aliases_and_reject_unknown_names(self):
+        self.assertEqual(setup.parse_roles('wrist, head'), ('b0587b', 'fish'))
+        self.assertEqual(setup.parse_roles('b0587,fish'), ('b0587', 'fish'))
+        with self.assertRaises(setup.argparse.ArgumentTypeError):
+            setup.parse_roles('head,forwrd')
+        args = SimpleNamespace(require=('fish',), require_head=True)
+        self.assertEqual(setup.required_roles(args, setup.FORWARD_RIG), ('b0587b', 'fish'))
+        args = SimpleNamespace(require=None, require_head=False)
+        self.assertEqual(setup.required_roles(args, ()), ())
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'native enumeration requires macOS')
+    def test_check_config_reports_missing_required_roles(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / 'cameras.local.json'
+            save_config(path, self.specs[1:2])          # head only
+            with patch('camera_macos.devices', return_value=['head-device']), \
+                    patch('camera_macos.device_info', return_value=self.inventory[1]), \
+                    patch('sys.stderr', new_callable=io.StringIO) as err, \
+                    self.assertRaises(SystemExit) as stop:
+                setup.main(['--check-config', '--require', 'head,wrist', '--config', str(path)])
+            self.assertEqual(stop.exception.code, 1)
+            self.assertIn("required roles not configured: ['fish']", err.getvalue())
 
     def test_unavailable_preview_cannot_be_assigned(self):
         with tempfile.TemporaryDirectory() as d:

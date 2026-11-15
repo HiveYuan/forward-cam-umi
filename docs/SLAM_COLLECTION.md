@@ -35,9 +35,11 @@ Dataset names used below:
    carry 4x4 ids 38/39. If the fingertips carry 4x4 38/39 instead (as noted on 10-13),
    the same ids sit on two parts of the glove: stop and resolve that first.
    The rehearsal's `field_qc` prints which ids the wrist camera actually sees.
-3. **Cameras.** `python scripts/cameras_setup.py --require-head` (roles: `b0587b` head,
-   `fish` wrist; skip the forward camera). Then `python scripts/focus_tune.py head` and
-   `... wrist`. Lock the head focus and put a witness mark on the barrel.
+3. **Cameras.** `python scripts/cameras_setup.py --require head,wrist` (roles: `b0587b` head,
+   `fish` wrist; no forward camera on this rig), then
+   `python scripts/cameras_setup.py --check-config --require head,wrist`. Then
+   `python scripts/focus_tune.py head` and `... wrist`. Lock the head focus and put a witness
+   mark on the barrel.
 4. **Intrinsics.** If the head camera's focus moved since its last calibration, or there
    is none, calibrate (caliper the ChArUco board first):
    ```
