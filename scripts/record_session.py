@@ -273,6 +273,21 @@ def _recorder_failure(stem, code, log_path):
     return f"{stem} exited with code {code}: {detail}\n  log: {log_path}"
 
 
+def _raw_dir(root):
+    """The recording directory <root>/data/raw, created if missing.
+
+    git keeps no data/raw (on the robot machine it is a symlink to the data
+    disk), so a fresh checkout has none until the first recording. A dangling
+    symlink (data disk not mounted) stops the run instead of silently
+    recording onto the system disk."""
+    raw = Path(root) / "data/raw"
+    if raw.is_symlink() and not raw.exists():
+        raise SystemExit(f"{raw} links to {os.readlink(raw)}, which does not exist "
+                         "(data disk not mounted?)")
+    raw.mkdir(parents=True, exist_ok=True)
+    return raw
+
+
 def _disk_budget_gb(cameras, *, is_macos, duration, num_episodes, episode_time):
     """Return required free space and the assumptions shown to the operator."""
     if is_macos:
@@ -519,7 +534,7 @@ def main():
 
     # ---- disk: reserve both segment and remux copies before opening cameras --
     import shutil
-    free_gb = shutil.disk_usage(PILOT / "data/raw").free / 1e9
+    free_gb = shutil.disk_usage(_raw_dir(PILOT)).free / 1e9
     required_gb, disk_basis = _disk_budget_gb(
         [c for c in cameras if c[0] in wanted], is_macos=is_macos,
         duration=args.duration, num_episodes=args.num_episodes, episode_time=args.episode_time)

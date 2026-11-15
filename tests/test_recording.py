@@ -75,6 +75,22 @@ class RecordingContractTests(unittest.TestCase):
         self.assertEqual(budget(pair, is_macos=False), 30)  # Linux policy unchanged
         self.assertEqual(budget(pair, is_macos=False, duration=None), 30)
 
+    def test_raw_dir_is_created_on_a_fresh_checkout_but_never_behind_a_dangling_link(self):
+        with tempfile.TemporaryDirectory() as d:
+            fresh = Path(d) / "fresh"
+            self.assertEqual(record_session._raw_dir(fresh), fresh / "data/raw")
+            self.assertTrue((fresh / "data/raw").is_dir())
+            disk = Path(d) / "disk"
+            disk.mkdir()
+            linked = Path(d) / "linked"
+            (linked / "data").mkdir(parents=True)
+            (linked / "data/raw").symlink_to(disk)
+            self.assertTrue(record_session._raw_dir(linked).samefile(disk))   # robot machine
+            disk.rmdir()                                                       # disk unmounted
+            with self.assertRaisesRegex(SystemExit, "does not exist"):
+                record_session._raw_dir(linked)
+            self.assertFalse(disk.exists())
+
     def test_failed_take_is_archived_so_the_dataset_name_can_be_reused(self):
         with tempfile.TemporaryDirectory() as d:
             raw = Path(d)
@@ -418,6 +434,8 @@ class NativeRecordingTests(unittest.TestCase):
                     CameraSpec("fish", "wrist-id", "Fish", 1920, 1080, 30)]
         for free_gb in (10, 20):
             with self.subTest(free_gb=free_gb), ExitStack() as stack:
+                root = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+                stack.enter_context(patch.object(record_session, "PILOT", root))
                 stack.enter_context(patch.object(sys, "argv", ["record_session.py", "--cameras_only",
                     "--dataset", "disk_test", "--duration", "10", "--cameras", "b0587,b0587b"]))
                 stack.enter_context(patch("camera_config.load_config", return_value=bindings))
