@@ -467,7 +467,8 @@ repository root.
 | `calibrate_gripper_bundle.py <stem> --bundle= --marker-map= --out=` | gripper-back markers in the ball's body frame | 6 |
 | `session_check.py <dataset> --unit <unit>` | per-episode pose/width coverage, hold sanity, tile visibility → OK / problems | 4b |
 | `tiles_pose.py layout\|solve …` | export the workspace-tile layout from a static camera; camera→world pose from the tiles | 4b |
-| `pack_session.py <dataset> … --unit <unit> [--dest]` | hand-off manifest + rsync line (sessions are 7–14 GB) | 4b |
+| `pack_session.py <dataset> … --unit <unit> [--dest]` | hand-off manifest + rsync line, or the upload_gcs line for a `gs://` dest (sessions are 7–14 GB) | 4b |
+| `upload_gcs.py <manifest> gs://bucket/prefix [--dry-run]` | send a hand-off manifest to Cloud Storage in the repo layout: resumes, never overwrites a recording or deletes, verifies sizes, stores a timestamped receipt | 4b |
 
 Libraries (not commands): `labels_lib.py` — the label stack (fused ball
 pose, body-frame aperture estimators); `forward_width.py` — physical-mm

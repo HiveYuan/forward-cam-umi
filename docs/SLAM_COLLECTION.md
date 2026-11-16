@@ -228,6 +228,24 @@ It prints the file list and the `rsync` line (raw video, timestamps, episode mar
 log, `_session.json`, `_field_qc.json`, intrinsics, layouts). Delete a session from the Mac
 only after the server confirms it arrived complete.
 
+When the Mac cannot reach the server (yuan, 2026-11-15: `iolani-3` does not resolve from
+it), the same manifest goes through Google Cloud Storage, in the repository layout:
+```
+python scripts/pack_session.py yuan_slam_01 --unit yuan --marker-map calib/marker_map_glove_yuan.json \
+    --dest gs://yuan-headcam-umi-collect/yuan
+python scripts/upload_gcs.py data/raw/handoff_yuan.txt gs://yuan-headcam-umi-collect/yuan --dry-run
+python scripts/upload_gcs.py data/raw/handoff_yuan.txt gs://yuan-headcam-umi-collect/yuan
+# server, into COLLECT_REPO (its gcloud account needs roles/storage.objectViewer on the bucket):
+gcloud storage rsync -r gs://yuan-headcam-umi-collect/yuan /home/student/yuanliu-hawaii/incoming/collect
+```
+`upload_gcs.py` sends only the manifest's files (data/raw and calib also hold files that
+must not travel), skips what is already there (a re-run resumes), refuses to overwrite a
+recording whose remote size differs, never deletes, checks every size afterwards and stores
+the manifest under `manifests/` with a timestamp. `pack_session` rewrites
+`data/raw/handoff_<unit>.txt` on every call: pack, upload, then pack the next session.
+`gs://yuan-headcam-umi-collect` is in Yuan's project `ksync-497903` (us-west1, STANDARD,
+private); the lab bucket `gs://head-cam-umi-raw` is read-only for the Mac's account.
+
 ## 5. On the server
 
 Sessions arrive in `COLLECT_REPO` (default `/home/student/yuanliu-hawaii/incoming/collect`, the
