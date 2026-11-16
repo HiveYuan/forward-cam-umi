@@ -271,6 +271,22 @@ HEADCAM_DATA_REPO=$COLLECT_REPO python -m slam.run experiments/expNNN_yuan_slam_
 the labels and the held-object mask gate, and leaves out the session's excluded episodes and its
 field-QC FAILs. The wrist width is only compared (`gt/width_crosscheck.json`).
 
+**From the bucket to a trained policy in one command.** Once the unit and the tile layout are
+calibrated (the "once per" block above), a new batch of sessions needs no code: write a batch file
+(experiments/batches/README.md) and run
+
+```
+python -m slam.ingest start  experiments/batches/<batch>.yaml   # detached; resumes where it stopped
+python -m slam.ingest status experiments/batches/<batch>.yaml
+```
+
+It downloads the head videos (the wrist video only for the cross-check, then deletes it), runs
+`check`, `prep`, `config` and `slam.run` per session, applies the label gates, exports each session
+as a LeRobot shard, appends the shards to the training dataset, holds out a validation part of the
+new episodes, trains and validates the batch's arms and writes `experiments/batches/<batch>/report.md`.
+It stops and waits for a person when a glove unit or tile layout is not calibrated, or a session
+fails a gate.
+
 ## 6. Never
 
 - re-encode, trim, rotate or rename raw files;

@@ -147,9 +147,12 @@ def detect(stem, log, wrist=False, force=False, tips=False):
     caches = [C.COLLECT_REPO / "calib" / f"{stem}_{t}_detections.npz" for t in (["tips16h5"] if wrist else
                                                                              ["dodeca"] + (["tips16h5"] if tips else []))]
     mkv = raw_dir() / f"{stem}.mkv"
-    if all(c.exists() and c.stat().st_mtime > mkv.stat().st_mtime for c in caches) and not force:
+    if not force and all(c.exists() and (not mkv.exists() or c.stat().st_mtime > mkv.stat().st_mtime) for c in caches):
+        # (a video deleted after processing, slam.ingest raw_policy delete_after_export, keeps its detections)
         print(f"= {', '.join(c.name for c in caches)} cached")
         return
+    if not mkv.exists():
+        raise SystemExit(f"{mkv} is missing and its detections are not cached: download it again (slam.ingest)")
     (C.COLLECT_REPO / "calib").mkdir(exist_ok=True)
     flags = ["--keep-27"] + ([] if want16 else ["--no-16h5"])
     run([V, C.REPO / "scripts/detect_parallel.py", f"data/raw/{stem}.mkv", *flags,
@@ -558,42 +561,63 @@ def episodes_for(ds, all_episodes=False):
     return keep, sorted(drop & set(eps))
 
 
-def cmd_config(a):
+def build_config(ds, exp, masks="sam3_v2_head", gripper="head", target_fps=26.27, all_episodes=False,
+                 include=(), exclude=()):
+    """The experiment config of session `ds` with the current defaults: (cfg dict, header comment, warnings).
+    `include` / `exclude`: episodes added back / removed by hand after review (e.g. field-QC false FAILs)."""
     import yaml
-    ds = a.dataset
     if ds not in C.SESSIONS:
         raise SystemExit(f"{ds} is not registered: no valid {ds}_session.json in {raw_dir()}")
     s = C.session(ds)
-    out = C.REPO / "experiments" / a.exp / "config.yaml"
-    if out.exists() and not a.force:
-        raise SystemExit(f"{out} exists")
     cfg = yaml.safe_load(open(TEMPLATE))
-    keep, dropped = episodes_for(ds, a.all_episodes)
-    cfg["experiment"] = a.exp
+    keep, dropped = episodes_for(ds, all_episodes)
+    known = {e["episode_index"] for e in load(raw_dir() / f"{ds}_glove_episodes.json")["episodes"]}
+    bad = sorted(set(include) - known)
+    if bad:
+        raise SystemExit(f"{ds}: --include {bad}: no such episodes")
+    keep = sorted((set(keep) | set(include)) - set(exclude))
+    dropped = sorted((set(dropped) - set(include)) | (set(exclude) & known))
+    cfg["experiment"] = exp
     cfg["data"] = {"session": ds, "episodes": keep, "head_stem": s["head_stem"], "intrinsics": s["intrinsics"],
                    "glove": s["glove"], "tile_layout": s["tile_layout"], "raw_dir": str(raw_dir()),
                    "det_cache_dir": str(C.COLLECT_REPO / "calib"), "gt_dir": str(C.gt_dir(ds))}
-    cfg["masks"]["motion"]["impl"] = a.masks
+    cfg["masks"]["motion"]["impl"] = masks
     if s["glove"] != "yosub":             # the template's prompt points are in yosub's body frame
         cfg["masks"]["motion"]["params"].update(unit_mask_points(s["glove"], cfg["masks"]["motion"]["params"]))
     cfg["preprocess"] = {"impl": "undistort_crop_resample",
-                         "params": {**cfg["preprocess"]["params"], "target_fps": a.target_fps}}
+                         "params": {**cfg["preprocess"]["params"], "target_fps": target_fps}}
     cfg["masks"]["tiles"]["impl"] = "tile_geometry_k"        # resampled frames are matched by k
-    cfg["labels"]["params"]["gripper"] = a.gripper
+    cfg["labels"]["params"]["gripper"] = gripper
     from slam.pipeline import registry as R
     warn = []
-    if ("masks", a.masks) not in R.IMPLS:
-        warn.append(f"masks impl {a.masks} is not registered in this checkout yet")
+    if ("masks", masks) not in R.IMPLS:
+        warn.append(f"masks impl {masks} is not registered in this checkout yet")
     import inspect
     from slam import labels as Lb
-    if f'"{a.gripper}"' not in inspect.getsource(Lb.load_gripper) and a.gripper != "wrist":
-        warn.append(f"slam.labels.load_gripper has no source '{a.gripper}' in this checkout yet")
+    if f'"{gripper}"' not in inspect.getsource(Lb.load_gripper) and gripper != "wrist":
+        warn.append(f"slam.labels.load_gripper has no source '{gripper}' in this checkout yet")
+    by_hand = "".join([f"; added by hand {sorted(include)}" if include else "",
+                       f"; removed by hand {sorted(exclude)}" if exclude else ""])
+    head = (f"# {exp}: collected session {ds} (unit {s['glove']}), current defaults from {TEMPLATE.relative_to(C.REPO)}"
+            f"\n# with motion masks {masks} and the head-camera gripper width. Episodes: {len(keep)} kept, "
+            f"excluded {dropped} (session exclusions + field-QC FAILs{by_hand}).\n# Written by python -m slam.collect "
+            f"config; run with HEADCAM_DATA_REPO={C.COLLECT_REPO}:\n#   python -m slam.run experiments/{exp}/config.yaml\n")
+    return cfg, head, warn
+
+
+def config_text(cfg, head):
+    import yaml
+    return head + yaml.safe_dump(cfg, sort_keys=False, width=120)
+
+
+def cmd_config(a):
+    out = C.REPO / "experiments" / a.exp / "config.yaml"
+    if out.exists() and not a.force:
+        raise SystemExit(f"{out} exists")
+    cfg, head, warn = build_config(a.dataset, a.exp, a.masks, a.gripper, a.target_fps, a.all_episodes,
+                                   a.include, a.exclude)
     out.parent.mkdir(parents=True, exist_ok=True)
-    head = (f"# {a.exp}: collected session {ds} (unit {s['glove']}), current defaults from {TEMPLATE.relative_to(C.REPO)}"
-            f"\n# with motion masks {a.masks} and the head-camera gripper width. Episodes: {len(keep)} kept, "
-            f"excluded {dropped} (session exclusions + field-QC FAILs).\n# Written by python -m slam.collect config; "
-            f"run with HEADCAM_DATA_REPO={C.COLLECT_REPO}:\n#   python -m slam.run experiments/{a.exp}/config.yaml\n")
-    out.write_text(head + yaml.safe_dump(cfg, sort_keys=False, width=120))
+    out.write_text(config_text(cfg, head))
     print(f"wrote {out}")
     for w in warn:
         print(f"WARN: {w}")
@@ -633,6 +657,8 @@ def main():
     p.add_argument("--gripper", default="head", help="labels' gripper source")
     p.add_argument("--target-fps", type=float, default=26.27, help="SLAM/mask frame rate (undistort_crop_resample)")
     p.add_argument("--all-episodes", action="store_true", help="keep field-QC FAILs and exclusions (pilot checks)")
+    p.add_argument("--include", type=int, nargs="*", default=[], help="episodes to add back after review (QC false FAILs)")
+    p.add_argument("--exclude", type=int, nargs="*", default=[], help="episodes to remove after review")
     p.add_argument("--force", action="store_true")
     p = sub.add_parser("handeye-provisional")
     p.add_argument("--unit", required=True); p.add_argument("--from", dest="src", required=True)

@@ -3,7 +3,10 @@
 relative-pose errors in physical units for the best and the last checkpoint.
 
 Val sets are the dataset's own: meta/val_episodes.json ("robot val", 6 teleop episodes, encoder
-labels: the paper's checkpoint criterion) and, for a mix, meta/val_episodes_glove.json ("glove val").
+labels: the paper's checkpoint criterion), for a mix meta/val_episodes_glove.json ("glove val"), and for a mix
+with collected sessions (slam.collect_dataset) meta/val_episodes_collected.json ("collected val").
+--sets / --only-step evaluate an existing run on some sets at one checkpoint (e.g. an arm trained without the
+collected sessions, on their val episodes: slam.ingest's cross-evaluation).
 Loss: as scripts/compute_val_loss.py (policy in train mode under no_grad, the checkpoint's
 preprocessor, policy.forward's L1 + kl_weight * KL, batch-weighted mean). For relative runs the val
 data is RelChunkDataset with the run's masks, so it matches training; Yosub's joint-action runs use a
@@ -34,9 +37,13 @@ from slam.relative_dataset import MASK_KEYS, RelChunkDataset
 JS = (0, 14, 49, 99)
 
 
+VAL_SETS = (("robot", "val_episodes.json"), ("glove", "val_episodes_glove.json"),
+            ("collected", "val_episodes_collected.json"))       # collected: slam.collect_dataset mix (held out)
+
+
 def val_episode_sets(root):
     out = {}
-    for name, f in (("robot", "val_episodes.json"), ("glove", "val_episodes_glove.json")):
+    for name, f in VAL_SETS:
         p = Path(root) / "meta" / f
         if p.exists():
             out[name] = [int(e) for e in json.load(open(p))["val_episodes"]]
@@ -131,6 +138,8 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--max-episodes", type=int, help="smoke tests: first N val episodes per set")
+    ap.add_argument("--sets", help="comma-separated val sets to evaluate (default: all the dataset has)")
+    ap.add_argument("--only-step", type=int, help="evaluate this checkpoint only (it is reported as best and last)")
     a = ap.parse_args()
     cfg = yaml.safe_load(open(a.config))
     run = Path(a.run_dir or cfg["output_dir"])
@@ -139,8 +148,18 @@ def main():
     rel = bool(cfg.get("relative"))
     stats = json.load(open(C.REPO / cfg["relative"]["stats"])) if rel else None
     ckpts = sorted(p for p in (run / "checkpoints").glob("[0-9]*") if (p / "pretrained_model").exists())
+    if a.only_step is not None:
+        ckpts = [p for p in ckpts if int(p.name) == a.only_step]
+        if not ckpts:
+            raise SystemExit(f"no checkpoint {a.only_step} in {run}")
     chunk = json.load(open(ckpts[0] / "pretrained_model" / "config.json"))["chunk_size"]
     sets = val_episode_sets(cfg["dataset"]["root"])
+    if a.sets:
+        want = a.sets.split(",")
+        missing = [s for s in want if s not in sets]
+        if missing:
+            raise SystemExit(f"val sets {missing} not in {cfg['dataset']['root']} (has {sorted(sets)})")
+        sets = {k: v for k, v in sets.items() if k in want}
     if a.max_episodes:
         sets = {k: v[:a.max_episodes] for k, v in sets.items()}
     loaders = {k: make_loader(cfg, v, chunk, stats, a.batch_size, a.workers) for k, v in sets.items()}
@@ -151,8 +170,9 @@ def main():
             row[k] = evaluate(c / "pretrained_model", L, False, stats, a.device)
         res["checkpoints"].append(row)
         print(f"step {row['step']:6d}: " + ", ".join(f"{k} loss {row[k]['loss']:.4f}" for k in loaders), flush=True)
-    best = min(res["checkpoints"], key=lambda r: r["robot"]["loss"])
-    res["best_step_robot_val"] = best["step"]
+    sel = "robot" if "robot" in loaders else next(iter(loaders))
+    best = min(res["checkpoints"], key=lambda r: r[sel]["loss"])
+    res["best_step_robot_val"], res["best_set"] = best["step"], sel
     if rel:
         res["physical"] = {}
         for label, step in (("best", best["step"]), ("last", res["checkpoints"][-1]["step"])):
@@ -168,17 +188,17 @@ def main():
                 res["val_chunks"][f"{label}_{k}"] = {"step": step, "file": f"val_chunks/{label}_{k}.npz"}
     json.dump(res, open(out / "val.json", "w"), indent=1)
     write_md(res, out / "val.md")
-    print(f"best robot val: step {best['step']} loss {best['robot']['loss']:.4f}")
+    print(f"best {sel} val: step {best['step']} loss {best[sel]['loss']:.4f}")
 
 
 def write_md(res, path):
-    sets = [k for k in ("robot", "glove") if k in res["checkpoints"][0]]
+    sets = [k for k, _ in VAL_SETS if k in res["checkpoints"][0]]
     L = [f"# {res['experiment']}: validation", "",
          "| step | " + " | ".join(f"{k} val loss (L1 + 10 KL) | {k} L1" for k in sets) + " |",
          "|---|" + "---|---|" * len(sets)]
     for r in res["checkpoints"]:
         L.append(f"| {r['step']} | " + " | ".join(f"{r[k]['loss']:.4f} | {r[k]['l1']:.4f}" for k in sets) + " |")
-    L += ["", f"Best robot val at step {res['best_step_robot_val']}."]
+    L += ["", f"Best {res.get('best_set', 'robot')} val at step {res['best_step_robot_val']}."]
     if "physical" in res:
         L += ["", "Relative-pose errors of the predicted chunk (VAE latent 0), median over non-padded steps:", "",
               "| checkpoint | set | pos mm j0 / j14 / j49 / j99 / chunk mean | rot deg j0 / j14 / j49 / j99 / mean | gripper chunk mean |",

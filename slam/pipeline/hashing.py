@@ -62,11 +62,33 @@ def quick_file_hash(path, chunk=QUICK_CHUNK):
     return f"quick:{size}:{h.hexdigest()}"
 
 
+FINGERPRINT_SIDECAR = ".fingerprint"
+
+
+def sidecar_path(path):
+    """<file>.fingerprint: the file's fingerprint, kept when a large input (a raw video) is deleted after
+    processing (slam.ingest raw_policy delete_after_export) so that its cache keys stay computable."""
+    p = Path(path)
+    return p.with_name(p.name + FINGERPRINT_SIDECAR)
+
+
+def write_sidecar(path):
+    """Record the fingerprint of an existing file next to it; returns it."""
+    fp = file_fingerprint(path)
+    if fp is None:
+        raise FileNotFoundError(path)
+    sidecar_path(path).write_text(fp + "\n")
+    return fp
+
+
 def file_fingerprint(path, quick_above=256 << 20):
-    """Full sha256 for normal files, quick hash above `quick_above` bytes; None if missing."""
+    """Full sha256 for normal files, quick hash above `quick_above` bytes; None if missing.
+    A missing file with a <file>.fingerprint sidecar (write_sidecar) gives the recorded fingerprint: the cache
+    keys of the steps that read it are unchanged, and only a cache miss needs the file itself again."""
     p = Path(path)
     if not p.exists():
-        return None
+        s = sidecar_path(p)
+        return s.read_text().strip() if s.exists() else None
     if p.is_dir():
         raise IsADirectoryError(f"{p}: fingerprint a file, not a directory")
     if p.stat().st_size > quick_above:

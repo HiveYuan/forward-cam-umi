@@ -1,0 +1,14 @@
+batch: yuan_slam_b1
+description: >-
+  The eight formal yuan_slam sessions (2026-11-15/16, glove unit yuan, Yosub's red block -> bin task, tiles kept
+  as GT), appended to the D2a dataset; D2a (exp053) retrained with them.
+bucket: gs://yuan-headcam-umi-collect/yuan
+sessions: [yuan_slam_01, yuan_slam_01b, yuan_slam_02, yuan_slam_02b, yuan_slam_03, yuan_slam_04, yuan_slam_05,
+           yuan_slam_06]
+overrides:
+  yuan_slam_06: {include: [2, 14, 17]}       # field-QC false FAILs (IPPE ambiguity); user-approved 2026-11-16
+dataset:
+  out: pilot_mix_gHs3_yuan_rel_slam_v1
+train:
+  - {exp: exp058_rel_Gslam48yuan_startstate, template: exp053_rel_Gslam48_startstate}
+compare: [exp052_rel_T48_startstate]
