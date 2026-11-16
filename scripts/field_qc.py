@@ -18,6 +18,9 @@ Per episode (FAIL = re-record it, WARN = note it):
   turn       head rotation speed in those 5 s, from the tiles: the second-highest
              frame-pair speed above 120 deg/s (droid_adaptive's threshold) FAILs.
              Fast turns before an episode broke DROID's initialisation on glove5.
+             Single-tag pose flips are no turn: a tile pose that goes out and back
+             within one frame is dropped, and a tile that disagrees with the others
+             by more than 120 deg/s is left out of the pair.
   short      under 2 s: a false start (FAIL)
   ball       the glove ball (4x4 25-35) seen in the first 0.5 s (FAIL) and in
              >= 70 % of the episode frames (the build's pose gate, FAIL)
@@ -189,22 +192,65 @@ def rot_angle_deg(Ra, Rb):
     return float(np.degrees(np.arccos(np.clip(c, -1.0, 1.0))))
 
 
-def pair_speeds(samples):
+def drop_pose_flips(samples, max_deg_s):
+    """samples: [(t, {tile: R})] in time order -> the same without flipped tile poses
+    (a sample left without tiles is dropped).
+
+    A single-tag IPPE pose can flip to its mirror solution (about 120 deg away on these
+    tiles) for one frame and flip back. Against the tile's previous and next poses in the
+    window, a flipped pose moved faster than max_deg_s on the way in and on the way out,
+    and those two poses are closer to each other than either is to it: it went out and came
+    back within one step, which a head does not do at that speed. A steady turn puts the
+    middle pose between its neighbours (the skip angle is about the sum of the two steps),
+    so a real turn is never dropped. A pose slower than max_deg_s on one side is kept: it
+    raises at most one pair above the gate, which robust_peak discounts."""
+    seen = {}
+    for j, (_, R) in enumerate(samples):
+        for i in R:
+            seen.setdefault(i, []).append(j)
+    flipped = set()
+    for i, js in seen.items():
+        for a, b, c in zip(js, js[1:], js[2:]):
+            (ta, Ra), (tb, Rb), (tc, Rc) = samples[a], samples[b], samples[c]
+            if not ta < tb < tc:
+                continue
+            d_in, d_out = rot_angle_deg(Ra[i], Rb[i]), rot_angle_deg(Rb[i], Rc[i])
+            out_and_back = rot_angle_deg(Ra[i], Rc[i]) < min(d_in, d_out)
+            if out_and_back and min(d_in / (tb - ta), d_out / (tc - tb)) > max_deg_s:
+                flipped.add((b, i))
+    kept = [(t, {i: r for i, r in R.items() if (j, i) not in flipped}) for j, (t, R) in enumerate(samples)]
+    return [(t, R) for t, R in kept if R]
+
+
+def pair_speeds(samples, max_deg_s):
     """samples: [(t, {tile: R})] in time order -> [(t_mid, deg/s)] over consecutive
-    samples sharing a tile (median over the shared tiles)."""
+    samples sharing a tile.
+
+    A head turn changes every tile's camera-from-tile rotation by the same rotation
+    (R_i(b) R_i(a)^T = R_cam(b) R_cam(a)^T for every tile i), so all shared tiles read the
+    same speed up to pose noise, while a pose error (an IPPE flip, or a switch to the mirror
+    solution that lasts) only adds apparent rotation to its own tile. The reference is the
+    lower median of the tiles' speeds (the calmer of two, the middle of three), which errors
+    on up to half of the tiles cannot raise; a tile that differs from it by more than
+    max_deg_s is not seeing the same head motion. The pair's speed is the median of the tiles
+    that agree with the reference: two tiles that agree give their mean, two that differ by
+    a gate-crossing turn give the calmer one."""
     out = []
     for (ta, Ra), (tb, Rb) in zip(samples, samples[1:]):
         common = sorted(set(Ra) & set(Rb))
         if not common or tb <= ta:
             continue
-        ang = np.median([rot_angle_deg(Ra[i], Rb[i]) for i in common])
-        out.append(((ta + tb) / 2, float(ang / (tb - ta))))
+        v = sorted(rot_angle_deg(Ra[i], Rb[i]) / (tb - ta) for i in common)
+        ref = v[(len(v) - 1) // 2]
+        out.append(((ta + tb) / 2, float(np.median([s for s in v if abs(s - ref) <= max_deg_s]))))
     return out
 
 
 def robust_peak(speeds):
-    """Second-highest pair speed (a single IPPE pose flip makes one spurious pair),
-    and the time of the highest; (None, None) without pairs."""
+    """Second-highest pair speed, and the time of the highest; (None, None) without pairs.
+    Where a lone tile's pose switches to its mirror solution and stays, or flips at the
+    window edge, neither drop_pose_flips nor pair_speeds can tell, and one spurious pair
+    is left."""
     if not speeds:
         return None, None
     v = sorted(s for _, s in speeds)
@@ -412,7 +458,8 @@ def main():
         t1c = frac(sum(len(H[k][0]) >= 1 for k in body), n)
         t2c = frac(sum(len(H[k][0]) >= 2 for k in body), n)
         pre = [k for k in frames_in(hw, ts - PREROLL_S, ts) if k in H]
-        speeds = pair_speeds([(hw[k], H[k][2]) for k in pre if H[k][2]])
+        pre_rots = drop_pose_flips([(hw[k], H[k][2]) for k in pre if H[k][2]], TURN_DEG_S)
+        speeds = pair_speeds(pre_rots, TURN_DEG_S)
         peak, t_peak = robust_peak(speeds)
         n_pre_pairs = max(len(pre) - 1, 0)
         if not ball_start:
