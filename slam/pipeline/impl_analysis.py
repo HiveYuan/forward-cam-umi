@@ -26,6 +26,7 @@ import argparse
 import inspect
 import json
 import math
+from pathlib import Path
 
 import numpy as np
 
@@ -342,11 +343,36 @@ def slam_facts(session, run, segments):
             "tracked_frac": n_tr / n_fr if n_fr else None}
 
 
+def _kept_frame_views(seg_dirs, tmp_root):
+    """For resampled segments (undistort_crop_resample: frames.json keeps a subset of the original frames, while
+    tiles.npz has detections on every original frame): views whose tiles.npz holds only the kept frames, which is
+    what slam.tiles.noise_floor matches against frames.json. Other segments are passed through unchanged."""
+    import os
+    import numpy as np
+    out = []
+    for seg in map(Path, seg_dirs):
+        fj = json.load(open(seg / "frames.json"))
+        if "resample" not in fj:
+            out.append(seg)
+            continue
+        keep = {int(f["k"]) for f in fj["frames"]}
+        v = Path(tmp_root) / seg.name
+        v.mkdir(parents=True, exist_ok=True)
+        os.symlink((seg / "frames.json").resolve(), v / "frames.json")
+        z = np.load(seg / "tiles.npz")
+        m = np.array([int(k) in keep for k in z["det_k"]], bool)
+        np.savez(v / "tiles.npz", det_k=z["det_k"][m], det_id=z["det_id"][m], det_corners=z["det_corners"][m])
+        out.append(v)
+    return out
+
+
 def gt_noise(session, segments):
     """slam.tiles noise output (dict) on the view's segments."""
+    import tempfile
     from slam import tiles as T
     if hasattr(T, "noise_floor"):
-        return T.noise_floor(session, [C.segments_dir(session) / s for s in segments])
+        with tempfile.TemporaryDirectory() as tmp:
+            return T.noise_floor(session, _kept_frame_views([C.segments_dir(session) / s for s in segments], tmp))
     T.cmd_noise(argparse.Namespace(session=session))          # writes <WORK>/<session>/eval/gt_noise.json
     return json.load(open(C.WORK / session / "eval" / "gt_noise.json"))
 
