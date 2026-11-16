@@ -1,0 +1,50 @@
+{
+ "camera_matrix": [
+  [
+   1255.7074118792152,
+   0.0,
+   938.9327514541413
+  ],
+  [
+   0.0,
+   1256.6579458521762,
+   559.9839897078863
+  ],
+  [
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "dist_coeffs": [
+  -0.31671108790096214,
+  0.1616529589203624,
+  0.001672154929103789,
+  0.001207923757319837,
+  -0.04994393511941294
+ ],
+ "width": 1920,
+ "height": 1080,
+ "rms_px": 0.40806170312024853,
+ "model": "pinhole",
+ "holdout_mean_px": 0.4793148785829544,
+ "device": "head",
+ "note": "Frames normalized before calibration; macOS exposure/gain not controlled. Keep physical focus unchanged.",
+ "board": {
+  "squares_x": 10,
+  "squares_y": 7,
+  "dictionary": "DICT_5X5_250",
+  "square_mm": 25.1,
+  "marker_mm": 18.07
+ },
+ "capture": {
+  "backend": "avfoundation",
+  "role": "b0587b",
+  "device_id": "0x1400000c400587",
+  "width": 1920,
+  "height": 1080,
+  "fps": 60.0,
+  "rotation_degrees": 180,
+  "exposure_gain_controlled": false
+ }
+}

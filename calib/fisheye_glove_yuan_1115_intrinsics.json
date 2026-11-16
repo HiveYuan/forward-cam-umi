@@ -1,0 +1,59 @@
+{
+ "camera_matrix": [
+  [
+   776.8556495790976,
+   0.0,
+   964.0576567410685
+  ],
+  [
+   0.0,
+   775.0139567435622,
+   512.0019105426574
+  ],
+  [
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "dist_coeffs": [
+  1.1382810787777364,
+  0.23419635924938018,
+  0.00011801439302242126,
+  0.00010697244138125176,
+  0.004681672599682556,
+  1.5050116107869942,
+  0.5360688791397884,
+  0.035971609312172775,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0
+ ],
+ "width": 1920,
+ "height": 1080,
+ "rms_px": 0.8573907020457665,
+ "model": "rational",
+ "holdout_mean_px": 0.8779647320508956,
+ "device": "wrist",
+ "note": "Frames normalized before calibration; macOS exposure/gain not controlled. Keep physical focus unchanged.",
+ "board": {
+  "squares_x": 10,
+  "squares_y": 7,
+  "dictionary": "DICT_5X5_250",
+  "square_mm": 25.1,
+  "marker_mm": 18.07
+ },
+ "capture": {
+  "backend": "avfoundation",
+  "role": "fish",
+  "device_id": "0x11400000c450261",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30.0,
+  "rotation_degrees": 0,
+  "exposure_gain_controlled": false
+ }
+}
