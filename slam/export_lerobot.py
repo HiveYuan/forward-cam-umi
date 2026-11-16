@@ -35,7 +35,8 @@ from slam import config as C
 from slam import geometry as G
 from slam import relative as Rl
 from slam.labels import FPS, RefPoses
-from slam.preprocess import packet_pts, video_size
+from slam.preprocess import packet_pts
+from slam.videoinfo import video_size
 
 IMKEY = "observation.images.b0587b"
 OBS = (640, 360)

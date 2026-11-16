@@ -56,9 +56,12 @@ def collected_session(meta):
     wrist = (cams.get("fish") or {}).get("intrinsics")
     tiles = meta.get("tiles") or {}
     layout = tiles.get("layout") or f"workspace_tiles_{tiles['layout_take']}.json"
+    def calib_name(p):            # committed in calib/ (the Mac's own calibrations), else imported to calib/collected/
+        n = Path(p).name
+        return n if (CALIB / n).exists() else f"{COLLECTED_CALIB}/{n}"
     return {"head_stem": f"{ds}_b0587b",
-            "intrinsics": f"{COLLECTED_CALIB}/{Path(cams['b0587b']['intrinsics']).name}",
-            "wrist_intrinsics": f"{COLLECTED_CALIB}/{Path(wrist).name}" if wrist else None,
+            "intrinsics": calib_name(cams["b0587b"]["intrinsics"]),
+            "wrist_intrinsics": calib_name(wrist) if wrist else None,
             "glove": unit, "tile_layout": Path(layout).name,
             "sam2_prompts": UNIT_PROMPTS.get(unit, UNIT_PROMPTS["yosub"]),
             "collected": True, "exclude_episodes": list(meta.get("exclude_episodes", []))}

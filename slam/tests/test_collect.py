@@ -30,6 +30,9 @@ def test_collected_session_entry():
     assert s2["tile_layout"] == "workspace_tiles_b.json"                 # an explicit layout wins
     s3 = C.collected_session(meta(cameras={"b0587b": {"intrinsics": "calib/h.json"}}))
     assert s3["wrist_intrinsics"] is None
+    # a calibration committed in calib/ itself (the Mac commits its own) is used in place
+    s4 = C.collected_session(meta(cameras={"b0587b": {"intrinsics": "calib/B0587b_f3_intrinsics.json"}}))
+    assert s4["intrinsics"] == "B0587b_f3_intrinsics.json"
 
 
 def test_split_holds_takes_the_last_hold_for_verification():

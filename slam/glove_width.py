@@ -39,7 +39,8 @@ import numpy as np
 import pandas as pd
 
 from slam import config as C
-from slam.preprocess import packet_pts, video_size
+from slam.preprocess import packet_pts
+from slam.videoinfo import video_size
 
 DS = Path.home() / ".cache/huggingface/lerobot/pilot_glove_HHs3"
 

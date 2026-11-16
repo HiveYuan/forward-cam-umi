@@ -91,6 +91,11 @@ def import_file(name):
     under the same name is refused (a recalibration must get a new --name on the Mac)."""
     name = Path(name).name
     src, dst = C.COLLECT_REPO / "calib" / name, COLLECTED / name
+    tracked = C.CALIB / name
+    if tracked.exists():          # committed with the code (the Mac commits its calibrations to the collect branch)
+        if src.exists() and not filecmp.cmp(src, tracked, shallow=False):
+            raise SystemExit(f"calib/{name} in the repo differs from the received {src}")
+        return name
     if dst.exists():
         if src.exists() and not filecmp.cmp(src, dst, shallow=False):
             raise SystemExit(f"calib/{C.COLLECTED_CALIB}/{name} exists with different content; a recalibrated "
@@ -256,7 +261,16 @@ def cmd_bundles(a):
     ids = ",".join(sorted(mm["ball_faces"], key=int)) if mm.get("ball_faces") else "25-35"
     tmp = C.WORK / ds / f"tmp_bundle_{unit}.json"
     tmp.parent.mkdir(parents=True, exist_ok=True)
-    common = [f"--npz={npz}", f"--intr={intr}", f"--marker-mm={edge}", f"--max-vel={a.max_vel}"]
+    # bundle_dodeca*.py turn frame-index gaps into time at a fixed 29.97 fps, and README 6's 600 px/s was set on
+    # 4K frames: rescale so the gate means a.max_vel 4K-px/s at this take's real rate and resolution.
+    walls = [r["wall"] for r in load(raw_dir() / f"{stem}_ts.json")]
+    fps = (len(walls) - 1) / (walls[-1] - walls[0])
+    from slam.videoinfo import video_size
+    width = video_size(str(raw_dir() / f"{stem}.mkv"))[0]
+    gate = a.max_vel * width / 3840 * 29.97 / fps
+    print(f"stillness gate: {a.max_vel:g} px/s at 4K = {a.max_vel * width / 3840:.0f} px/s at {width} px wide, "
+          f"{fps:.2f} fps -> --max-vel={gate:.0f} in the scripts' 29.97-fps units")
+    common = [f"--npz={npz}", f"--intr={intr}", f"--marker-mm={edge}", f"--max-vel={gate:.1f}"]
     run([V, C.REPO / "scripts/bundle_dodeca.py", *common, f"--ball-ids={ids}", f"--out={tmp}"], lg / "bundles.log")
     run([V, C.REPO / "scripts/bundle_dodeca_ideal.py", *common, f"--init={tmp}", f"--out={ball}"], lg / "bundles.log")
     run([V, C.REPO / "scripts/calibrate_gripper_bundle.py", stem, f"--bundle={ball}",
@@ -280,22 +294,25 @@ def cmd_toolframe(a):
     stems = [f"{d}_b0587b" for d in [ds] + (a.more or [])]
     for st in stems:
         detect(st, logs(ds) / "detect_head_tips.log", tips=True)
-    def solve(sts, out):
+    def solve(sts, out, extra=()):
         run([V, C.REPO / "scripts/glove_tool_frame.py", "--unit", unit, "--robot-tool-from",
              C.CALIB / a.robot_tool_from, "--glove-stems", ",".join(sts), "--glove-intr", intr,
-             "--data-repo", C.COLLECT_REPO, "--out", out], logs(ds) / "toolframe.log")
+             "--data-repo", C.COLLECT_REPO, "--out", out, *extra], logs(ds) / "toolframe.log")
         return np.array(load(out)["source"]["T_body_tool_glove"])
 
-    # consistency: each take on its own (incidental fingertip views gave 19 deg off the paper's frame on glove8)
-    if len(stems) > 1:
-        per = {st: solve([st], C.WORK / ds / f"toolframe_{st}.json") for st in stems}
-        ref = per[stems[0]]
-        for st in stems[1:]:
-            R = ref[:3, :3].T @ per[st][:3, :3]
-            ang = np.degrees(np.arccos(np.clip((np.trace(R) - 1) / 2, -1, 1)))
-            off = np.linalg.norm(ref[:3, 3] - per[st][:3, 3]) * 1000
-            print(f"tool frame {stems[0]} vs {st}: {ang:.1f} deg, origin {off:.1f} mm "
-                  f"({'consistent' if ang < 3 and off < 3 else 'NOT consistent: more fingertip views'})")
+    # consistency (incidental fingertip views gave 19 deg off the paper's frame on glove8): each take on its own,
+    # or the first and second half of a single take's fingertip frames
+    parts = {st: ([st], []) for st in stems} if len(stems) > 1 else \
+        {f"{stems[0]} {h} half": (stems, ["--half", h]) for h in ("first", "second")}
+    per = {name: solve(sts, C.WORK / ds / f"toolframe_{name.replace(' ', '_')}.json", extra)
+           for name, (sts, extra) in parts.items()}
+    names = list(per)
+    for nm in names[1:]:
+        R = per[names[0]][:3, :3].T @ per[nm][:3, :3]
+        ang = np.degrees(np.arccos(np.clip((np.trace(R) - 1) / 2, -1, 1)))
+        off = np.linalg.norm(per[names[0]][:3, 3] - per[nm][:3, 3]) * 1000
+        print(f"tool frame, {names[0]} vs {nm}: {ang:.1f} deg, origin {off:.1f} mm "
+              f"({'consistent' if ang < 3 and off < 3 else 'NOT consistent: more fingertip views'})")
     solve(stems, dst)
     print(f"tool frame: {dst}  (check 'frames with both tips + ball' and the tip separation in the log; git add it)")
 
@@ -497,7 +514,7 @@ def main():
     p = sub.add_parser("bundles")
     p.add_argument("dataset"); p.add_argument("--unit", required=True); p.add_argument("--intr", required=True)
     p.add_argument("--marker-mm", type=float, help="ball face edge (default: the marker map's ball_edge_mm)")
-    p.add_argument("--max-vel", type=float, default=600.0, help="px/s frame gate (README 6: 600 at a short shutter)")
+    p.add_argument("--max-vel", type=float, default=600.0, help="stillness gate in px/s on a 4K frame (README 6: 600 at a short shutter); rescaled to the take")
     p.add_argument("--out-dir", help="default calib/"); p.add_argument("--force", action="store_true")
     p = sub.add_parser("toolframe")
     p.add_argument("dataset", help="a head-camera take that shows the ball and both fingertip tags (the cal take)")

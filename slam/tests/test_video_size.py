@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from slam.preprocess import video_size
+from slam.videoinfo import video_size
 
 
 def make_video(path, w, h):

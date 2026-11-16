@@ -26,7 +26,7 @@ sys.path.insert(0, "scripts")
 import labels_lib as L  # noqa: E402
 
 
-def tool_frame(stems, bundle, gripper_bundle, marker_map, intrinsics, label, data_repo="."):
+def tool_frame(stems, bundle, gripper_bundle, marker_map, intrinsics, label, data_repo=".", half=None):
     mm = json.load(open(marker_map))
     bases = {int(k): v for k, v in mm["bases"].items()}
     tails = {int(k): v for k, v in mm["tails"].items()}
@@ -34,7 +34,7 @@ def tool_frame(stems, bundle, gripper_bundle, marker_map, intrinsics, label, dat
     K, dist = L.load_intrinsics(intrinsics)
     Tb, dobj = L.load_bundle(bundle)
     extra = L.load_gripper_bundle(gripper_bundle)
-    tipA, tipB, basec = [], [], []
+    used = []                 # (tip A, tip B, base-cluster centre or None) per usable frame, in time order
     ta, tb = sorted(tips)
     for stem in stems:
         det = np.load(f"{data_repo}/calib/{stem}_dodeca_detections.npz")
@@ -62,12 +62,13 @@ def tool_frame(stems, bundle, gripper_bundle, marker_map, intrinsics, label, dat
                     if ok:
                         pos[i] = (Rb.T @ (t2.ravel() - tc)) * 1000.0
             if ta in pos and tb in pos:
-                tipA.append(pos[ta])
-                tipB.append(pos[tb])
                 bb = [r["pb"][b] for b in bases if b in r["pb"]]
-                if bb:
-                    basec.append(np.mean(bb, axis=0))
-    tipA, tipB, basec = map(np.array, (tipA, tipB, basec))
+                used.append((pos[ta], pos[tb], np.mean(bb, axis=0) if bb else None))
+    if half:                      # consistency check: the first or second half (in time) of the usable frames
+        used = used[:len(used) // 2] if half == "first" else used[len(used) // 2:]
+    tipA = np.array([u[0] for u in used])
+    tipB = np.array([u[1] for u in used])
+    basec = np.array([u[2] for u in used if u[2] is not None])
     print(f"{label}: {len(tipA)} frames with both tips + ball; base cluster "
           f"frames {len(basec)}")
     o = np.median((tipA + tipB) / 2, axis=0)
@@ -104,6 +105,7 @@ ap.add_argument("--glove-intr", default="calib/B0587_intrinsics.json",
 ap.add_argument("--data-repo", default=".",
                 help="repo holding the glove stems' data/raw/<stem>_ts.json and calib/<stem>_*_detections.npz")
 ap.add_argument("--out", default=None, help="default calib/handeye_glove_<unit>.json")
+ap.add_argument("--half", choices=("first", "second"), help="glove side from half of the fingertip frames only")
 a = ap.parse_args()
 if a.robot_tool_from:
     prev = json.load(open(a.robot_tool_from))["source"]
@@ -117,13 +119,13 @@ else:
 Tg = tool_frame(a.glove_stems.split(","), f"calib/glove_{a.unit}_dodeca_bundle.json",
                 f"calib/glove_{a.unit}_gripper_bundle.json",
                 f"calib/marker_map_glove_{a.unit}.json",
-                a.glove_intr, "GLOVE", a.data_repo)
+                a.glove_intr, "GLOVE", a.data_repo, a.half)
 he = json.load(open(a.handeye))
 Tfb_r = np.array(he["T_flange_body"])
 Tfb_g = Tfb_r @ Tr @ np.linalg.inv(Tg)
 out = {"T_cam_base": he["T_cam_base"], "T_flange_body": Tfb_g.tolist(),
        "source": {"handeye": a.handeye, "robot_stems": a.robot_stems,
-                  "glove_stems": a.glove_stems, "glove_intrinsics": a.glove_intr,
+                  "glove_stems": a.glove_stems, "glove_intrinsics": a.glove_intr, "half": a.half,
                   "T_body_tool_robot": Tr.tolist(), "T_body_tool_glove": Tg.tolist()},
        "note": "glove ball -> virtual flange via matched tool frames "
                "(fingertip midpoint, finger axis, jaw axis); see scripts/glove_tool_frame.py"}
