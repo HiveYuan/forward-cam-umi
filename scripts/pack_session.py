@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Hand-off manifest for recorded sessions: lists exactly which files to send,
-their sizes, and prints an rsync line. Nothing is copied or compressed — 4K
-MJPEG sessions are 7-14 GB each, so they travel by rsync (or a drive), not
-as a tarball.
+their sizes, and prints the send command: an rsync line, or for a gs:// --dest
+the scripts/upload_gcs.py line (Google Cloud Storage, same repo layout, for a
+receiving side the Mac cannot reach directly). Nothing is copied or compressed
+— 4K MJPEG sessions are 7-14 GB each, so they travel as files, not as a tarball.
 
 What a session needs on the receiving side (the builds run there):
   data/raw/<dataset>_{b0587,b0587b,fish}.mkv + _ts.json + _meta.json
@@ -36,7 +37,7 @@ def main():
     ap.add_argument("--marker-map", default=None,
                     help="map for legacy recordings; default session snapshot, then unit map")
     ap.add_argument("--dest", default="<user@host:/path/to/forward-cam-umi>",
-                    help="rsync destination (the receiving repo root)")
+                    help="the receiving repo root: user@host:/path (rsync) or gs://bucket/prefix (upload_gcs.py)")
     ap.add_argument("--out", default=None, help="write the manifest here (default data/raw/handoff_<unit>.txt)")
     a = ap.parse_args()
 
@@ -82,7 +83,11 @@ def main():
     out.write_text("\n".join(os.path.relpath(f, ROOT) for f in files if os.path.exists(f)) + "\n")
     print(f"\nmanifest -> {out}")
     print("send with (run from the repo root; keeps the data/raw and calib layout):")
-    print(f"  rsync -avP --files-from={os.path.relpath(out, ROOT)} . {a.dest}/")
+    rel = os.path.relpath(out, ROOT)
+    if a.dest.startswith("gs://"):
+        print(f"  python scripts/upload_gcs.py {rel} {a.dest} --dry-run   # then without --dry-run")
+    else:
+        print(f"  rsync -avP --files-from={rel} . {a.dest}/")
 
 
 if __name__ == "__main__":
