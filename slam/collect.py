@@ -67,6 +67,9 @@ def run(cmd, log, cwd=C.REPO):
     log.parent.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ, HEADCAM_DATA_REPO=str(C.COLLECT_REPO), COLLECT_REPO=str(C.COLLECT_REPO),
                PYTHONPATH=os.pathsep.join(filter(None, [str(C.REPO), os.environ.get("PYTHONPATH")])))
+    # the server is shared: BLAS/OpenMP solvers (the bundle solves) otherwise take every core
+    for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+        env.setdefault(var, os.environ.get("COLLECT_THREADS", "8"))
     cmd = [str(c) for c in cmd]
     t0 = time.time()
     print(f"+ {' '.join(cmd)}\n  (log {log})", flush=True)
@@ -155,27 +158,78 @@ def detect(stem, log, wrist=False, force=False, tips=False):
 
 # ---------------------------------------------------------------- check / status
 
+KINDS = ("session", "layout", "holds", "cal")
+PREROLL_S, HOLD_PAD_S, STARTUP_S = 5.0, 0.3, 3.0
+
+
+def take_kind(ds, meta):
+    """What a dataset is for: the layout take and the holds take are named in the session metadata; a
+    calibration take is named *_cal_*; everything else is a data session."""
+    if meta and (meta.get("tiles") or {}).get("layout_take") == ds:
+        return "layout"
+    if meta and (meta.get("width_calibration") or {}).get("holds_dataset") == ds:
+        return "holds"
+    return "cal" if "_cal_" in ds else "session"
+
+
+def used_windows(ds, kind, walls):
+    """Wall-clock windows whose frames are used: episodes with their SLAM preroll, holds +- 0.3 s, or (layout)
+    the take after its startup."""
+    raw = raw_dir()
+    if kind == "layout":
+        return [(walls[0] + STARTUP_S, walls[-1])]
+    if kind == "holds":
+        holds = scripts_import("field_qc").group_holds(load(raw / f"{ds}_glove_log.json")["events"])
+        return [(h["t0"] - HOLD_PAD_S, h["t1"] + HOLD_PAD_S) for h in holds]
+    return [(e["t_start"] - PREROLL_S, e["t_end"]) for e in load(raw / f"{ds}_glove_episodes.json")["episodes"]]
+
+
 def cmd_check(a):
     ds, raw = a.dataset, raw_dir()
     problems, notes = [], []
     meta = load(raw / f"{ds}_session.json") if (raw / f"{ds}_session.json").exists() else None
     if meta is None:
         problems.append(f"no {ds}_session.json")
-    for role in CAMS:
+    kind = a.kind or take_kind(ds, meta)
+    notes.append(f"kind: {kind}")
+    roles = ("b0587b",) if kind == "layout" else CAMS
+    for role in roles:
         for ext in (".mkv", "_ts.json", "_meta.json"):
             if not (raw / f"{ds}_{role}{ext}").exists():
                 problems.append(f"missing {ds}_{role}{ext}")
-    if not (raw / f"{ds}_glove_episodes.json").exists():
-        problems.append(f"missing {ds}_glove_episodes.json")
+    marks = {"session": "glove_episodes", "cal": "glove_episodes", "holds": "glove_log"}.get(kind)
+    if marks and not (raw / f"{ds}_{marks}.json").exists():
+        problems.append(f"missing {ds}_{marks}.json")
     if list(raw.glob(f"{ds}_*.take1*")):
         problems.append("a .take1 exists: the dataset name was resumed (one take per dataset name)")
     try:
         check_stream = scripts_import("recording_check").check_stream
-        for role in CAMS:
-            if (raw / f"{ds}_{role}_ts.json").exists():
-                r = check_stream(raw, f"{ds}_{role}")
-                problems += [f"{ds}_{role}: {p}" for p in r["problems"]]
-                notes.append(f"{role}: {r['timing']['frames']} frames, {r['timing']['measured_fps']:.2f} fps")
+        for role in roles:
+            if not (raw / f"{ds}_{role}_ts.json").exists():
+                continue
+            r = check_stream(raw, f"{ds}_{role}")
+            # frame gaps count only inside the windows whose frames are used (startup / pre-flight gaps don't)
+            problems += [f"{ds}_{role}: {p}" for p in r["problems"] if not p.startswith("native drops")]
+            walls = np.array([x["wall"] for x in load(raw / f"{ds}_{role}_ts.json")])
+            fps = r["capture"]["fps"]
+            gap = np.diff(walls) > 1.5 / fps
+            mid = walls[1:]
+            try:
+                wins = used_windows(ds, kind, walls)
+            except (OSError, KeyError, ValueError):
+                wins = []
+            inside = np.zeros(len(mid), bool)
+            for t0, t1 in wins:
+                inside |= (mid >= t0) & (mid <= t1)
+            lost = int(np.sum(np.round(np.diff(walls)[gap & inside] * fps) - 1))
+            drops = int(load(raw / f"{ds}_{role}_meta.json").get("native_drops", 0) or 0)
+            if drops or (gap & inside).any():
+                msg = f"{ds}_{role}: {int((gap & inside).sum())} frame gaps (~{lost} frames) inside the used " \
+                      f"windows, {drops} native drops"
+                # the head stream feeds the algorithm; the wrist only the width cross-check
+                (problems if role == "b0587b" else notes).append(msg)
+            notes.append(f"{role}: {r['timing']['frames']} frames, {r['timing']['measured_fps']:.2f} fps; "
+                         f"{int((gap & inside).sum())} gaps in the used windows, {int((gap & ~inside).sum())} outside")
     except Exception as exc:
         problems.append(f"transport check failed: {type(exc).__name__}: {exc}")
     if meta is not None:
@@ -188,7 +242,7 @@ def cmd_check(a):
         v = [r["verdict"] for r in qc["episodes"]]
         notes.append(f"field QC: {v.count('OK')} OK, {v.count('WARN')} WARN, {v.count('FAIL')} FAIL "
                      f"{qc['fail_episodes'] or ''}")
-    else:
+    elif kind == "session":
         problems.append(f"no {ds}_field_qc.json (run scripts/field_qc.py on the Mac)")
     if meta is not None and meta.get("unit"):
         for what, p in unit_files(meta["unit"]).items():
@@ -506,8 +560,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("status")
-    for name in ("check", "import-calib"):
-        sub.add_parser(name).add_argument("dataset")
+    p = sub.add_parser("check")
+    p.add_argument("dataset"); p.add_argument("--kind", choices=KINDS, help="default: from the metadata and name")
+    sub.add_parser("import-calib").add_argument("dataset")
     p = sub.add_parser("layout")
     p.add_argument("dataset"); p.add_argument("--unit", required=True); p.add_argument("--intr", required=True)
     p.add_argument("--stride", type=int, default=10); p.add_argument("--force", action="store_true")
