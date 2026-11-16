@@ -1,0 +1,9 @@
+# exp056_rel_T48_startcamstate: exp018_rel_T48 with both tile-free pose states (test D2d, 2026-11-14): observation.state
+# = the tool pose relative to the episode start (9: xyz + 6D rotation, D2a) + the tool pose in the head camera (9, D2c,
+# slam.cam_state) + gripper, 19-D. Teleop only, the paper's head_Hgt48 list on the SLAM dataset; steps without a camera
+# pose are not sampled (38 of 48 episodes; robot val 4 of 6 episodes). Anchor = the current pose. The baseline for exp057.
+experiment: exp056_rel_T48_startcamstate
+base_train_config: calib/yosub_train_configs/head_Hgt48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v3, episodes: calib/train_eps_pilot_head_Hgt_48.txt}
+relative: {masks: [], anchor: anchor_pose, state: startcam_gripper, stats: calib/rel_action_stats_teleop172_startcamstate.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp056_rel_T48_startcamstate

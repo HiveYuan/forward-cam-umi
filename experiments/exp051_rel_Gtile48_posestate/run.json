@@ -1,0 +1,23 @@
+{
+ "invocations": [
+  {
+   "git_commit": "693a67c5ccb24e1cb143384b71e4a5d431becb83",
+   "git_clean": true,
+   "lerobot_checkout": "0cae109fb8b793b9049709dc6a79e61514511016",
+   "packages": {
+    "lerobot": "0.5.2",
+    "torch": "2.11.0",
+    "torchvision": "0.26.0",
+    "torchcodec": "0.11.1",
+    "numpy": "2.2.6"
+   },
+   "gpu": "NVIDIA GeForce RTX 3090",
+   "config": "experiments/exp051_rel_Gtile48_posestate/config.yaml",
+   "output_dir": "/home/student/yuanliu-hawaii/work/train/exp051_rel_Gtile48_posestate",
+   "steps": 50000,
+   "seed": 1000,
+   "start": "2026-11-14T09:18:35-10:00",
+   "end": "2026-11-14T10:08:39-10:00"
+  }
+ ]
+}

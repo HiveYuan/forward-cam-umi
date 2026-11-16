@@ -56,6 +56,7 @@ def data_files(data):
         "gt_cam_world": gt / f"{stem}_cam_world.json",
         "gt_ball_poses": gt / "ball_poses.npz",
         "gt_gripper_wrist": gt / "gripper_wrist.npz",
+        "gt_gripper_head": gt / "gripper_head.npz",
         "gt_gripper_dataset": gt / "gripper.npz",
     }
 

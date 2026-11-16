@@ -1,0 +1,10 @@
+# exp054_rel_T48_camstate: exp018_rel_T48 with the tool pose in the head camera as state (test D2c, 2026-11-14):
+# observation.state = T_cam_tool (xyz + 6D rotation; teleop: the SO-101 positioner's measured joints + YAM FK, as at
+# deployment, slam.cam_state) + gripper, 10-D. Teleop only, the paper's head_Hgt48 list on the SLAM dataset; steps
+# without a camera pose are not sampled (yam_head13 has no positioner log: 38 of the 48 episodes remain, and 4 of the 6
+# robot-val episodes). Anchor = the current pose; hyperparameters = Yosub's. The baseline for exp055.
+experiment: exp054_rel_T48_camstate
+base_train_config: calib/yosub_train_configs/head_Hgt48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v3, episodes: calib/train_eps_pilot_head_Hgt_48.txt}
+relative: {masks: [], anchor: anchor_pose, state: campose_gripper, stats: calib/rel_action_stats_teleop172_camstate.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp054_rel_T48_camstate

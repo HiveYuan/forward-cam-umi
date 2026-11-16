@@ -1,0 +1,10 @@
+# exp047_rel_T172: relative actions, teleop only, all 172 training episodes (the paper's head_Hgt list); anchor = the
+# current pose; hyperparameters = Yosub's head_Hgt arm. Glove-gain investigation, experiment B (2026-11-12): in joint
+# space more teleop (48 -> 172) lowers Yosub's robot val by 31% (0.465 -> 0.318), as much as the glove does. If more
+# teleop also helps little in relative space, the relative metric sits near its floor; if it helps a lot, the glove
+# data is what helps little.
+experiment: exp047_rel_T172
+base_train_config: calib/yosub_train_configs/head_Hgt/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_tile, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_tile, episodes: calib/train_eps_pilot_head_Hgt.txt}
+relative: {masks: [], anchor: anchor_pose, stats: calib/rel_action_stats_teleop172.json}    # teleop steps carry no flags
+output_dir: /home/student/yuanliu-hawaii/work/train/exp047_rel_T172

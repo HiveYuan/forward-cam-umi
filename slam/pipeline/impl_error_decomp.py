@@ -274,7 +274,7 @@ def stats_block(anchors, steps, horizon, chunk_H):
 
 
 # ---------------------------------------------------------------------- one run
-def decompose(session, segments, run, scale_res, params, scratch, gripper="wrist", log=print):
+def decompose(session, segments, run, scale_res, params, scratch, gripper="head", log=print):
     """Error decomposition of `run` on the segments of C.segments_dir(session).
     scale_res: scale_<run>.json (analysis contract; rows s / oracle_s / flagged, label).
     Label files are written under scratch/segments/ (removed at the end)."""
@@ -415,7 +415,7 @@ def errdecomp_md(res, session):
 def run_error_decomp(job):
     an = job.analysis or {}
     runs = list((an.get("error_decomp") or {}).get("runs", []))
-    gripper = ((an.get("labels") or {}).get("params") or {}).get("gripper", "wrist")
+    gripper = ((an.get("labels") or {}).get("params") or {}).get("gripper", "head")
     out = {}
     for run in runs:
         p = job.out_dir / f"scale_{run}.json"

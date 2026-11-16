@@ -3,5 +3,5 @@
 experiment: exp036_rel_Gslam48_adaptive
 base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
 dataset: {repo: pilot_mix_gHs3_rel_slam_v2, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v2, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
-relative: {masks: [slam_valid, ik_unreached], stats: calib/rel_action_stats_teleop172.json}
+relative: {masks: [slam_valid, ik_unreached], anchor: anchor_pose, stats: calib/rel_action_stats_teleop172.json}
 output_dir: /home/student/yuanliu-hawaii/work/train/exp036_rel_Gslam48_adaptive

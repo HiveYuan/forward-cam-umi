@@ -1,0 +1,9 @@
+# exp052_rel_T48_startstate: exp018_rel_T48 with a tile-free pose state (test D2a, 2026-11-14): observation.state = the
+# current tool pose relative to the episode's start pose (T_start^-1 . T_t, xyz + 6D rotation; teleop: FK of the
+# measured joints) + gripper, 10-D. Teleop only (48 episodes, the paper's head_Hgt48 list), on the SLAM dataset
+# (its teleop half equals the tile one); anchor = the current pose; hyperparameters = Yosub's. The baseline for exp053.
+experiment: exp052_rel_T48_startstate
+base_train_config: calib/yosub_train_configs/head_Hgt48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v3, episodes: calib/train_eps_pilot_head_Hgt_48.txt}
+relative: {masks: [], anchor: anchor_pose, state: startpose_gripper, stats: calib/rel_action_stats_teleop172_startstate.json}    # teleop steps carry no flags
+output_dir: /home/student/yuanliu-hawaii/work/train/exp052_rel_T48_startstate

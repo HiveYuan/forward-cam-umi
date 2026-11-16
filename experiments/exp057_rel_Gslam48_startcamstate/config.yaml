@@ -1,0 +1,9 @@
+# exp057_rel_Gslam48_startcamstate: exp046_rel_Gslam48_head with both tile-free pose states (test D2d, 2026-11-14):
+# the start-relative pose (D2a: position) + the tool pose in the head camera (D2c: orientation w.r.t. the view) +
+# gripper, 19-D. 48 teleop (38 with a camera pose) + 194 glove episodes on the head-width SLAM dataset (exp045); loss
+# masks slam_valid and ik_unreached; anchor = the current pose. No tiles anywhere.
+experiment: exp057_rel_Gslam48_startcamstate
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v3, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], anchor: anchor_pose, state: startcam_gripper, stats: calib/rel_action_stats_teleop172_startcamstate.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp057_rel_Gslam48_startcamstate

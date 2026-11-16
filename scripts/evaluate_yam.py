@@ -265,6 +265,15 @@ ARMS = {
     # robot val: mix_gHA .252@36k (glove val .263).
     "mix_gHA": {"cam": "fish",
                 "act": ("pilot_mix_gHA", "mix_gHA_act50/checkpoints/036000")},
+    # Relative-action arms (Yuan, 2026-11-14; slam.train_rel, robot val on the 6 teleop val episodes): actions are
+    # tool poses relative to the current FK pose, deployed by eval_grid.py through slam.deploy_rel.RelativeRunner.
+    # Copy each checkpoint into train_runs/<dir>. The glove labels: tiles (D1) or SLAM (the others, no tiles).
+    "rel_Gslam48": {"cam": "head", "relative": {"state": "gripper"},              # exp046: state = gripper only
+                    "act": ("pilot_mix_gHs3_rel_slam_v3", "exp046_rel_Gslam48_head/checkpoints/046000")},
+    "rel_Gtile48_pose": {"cam": "head", "relative": {"state": "pose_gripper"},    # exp051 (D1): + FK tool pose
+                         "act": ("pilot_mix_gHs3_rel_tile", "exp051_rel_Gtile48_posestate/checkpoints/048000")},
+    "rel_Gslam48_start": {"cam": "head", "relative": {"state": "startpose_gripper"},  # exp053 (D2a): + pose rel. to start
+                          "act": ("pilot_mix_gHs3_rel_slam_v3", "exp053_rel_Gslam48_startstate/checkpoints/048000")},
     # A/B (round-1 pose-action arms) RETIRED 2026-09-16: stale 22-ep
     # checkpoints, pre-wedge visuals; the pose-vs-joint ablation, if ever
     # wanted, should train on pilot_all6_B (built every round).
@@ -368,6 +377,8 @@ def main():
     args = parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     spec = ARMS[args.arm]
+    if spec.get("relative"):
+        raise SystemExit(f"{args.arm}: a relative-action arm; run it with eval_grid.py (slam.deploy_rel)")
     if args.model not in spec:
         have = ", ".join(m for m in ("act", "dp") if m in spec)
         raise SystemExit(f"arm {args.arm} has no {args.model.upper()} "

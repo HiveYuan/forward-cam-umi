@@ -14,10 +14,11 @@ build  For each segment, the tool (virtual flange, build_dataset's IK target fra
        the run has no pose (DROID returns every frame).
        Scale: --scale <spec> from slam.scale (none | tiles = oracle | A = static ball |
        B[:model] = metric depth + ball | fallback chains like "A,B").
-       Gripper: --gripper wrist (default) = <work>/<session>/gt/gripper_wrist.npz, the
-       session's own wrist-camera width (slam.wrist_width: tip separation, closed-jaw
-       offset, repo bench + command maps); --gripper dataset = gt/gripper.npz (widths of
-       Yosub's built glove dataset, slam.glove_width). Linearly interpolated; a step is a gripper gap when no width sample lies within
+       Gripper: --gripper head (default since 2026-11-12) = <work>/<session>/gt/gripper_head.npz,
+       the head camera's width (slam.head_width: the paper's tail/base estimators); --gripper
+       wrist = gt/gripper_wrist.npz (slam.wrist_width; cross-check only, no wrist-camera data in
+       the algorithm); --gripper dataset = gt/gripper.npz (widths of Yosub's built glove
+       dataset, slam.glove_width). Linearly interpolated; a step is a gripper gap when no width sample lies within
        0.12 s, and coverage uses pose AND gripper gaps (build_dataset: min of both).
        -> <segment>/labels/<name>.npz: t, T_ref_tool (N,4,4), gap, coverage, keep, meta
           <name> = <ref> with the oracle (tiles) scale, else <ref>@<scale spec>, e.g. E3@A
@@ -76,8 +77,14 @@ def tile_world_cam(S):
     return T_wc
 
 
-def load_gripper(session, source="wrist"):
-    p = C.gt_dir(session) / ("gripper_wrist.npz" if source == "wrist" else "gripper.npz")
+GRIPPER_FILES = {"head": "gripper_head.npz", "wrist": "gripper_wrist.npz", "dataset": "gripper.npz"}
+
+
+def load_gripper(session, source="head"):
+    """{episode: (wall times, command)} from the source's gt file; {} if it does not exist."""
+    if source not in GRIPPER_FILES:
+        raise ValueError(f"gripper source {source!r}: one of {sorted(GRIPPER_FILES)}")
+    p = C.gt_dir(session) / GRIPPER_FILES[source]
     if not p.exists():
         return {}
     z = np.load(p)
@@ -136,8 +143,8 @@ def build_segment(seg, ref, scale_mode, T_bt, grip=None, scale=None):
         else:
             meta["skipped"] = f"episode only {t1 - t0:.2f} s long"
     meta.update({"coverage": out["coverage"], "keep": out["keep"], "n_steps": len(out["t"]),
-                 "gripper": "gt/gripper_wrist.npz or gt/gripper.npz" if gser is not None else
-                 ("no width labels for this episode" if grip else "no gt/gripper.npz: pose-only coverage")})
+                 "gripper": "gt width file (labels gripper source)" if gser is not None else
+                 ("no width labels for this episode" if grip else "no gripper widths: pose-only coverage")})
     (seg / "labels").mkdir(exist_ok=True)
     np.savez(seg / "labels" / f"{label_name(ref, scale_mode)}.npz", t=out["t"], T_ref_tool=out["T_ref_tool"], gap=out["gap"],
              gripper=out["gripper"], gripper_gap=out["gripper_gap"], coverage=out["coverage"],
@@ -320,7 +327,7 @@ def main():
     ap.add_argument("--ref", required=True, help="'tiles' or a SLAM run name (E1, E2, E3)")
     ap.add_argument("--scale", default="tiles", help="slam.scale spec: none|tiles|A|B[:model]|A,B ...")
     ap.add_argument("--horizon", type=int, default=100)
-    ap.add_argument("--gripper", default="wrist", choices=["wrist", "dataset"])
+    ap.add_argument("--gripper", default="head", choices=sorted(GRIPPER_FILES))
     a = ap.parse_args()
     {"build": cmd_build, "check": cmd_check}[a.cmd](a)
 

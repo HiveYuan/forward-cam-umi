@@ -1,0 +1,25 @@
+{
+ "invocations": [
+  {
+   "git_commit": "6dd9d5014187fc3469dbda271891c6daa6b298f5",
+   "git_clean": true,
+   "i2rt_commit": "47fee5e7dec4e30ca054f798bda1c8894b465ed2",
+   "packages": {
+    "mujoco": "3.13.0",
+    "mink": "1.3.0",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "25.0.1",
+    "lerobot": "0.4.4"
+   },
+   "python": "3.10.22",
+   "command": "/home/student/yuanliu-hawaii/head-cam-umi-slam/slam/rel_dataset.py build experiments/exp035_rel_datasets_adaptive/config.yaml",
+   "config": "experiments/exp035_rel_datasets_adaptive/config.yaml",
+   "time": "2026-11-12T15:51:24-10:00",
+   "outputs": {
+    "tile": "/home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_tile_v2",
+    "slam": "/home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v2"
+   }
+  }
+ ]
+}

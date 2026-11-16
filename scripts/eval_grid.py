@@ -46,6 +46,7 @@ import numpy as np
 
 ALOHAMINI = Path(os.environ.get("LEROBOT_ALOHAMINI", str(Path.home() / "lerobot_alohamini")))  # the lerobot fork: examples/alohamini helpers
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))   # repo root: slam.deploy_rel for the relative arms
 sys.path.insert(0, str(ALOHAMINI / "examples/alohamini"))
 sys.path.insert(0, str(Path.home() / "co/i2rt"))
 
@@ -302,7 +303,22 @@ def main():
         print("head camera open — make sure so101_cam_track.py is running (tracking, or --static for the parked ablation)")
     geom = (A_he, B_he, eef_tgt, K_half, dist)
     print("loading policies:")
-    runners = {n: Runner(n, device, fwd, fish, kin, geom, args, head=head) for n in names}
+    def make_runner(n):
+        spec = ARMS[n]
+        if not spec.get("relative"):
+            return Runner(n, device, fwd, fish, kin, geom, args, head=head)
+        # relative-action arms (slam.relative_dataset / slam.train_rel): chunks -> base-frame targets, ensembled there,
+        # IK per tick (slam.deploy_rel); LeRobot's own ensembler is not used. Head view only.
+        from slam.deploy_rel import RelativeRunner
+        if spec["cam"] != "head" or head is None:
+            raise SystemExit(f"{n}: relative arms need the head camera")
+        rel = spec["relative"]
+        model_dir = ROOT / "train_runs" / spec["act"][1] / "pretrained_model"
+        print(f"  loaded {n}: {spec['act'][1]}  relative actions, state {rel['state']}, ensemble {args.act_ensemble}, "
+              f"horizon {rel.get('horizon') or 'chunk'}")
+        return RelativeRunner(n, model_dir, rel["state"], kin, head, device, args.task_description,
+                              ensemble=args.act_ensemble, horizon=rel.get("horizon"), crop=spec.get("crop", 1.0))
+    runners = {n: make_runner(n) for n in names}
     overlay = Overlay(not args.no_overlay)
 
     robot = YamZmqClient(YamZmqClientConfig(remote_ip=args.remote_ip, zmq_cmd_port=args.zmq_cmd_port,

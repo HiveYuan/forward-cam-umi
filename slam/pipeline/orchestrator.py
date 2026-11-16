@@ -40,8 +40,12 @@ RECORDED_ENV_VARS = ("SLAM_WORK", "HEADCAM_DATA_REPO", "CUDA_VISIBLE_DEVICES", "
                      "HF_HOME", "HF_HUB_CACHE", "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_TOKEN_PATH",
                      "CONDA_ROOT", "SLAM_PY_VENV", "SLAM_PY_DROID", "SLAM_PY_SAM2", "SLAM_PY_SAM3",
                      "SLAM_PY_LEROBOT", "SLAM_GPU_LOCK")
-ANALYSIS_DATA = ("gt_cam_world", "gt_ball_poses", "gt_gripper_wrist", "gt_gripper_dataset", "ball_bundle",
-                 "handeye", "intrinsics", "tile_layout", "tags", "episodes")
+ANALYSIS_DATA = ("gt_cam_world", "gt_ball_poses", "gt_gripper_head", "gt_gripper_wrist", "gt_gripper_dataset",
+                 "ball_bundle", "handeye", "intrinsics", "tile_layout", "tags", "episodes")
+
+# may be missing: a session without a wrist camera, sessions without a head width yet, no built-dataset
+# reference; the steps that read one check it themselves (labels, sam3_v2_head)
+OPTIONAL_DATA = ("gt_gripper_dataset", "gt_gripper_wrist", "gt_gripper_head")
 
 
 def now():
@@ -108,7 +112,7 @@ class Runner:
         fp = {}
         for k in sorted(names):
             fp[k] = H.file_fingerprint(self.files[k])
-            if fp[k] is None and k != "gt_gripper_dataset":
+            if fp[k] is None and k not in OPTIONAL_DATA:
                 raise FileNotFoundError(f"data input '{k}' missing: {self.files[k]}")
         code = {}
         for n in self.order:

@@ -54,6 +54,21 @@ MDEPTH_PKGS = ("torch", "torchvision", "xformers", "numpy", "timm", "einops", "h
                "safetensors") + CV_PKGS
 
 
+# sam3_v2 and sam3_v2_head (the same code and parameters; the held-object gate reads another width file)
+_SAM3V2_PARAMS = {"model": "facebook/sam3", "revision": "3c879f39826c281e95690f02c7821c4de09afae7",
+                  "dtype": "bfloat16", "text_prompts": ["hand", "arm", "cable"], "seed_prompts": ["hand", "arm"],
+                  "attach_px": 8, "border_px": -1, "leak_ratio": 3.0, "split_components": True,
+                  "rig_points": ["ball", [-0.0852, -0.0324, 0.0655], [-0.0623, -0.0177, 0.1004], [-0.0865, -0.0568, 0.0937]],
+                  "rig_negative_points": [],
+                  "hand_points": [[-0.141, -0.0026, 0.1014], [-0.141, 0.0574, 0.1314]],
+                  "held_points": [[-0.0943, -0.1071, 0.0855]], "held_width_max": 0.45, "held_after_open": True,
+                  "width_tol_s": 0.12,
+                  "prompt_every": 10, "require_postprocess": True}
+_SAM3V2_CODE = ("slam/masks_sam3v2.py", "slam/masks_sam3.py", "slam/masks.py",
+                "slam/pipeline/impl_masks_sam3v2.py", "slam/pipeline/impl_masks.py", "slam/geometry.py")
+_SAM3V2_BINARIES = ("/home/student/.cache/huggingface/hub/kernels--kernels-community--cv-utils/snapshots/*/build/"
+                    "*-x86_64-linux/*.so",)
+
 _IMPLS = [
     # ------------------------------------------------------------------ preprocess
     Impl("preprocess", "undistort_crop", "venv", "slam.pipeline.impl_preprocess:run_preprocess",
@@ -95,25 +110,24 @@ _IMPLS = [
          doc="slam.masks_sam3: SAM3 text prompts (body parts) + SAM3 tracker points from the ball pose "
              "(rig, held object), union"),
     Impl("masks", "sam3_v2", "sam3", "slam.pipeline.impl_masks_sam3v2:run_sam3_v2",
-         {"model": "facebook/sam3", "revision": "3c879f39826c281e95690f02c7821c4de09afae7",
-          "dtype": "bfloat16", "text_prompts": ["hand", "arm", "cable"], "seed_prompts": ["hand", "arm"],
-          "attach_px": 8, "border_px": -1, "leak_ratio": 3.0, "split_components": True,
-          "rig_points": ["ball", [-0.0852, -0.0324, 0.0655], [-0.0623, -0.0177, 0.1004], [-0.0865, -0.0568, 0.0937]],
-          "rig_negative_points": [],
-          "hand_points": [[-0.141, -0.0026, 0.1014], [-0.141, 0.0574, 0.1314]],
-          "held_points": [[-0.0943, -0.1071, 0.0855]], "held_width_max": 0.45, "held_after_open": True,
-          "width_tol_s": 0.12,
-          "prompt_every": 10, "require_postprocess": True},
+         dict(_SAM3V2_PARAMS),
          gpu_gb=14.0, data_inputs=("handeye", "gt_gripper_wrist"),
-         code_files=("slam/masks_sam3v2.py", "slam/masks_sam3.py", "slam/masks.py",
-                     "slam/pipeline/impl_masks_sam3v2.py", "slam/pipeline/impl_masks.py", "slam/geometry.py"),
-         binaries=("/home/student/.cache/huggingface/hub/kernels--kernels-community--cv-utils/snapshots/*/build/"
-                   "*-x86_64-linux/*.so",),
+         code_files=_SAM3V2_CODE,
+         binaries=_SAM3V2_BINARIES,
          env_packages=TORCH_PKGS + ("kernels",), choices={"dtype": ("bfloat16", "float16", "float32")},
          doc="slam.masks_sam3v2: SAM3 text instances minus masklet leaks (area > leak_ratio x the masklet's lower "
              "quartile), kept only if attached to the wearer (tracked rig / hand / held object; plus border-touching "
              "seed prompts when border_px >= 0); SAM3 tracker for rig, hand and held object "
              "(fingertip point while the gripper width <= held_width_max), every prompt_every frames"),
+    Impl("masks", "sam3_v2_head", "sam3", "slam.pipeline.impl_masks_sam3v2_head:run_sam3_v2_head",
+         dict(_SAM3V2_PARAMS),
+         gpu_gb=14.0, data_inputs=("handeye", "gt_gripper_head"),
+         code_files=_SAM3V2_CODE + ("slam/pipeline/impl_masks_sam3v2_head.py",),
+         binaries=_SAM3V2_BINARIES,
+         env_packages=TORCH_PKGS + ("kernels",), choices={"dtype": ("bfloat16", "float16", "float32")},
+         doc="sam3_v2 with the held-object gate on the head-camera gripper width (gt/gripper_head.npz, "
+             "slam.head_width) instead of the wrist camera's; decision 2026-11-12: no wrist-camera data in the "
+             "algorithm"),
     Impl("masks", "tile_geometry", "venv", "slam.pipeline.impl_tiles:run_tile_geometry",
          {"margin_mm": 10.0, "max_gap_s": 0.5, "grow_mm_per_s": 100.0, "slam_fallback": None,
           "slam_margin_mm": 25.0},
@@ -229,9 +243,9 @@ _IMPLS = [
          doc="per SLAM run: primary scale method + cross-checks (slam.scale); s is always the primary's"),
     Impl("labels", "default", "venv", "slam.pipeline.impl_analysis:run_labels",
          {"fps": 15.0, "label_tol_s": 0.12, "min_coverage": 0.7, "bridge_s": 0.5,
-          "min_episode_s": 1.0, "gripper": "wrist",
+          "min_episode_s": 1.0, "gripper": "head",
           "label_steps": [1, 2, 4, 8, 15, 30, 60, 100], "horizon": 100, "chunk_H": [15, 30, 50, 100]},
-         data_inputs=("gt_gripper_wrist",), choices={"gripper": ("wrist", "dataset")},
+         data_inputs=("gt_gripper_head", "gt_gripper_wrist"), choices={"gripper": ("head", "wrist", "dataset")},
          doc="slam.labels build/check: tool poses on the build_dataset 15 fps grid; error vs the tile "
              "labels per step (label_steps) and averaged over chunks of length H (chunk_H)"),
     Impl("evaluate", "default", "venv", "slam.pipeline.impl_analysis:run_evaluate",

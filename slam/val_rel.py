@@ -12,6 +12,9 @@ Physical errors (relative runs): the policy's chunk with the VAE latent at zero 
 predict_action_chunk), unnormalised with the run's stats, against the label: tool position (mm),
 rotation (deg, 6D -> R by Gram-Schmidt) and gripper (command units) at j = 0, 14, 49, 99 and averaged
 over the chunk, on non-padded steps.
+Joint-space runs (Yosub's arms): the same chunks, unnormalised with the checkpoint's own action stats,
+are saved with their labels to <run_dir>/val_chunks/<best|last>_<set>.npz {pred, tgt, pad} (joints in
+rad + gripper); slam.joint_physical (lerobot env: i2rt FK) turns them into the same physical errors.
 
   R=/home/student/miniconda3/envs/lerobot52/bin/python
   PYTHONPATH=. $R -m slam.val_rel experiments/<exp>/config.yaml            # -> experiments/<exp>/results/
@@ -46,7 +49,8 @@ def make_loader(cfg, eps, chunk, stats, batch_size, workers):
     if cfg.get("relative"):
         ds = RelChunkDataset(d["repo"], d["root"], eps, stats, horizon=chunk,
                              masks=tuple(cfg["relative"].get("masks", MASK_KEYS)),
-                             anchor=cfg["relative"].get("anchor", "anchor_pose"))
+                             anchor=cfg["relative"].get("anchor", "anchor_pose"),
+                             state=cfg["relative"].get("state", "gripper"))
     else:
         from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
         fps = LeRobotDatasetMetadata(d["repo"], root=d["root"]).fps
@@ -55,7 +59,9 @@ def make_loader(cfg, eps, chunk, stats, batch_size, workers):
     return torch.utils.data.DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=workers)
 
 
-def evaluate(ckpt, loader, physical, stats, device="cuda"):
+def evaluate(ckpt, loader, physical, stats, device="cuda", dump=None):
+    """Val loss of one checkpoint; with physical, the chunk errors (relative runs: stats = the run's relative
+    stats) or, for a joint-space run (stats None), the unnormalised chunks saved to dump."""
     import torch
     from lerobot.policies import make_pre_post_processors
     from lerobot.policies.act.modeling_act import ACTPolicy
@@ -65,7 +71,13 @@ def evaluate(ckpt, loader, physical, stats, device="cuda"):
     tot, n, l1, kld = 0.0, 0, 0.0, 0.0
     errs = {"pos_mm": [], "rot_deg": [], "grip": [], "valid": []}
     mean = std = None
-    if physical:
+    joint = physical and stats is None
+    chunks = {"pred": [], "tgt": [], "pad": []}
+    if joint:
+        from safetensors.numpy import load_file
+        st = load_file(str(next(Path(ckpt).glob("policy_preprocessor_step_*_normalizer_processor.safetensors"))))
+        mean, std = st["action.mean"].astype(float), st["action.std"].astype(float) + 1e-8
+    elif physical:
         mean = np.asarray(stats["action"]["mean"], float)
         std = np.asarray(stats["action"]["std"], float) + 1e-8
     with torch.no_grad():
@@ -81,7 +93,11 @@ def evaluate(ckpt, loader, physical, stats, device="cuda"):
             l1 += float(info.get("l1_loss", 0.0)) * m
             kld += float(info.get("kld_loss", 0.0)) * m
             n += m
-            if physical:
+            if joint:
+                chunks["pred"].append(policy.predict_action_chunk(b).double().cpu().numpy() * std + mean)
+                chunks["tgt"].append(raw_action.double().numpy())
+                chunks["pad"].append(raw_pad.numpy())
+            elif physical:
                 pred = policy.predict_action_chunk(b).double().cpu().numpy() * std + mean      # (B, H, 10)
                 tgt = raw_action.double().numpy()
                 Rp, Rt = Rl.rot6d_to_R(pred[..., 3:9]), Rl.rot6d_to_R(tgt[..., 3:9])
@@ -91,7 +107,11 @@ def evaluate(ckpt, loader, physical, stats, device="cuda"):
                 errs["grip"].append(np.abs(pred[..., 9] - tgt[..., 9]))
                 errs["valid"].append(~raw_pad.numpy())
     out = {"loss": tot / max(n, 1), "l1": l1 / max(n, 1), "kld": kld / max(n, 1), "samples": n}
-    if physical and errs["valid"]:
+    if joint:
+        Path(dump).parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(dump, **{k: np.concatenate(v) for k, v in chunks.items()})
+        out["chunks"] = str(dump)
+    elif physical and errs["valid"]:
         V = np.concatenate(errs["valid"])
         for k in ("pos_mm", "rot_deg", "grip"):
             E = np.concatenate(errs[k])
@@ -139,6 +159,13 @@ def main():
             c = run / "checkpoints" / f"{step:06d}" / "pretrained_model"
             res["physical"][label] = {"step": step, **{k: evaluate(c, L, True, stats, a.device)
                                                        for k, L in loaders.items()}}
+    else:                                   # joint-space: chunks for slam.joint_physical (FK in the lerobot env)
+        res["val_chunks"] = {}
+        for label, step in (("best", best["step"]), ("last", res["checkpoints"][-1]["step"])):
+            c = run / "checkpoints" / f"{step:06d}" / "pretrained_model"
+            for k, L in loaders.items():
+                evaluate(c, L, True, None, a.device, dump=run / "val_chunks" / f"{label}_{k}.npz")
+                res["val_chunks"][f"{label}_{k}"] = {"step": step, "file": f"val_chunks/{label}_{k}.npz"}
     json.dump(res, open(out / "val.json", "w"), indent=1)
     write_md(res, out / "val.md")
     print(f"best robot val: step {best['step']} loss {best['robot']['loss']:.4f}")

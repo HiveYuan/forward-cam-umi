@@ -1,0 +1,9 @@
+# exp053_rel_Gslam48_startstate: exp046_rel_Gslam48_head with a tile-free pose state (test D2a, 2026-11-14):
+# observation.state = the current tool pose relative to the episode's start pose (teleop: FK; glove: the SLAM poses,
+# metric by Bnet, start = the episode's first slam-valid step) + gripper, 10-D. 48 teleop + 194 glove episodes on the
+# head-width SLAM dataset (exp045); loss masks slam_valid and ik_unreached; anchor = the current pose. No tiles anywhere.
+experiment: exp053_rel_Gslam48_startstate
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_slam_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_slam_v3, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], anchor: anchor_pose, state: startpose_gripper, stats: calib/rel_action_stats_teleop172_startstate.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp053_rel_Gslam48_startstate
