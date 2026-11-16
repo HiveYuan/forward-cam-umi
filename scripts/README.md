@@ -457,6 +457,7 @@ repository root.
 |---|---|---|
 | `cameras_setup.py [--list]` | preview every camera, assign forward / head / wrist roles, write `calib/cameras.json` | 2 |
 | `focus_tune.py <dev> [--ref <dev>]` | live window + marker edge-width meter to lock a barrel-focused lens; `--ref` shows a known-good camera beside it | 2 |
+| `head_coach.py coverage\|focus\|cal\|audit-cal` | worn head camera (macOS), live: tile coverage; session focus by tile-to-tile distances vs a reference take + glove-marker rates; cal-take practice by bundle_dodeca's rules (faces linked, backs, tips + ball); `audit-cal` the same over a recorded cal take | 2, 4b |
 | `calibrate_uvc.py <dev> [--name] [--model rational] --square-mm --marker-mm` | live ChArUco intrinsics → `calib/<name>_intrinsics.json` | 3 |
 | `record_session.py --glove --dataset D --num_episodes N` | multi-camera session: pre-flight, ritual, episode marks, width holds | 4 |
 | `uvc_record.py <name> [dev] [WxH] [fps]` | one camera's raw MJPEG + wall clocks (launched by record_session) | 4 |

@@ -47,19 +47,49 @@ Dataset names used below:
    exposure picks less than one 8.33 ms flicker period; manual exposure (over UVC, e.g.
    `uvc-util`) at 16.7 ms removes the bands at 4K (2 % depth) but overexposes at minimum
    gain (239/255, no tile decoded). Note 1080p@60 is also softer (tile edges ~7 px vs
-   1-3 px for 4K shrunk to 1080p): it trades corner accuracy for no rolling bands. Then
-   `python scripts/focus_tune.py head` and `... wrist`, each on what that camera reads:
-   **head** on the glove's ball faces held where you grasp (~45 cm, worn), then check a tile
-   still decodes; not on a tile at 1 m, which leaves the 15 mm ball faces and the fingertip
-   tags soft (2026-11-15). **Wrist** on the 16h5 fingertip tags (4-8 cm), jaws open and closed.
-   Lock both and put a witness mark on each barrel.
+   1-3 px for 4K shrunk to 1080p): it trades corner accuracy for no rolling bands.
+
+   **Focus**, each camera on what the pipeline reads from it (2026-11-15):
+   - **Wrist**: `python scripts/focus_tune.py wrist` on the 16h5 fingertip tags (4-8 cm), jaws
+     open and closed; the recorder's pre-flight then needs both tips decoded.
+   - **Head**: the session focus must serve two things at once, the glove at arm's length
+     (15 mm ball faces, 12 mm tails: labels and width) and the tiles at ~1 m (the tile GT that
+     evaluates SLAM). Its depth of field covers both only near one setting, so set it with the
+     meter, worn, standing where you work, glove in view at ~45 cm, tiles in view:
+     ```
+     python scripts/head_coach.py focus --intr calib/<head intrinsics nearest this focus>.json \
+         --ref-take <a layout take with sharp tiles> --ref-intr calib/<that take's head intrinsics>.json
+     ```
+     It shows the tile-to-tile distances measured as the layout solve measures them, against
+     the reference take, and the glove markers. Turn until every distance is within +-0.5 %
+     AND >= 2 ball faces read in >= 80 % of frames. A blurred far tile reads LONG: a focus set
+     on the glove alone read tile 2 at +2 to +4.5 % (yuan, tiles not moved), which would bias
+     every session's tile GT; too far a focus kept the tiles exact but read 2 ball faces in
+     1-8 % of frames. The first reference is a layout take recorded with the head focused on a
+     tile at ~1 m (`focus_tune.py head`, `n` to step the crop to a tile) and calibrated for that
+     focus, cross-checked by tape where possible. Mark the barrel.
+   - The head does NOT need the fingertip tags in sessions (width comes from tails + back
+     markers; the wrist reads the tips); only the cal take (step 10) does.
+
+   **Before every session**, worn, at the working spot: 30 s of the same meter (tile distances
+   within +-0.5 % of the layout take); taking the camera off and on can turn the barrel.
+
+   **Head USB**: give the cable strain relief at the camera (tape it to the mount with a little
+   slack). A strained connector made the head drop out ("no camera frame received for 10s");
+   the kernel log names it: `log show --last 10m --predicate 'sender == "IOUSBHostFamily"' | grep 0xe00002ed`
+   (0 errors over a 2-minute wiggle test before collecting).
 4. **Intrinsics.** If the head camera's focus moved since its last calibration, or there
    is none, calibrate (caliper the ChArUco board first):
    ```
    python scripts/calibrate_uvc.py head  --name B0587b_yuan --square-mm <measured> --marker-mm <measured>
    python scripts/calibrate_uvc.py wrist --name fisheye_glove_yuan --model rational --square-mm <measured> --marker-mm <measured>
    ```
-   Any later focus change needs a new head calibration.
+   Any later focus change needs a new head calibration, under a NEW name: one intrinsics file
+   per focus, and every take is solved with the file of its own focus (session_meta records it).
+   Hold the board where that camera works (head 30-70 cm, wrist 8-25 cm) and cover the image
+   corners. yuan, 2026-11-15: head `B0587b_yuan_1115c` (session focus: layout, holds, sessions),
+   `B0587b_yuan_1115b` (the nearer cal-take focus, step 10), wrist `fisheye_glove_yuan_1115`
+   (no board coverage in the bottom third, where the jaws hide it and the tips sit).
 5. **Light.** macOS has no exposure control (auto exposure). Use bright, steady light
    (no changing daylight); dim light means long exposures and motion blur on a
    rolling-shutter camera. Keep the light the same for all sessions.
@@ -79,7 +109,11 @@ Dataset names used below:
    task (near, far, both sides, the bin); `field_qc` WARNs when fewer than 50 % of frames
    see two tiles, and the SLAM evaluation uses only those frames. Yuan, 2026-11-15: a USB
    hub's cables lying across tile 4 kept it from decoding (2 % of frames); moved, 81 % of
-   frames saw two or more tiles.
+   frames saw two or more tiles. The same count, live, with snapshots to look at the
+   frames that fall short:
+   ```
+   python scripts/head_coach.py coverage --shots tmp/coverage_shots
+   ```
 
    The tiles must not move for the rest of the collection. If one is bumped: note it
    (`session_meta.py --tiles-moved`) and record a new layout take.
@@ -102,21 +136,39 @@ Dataset names used below:
    a caliper-measured rigid spacer) and ENTER; ENTER again ends the hold. During each
    15–20 s hold, at working distance, slowly rotate the glove so the head camera sees
    **both** jaws' tails and the back markers from several angles. Then one extra hold at
-   a width not used above (for verification), and `q`.
+   a width not used above (for verification), and `q`. Identical blocks side by side make
+   the steps; caliper the pair TOGETHER at the fingertip contact (gaps make a sum short).
+   yuan, 2026-11-15: 0, red block 31.25, red + light-blue block 62.5 (the jaws hold two
+   blocks at most), verification 54.2 (a power bank); 278-350 head tail+back frames per hold.
 10. **Glove geometry** (calibration take, ~2 min, head camera worn): one long episode at working
     distance, slowly turning the ball through every orientation so each of the 11 faces is seen many
     times, and showing the back markers (40/41 and 46/47, both sides of the gripper) part of the time.
     Then, for ~30 s, hold the glove 30–40 cm from your face with the jaws open and turn it so the head
-    camera looks **between the fingers at both fingertip tags** (the ones facing the wrist camera) while it
-    still sees the ball, from a few angles: that defines the tool frame (fingertip midpoint, finger and
-    jaw axes) that puts the glove's labels where the robot's gripper is:
+    camera sees **both fingertip tags** (on top of the jaws) while it still sees the ball, from a few
+    angles: that defines the tool frame (fingertip midpoint, finger and jaw axes) that puts the glove's
+    labels where the robot's gripper is. Natural grasp poses over the table do it too.
     ```
     POSE_PUB=0 python scripts/record_session.py --glove --glove_unit yuan \
         --marker-map calib/marker_map_glove_yuan.json --cameras b0587b,fish --dataset yuan_cal_01 --num_episodes 1
     ```
+    **At 1080p@60 the head reads the 6 mm 16h5 tips only at a nearer focus** than the session focus
+    (the tags are ~28 px at 40 cm with the mode's soft edges). Record this take at that nearer focus and
+    calibrate the head for it under its own name; the bundle and the tool frame are the glove's rigid
+    geometry, valid at any focus, as long as THIS take is solved with THIS take's intrinsics. Then set the
+    session focus (step 3) and calibrate again. Practise first, live, with bundle_dodeca's rules (all 11
+    faces linked by >= 3 still co-visible frames, both back sides, >= 30 frames with both tips + ball);
+    turn a little, stop, turn: only still frames count. Check the recording the same way:
+    ```
+    python scripts/head_coach.py cal [--shots tmp/cal_shots]
+    python scripts/head_coach.py audit-cal yuan_cal_01
+    ```
+    yuan, 2026-11-15: `yuan_cal_02` (head `B0587b_yuan_1115b`): 50.7 s, all 11 faces linked (weakest
+    ~108 still frames), backs ~366 / ~1514, ~754 frames with both tips + ball. A take without the turn-
+    and-stop rhythm (`yuan_cal_01d`) never showed faces 30/31 and no tips at all.
     The server solves it with `python -m slam.collect bundles yuan_cal_01 ...` (README section 6) and
     `python -m slam.collect toolframe yuan_cal_01 ...` (scripts/glove_tool_frame.py, as for the spring
-    glove). If the original 10-13 bundles turn up, they are compared with this solve, not used instead of it.
+    glove), each with `--intr` = the cal take's own intrinsics. If the original 10-13 bundles turn up,
+    they are compared with this solve, not used instead of it.
 11. **Send** layout, holds (and cal) as in §4 and wait for the server's OK: layout
     solved, head-camera width fitted with its hold-out error, bundles in place.
 
