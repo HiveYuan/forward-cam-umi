@@ -83,8 +83,11 @@ def send(rels, dest):
     for d, files in sorted(by_dir.items()):
         target = f"{dest.rstrip('/')}/{d}/" if d != "." else dest.rstrip("/") + "/"
         print(f"==> {len(files)} file(s) -> {target}", flush=True)
-        subprocess.run(["gcloud", "storage", "cp", "-I", target], input="\n".join(files) + "\n",
-                       text=True, cwd=ROOT, check=True)
+        r = subprocess.run(["gcloud", "storage", "cp", "-I", target], input="\n".join(files) + "\n",
+                           text=True, cwd=ROOT)
+        if r.returncode != 0:
+            raise SystemExit(f"gcloud storage cp to {target} failed (exit {r.returncode}, errors above); "
+                             "nothing is deleted, a re-run sends only what is missing")
 
 
 def main(argv=None):

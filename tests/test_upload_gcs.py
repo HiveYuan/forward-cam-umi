@@ -32,11 +32,21 @@ class UploadPlanTests(unittest.TestCase):
 
     def test_each_file_lands_under_its_own_directory(self):
         calls = []
-        with patch.object(U.subprocess, "run", side_effect=lambda cmd, **kw: calls.append((cmd, kw["input"]))):
+
+        def run(cmd, **kw):
+            calls.append((cmd, kw["input"]))
+            return U.subprocess.CompletedProcess(cmd, 0)
+        with patch.object(U.subprocess, "run", side_effect=run):
             U.send(["data/raw/a.mkv", "calib/h_intrinsics.json", "data/raw/a_ts.json"], DEST)
         self.assertEqual(calls, [
             (["gcloud", "storage", "cp", "-I", DEST + "/calib/"], "calib/h_intrinsics.json\n"),
             (["gcloud", "storage", "cp", "-I", DEST + "/data/raw/"], "data/raw/a.mkv\ndata/raw/a_ts.json\n")])
+
+    def test_a_refused_copy_stops_with_a_resume_hint(self):
+        with patch.object(U.subprocess, "run", return_value=U.subprocess.CompletedProcess([], 1)), \
+                patch("builtins.print"):
+            with self.assertRaisesRegex(SystemExit, "re-run sends only what is missing"):
+                U.send(["calib/h_intrinsics.json"], DEST)
 
     def test_conflict_stops_before_anything_is_sent(self):
         with tempfile.TemporaryDirectory() as d:
