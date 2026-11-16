@@ -1,0 +1,219 @@
+# col001_yuan_pilot_01c: collected session yuan_pilot_01c (unit yuan), current defaults from experiments/exp034_adaptive_glove8/config.yaml
+# with motion masks sam3_v2_head and the head-camera gripper width. Episodes: 8 kept, excluded [] (session exclusions + field-QC FAILs).
+# Written by python -m slam.collect config; run with HEADCAM_DATA_REPO=/home/student/yuanliu-hawaii/incoming/collect:
+#   python -m slam.run experiments/col001_yuan_pilot_01c/config.yaml
+experiment: col001_yuan_pilot_01c
+data:
+  session: yuan_pilot_01c
+  episodes:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  head_stem: yuan_pilot_01c_b0587b
+  intrinsics: B0587b_yuan_1115c_intrinsics.json
+  glove: yuan
+  tile_layout: workspace_tiles_yuan_layout_05.json
+  raw_dir: /home/student/yuanliu-hawaii/incoming/collect/data/raw
+  det_cache_dir: /home/student/yuanliu-hawaii/incoming/collect/calib
+  gt_dir: /home/student/yuanliu-hawaii/work/yuan_pilot_01c/gt
+preprocess:
+  impl: undistort_crop_resample
+  params:
+    preroll_s: 5.0
+    width: 960
+    alpha: 0.0
+    jpg_quality: 95
+    target_fps: 26.27
+tiles:
+  impl: apriltag_36h11
+  params:
+    detect_scale: 0.5
+    subpix_win: 5
+masks:
+  motion:
+    impl: sam3_v2_head
+    params:
+      model: facebook/sam3
+      revision: 3c879f39826c281e95690f02c7821c4de09afae7
+      dtype: bfloat16
+      text_prompts:
+      - hand
+      - arm
+      - cable
+      seed_prompts:
+      - hand
+      - arm
+      attach_px: 8
+      border_px: -1
+      leak_ratio: 3.0
+      split_components: true
+      rig_points:
+      - ball
+      - - -0.0864
+        - -0.0717
+        - -0.002
+      - - -0.0872
+        - -0.071
+        - 0.0392
+      - - -0.0856
+        - -0.0725
+        - -0.0431
+      - - -0.1138
+        - -0.0625
+        - -0.0026
+      rig_negative_points: []
+      hand_points:
+      - - -0.1138
+        - -0.139
+        - 0.0014
+      - - -0.0854
+        - -0.1944
+        - -0.0236
+      held_points:
+      - - -0.1412
+        - -0.0532
+        - -0.0033
+      held_width_max: 0.45
+      held_after_open: true
+      width_tol_s: 0.12
+      prompt_every: 10
+      require_postprocess: true
+  tiles:
+    impl: tile_geometry
+    params:
+      margin_mm: 10.0
+      max_gap_s: 0.5
+      grow_mm_per_s: 100.0
+      slam_fallback: E1
+      slam_margin_mm: 25.0
+slam:
+  E1:
+    impl: droid
+    masks: []
+    params:
+      weights:
+        path: /home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth
+        sha256: 46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526
+      dilate_px: 8
+      buffer: 0
+      beta: 0.3
+      filter_thresh: 2.4
+      warmup: 8
+      keyframe_thresh: 4.0
+      frontend_thresh: 16.0
+      frontend_window: 25
+      frontend_radius: 2
+      frontend_nms: 1
+      backend_thresh: 22.0
+      backend_radius: 2
+      backend_nms: 3
+      seed: 0
+  E3:
+    impl: droid_adaptive
+    masks:
+    - motion
+    - tiles
+    params:
+      weights:
+        path: /home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth
+        sha256: 46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526
+      dilate_px: 8
+      buffer: 0
+      beta: 0.3
+      filter_thresh: 2.4
+      warmup: 8
+      keyframe_thresh: 4.0
+      frontend_thresh: 16.0
+      frontend_window: 25
+      frontend_radius: 2
+      frontend_nms: 1
+      backend_thresh: 22.0
+      backend_radius: 2
+      backend_nms: 3
+      seed: 0
+      turn_deg_s: 120.0
+      short_preroll_s: 1.0
+depth:
+  da3m:
+    impl: da3_metric
+    runs:
+    - E3
+    params:
+      model: da3-metric-large
+      repo: depth-anything/DA3METRIC-LARGE
+      revision: 4010e39f3634a45bc60553321fb49fb760bd594e
+      process_res: 504
+      process_res_method: upper_bound_resize
+      canonical_focal: 300.0
+scale:
+  E3:
+    primary: Bnet
+    checks:
+    - A
+    flag_threshold: 0.1
+    methods:
+      A:
+        window_s: 1.0
+        step_s: 0.25
+        res_max_mm: 5.0
+        min_baseline_mm: 20.0
+        min_frames: 10
+      Bnet:
+        depth: da3m
+        z_max: 4.0
+        min_cells: 200
+labels:
+  runs:
+  - E3
+  params:
+    fps: 15.0
+    label_tol_s: 0.12
+    min_coverage: 0.7
+    bridge_s: 0.5
+    min_episode_s: 1.0
+    gripper: head
+    label_steps:
+    - 1
+    - 2
+    - 4
+    - 8
+    - 15
+    - 30
+    - 60
+    - 100
+    horizon: 100
+    chunk_H:
+    - 15
+    - 30
+    - 50
+    - 100
+evaluate:
+  runs:
+  - E3
+  params:
+    dts:
+    - 0.08
+    - 0.25
+    - 0.5
+    - 1.0
+    - 2.0
+    - 4.0
+    - 6.67
+    fail_deg: 2.0
+    gt_noise: true
+report:
+  params:
+    compare: []
+    dt_show:
+    - 0.08
+    - 0.5
+    - 1.0
+    - 2.0
+    - 6.67
+exec:
+  jobs: 8

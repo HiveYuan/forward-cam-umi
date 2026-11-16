@@ -159,7 +159,7 @@ def detect(stem, log, wrist=False, force=False, tips=False):
 # ---------------------------------------------------------------- check / status
 
 KINDS = ("session", "layout", "holds", "cal")
-PREROLL_S, HOLD_PAD_S, STARTUP_S = 5.0, 0.3, 3.0
+PREROLL_S, HOLD_PAD_S, STARTUP_S, MAX_GAP_S = 5.0, 0.3, 3.0, 0.25
 
 
 def take_kind(ds, meta):
@@ -223,11 +223,13 @@ def cmd_check(a):
                 inside |= (mid >= t0) & (mid <= t1)
             lost = int(np.sum(np.round(np.diff(walls)[gap & inside] * fps) - 1))
             drops = int(load(raw / f"{ds}_{role}_meta.json").get("native_drops", 0) or 0)
+            long_gap = (np.diff(walls) > MAX_GAP_S) & inside
             if drops or (gap & inside).any():
                 msg = f"{ds}_{role}: {int((gap & inside).sum())} frame gaps (~{lost} frames) inside the used " \
-                      f"windows, {drops} native drops"
-                # the head stream feeds the algorithm; the wrist only the width cross-check
-                (problems if role == "b0587b" else notes).append(msg)
+                      f"windows ({int(long_gap.sum())} over {MAX_GAP_S} s), {drops} native drops"
+                # a hole over field_qc's 0.25 s in the head stream is a problem; 1-2 missing frames are not
+                # (SLAM is resampled anyway), and the wrist only feeds the width cross-check
+                (problems if role == "b0587b" and (long_gap.any() or drops) else notes).append(msg)
             notes.append(f"{role}: {r['timing']['frames']} frames, {r['timing']['measured_fps']:.2f} fps; "
                          f"{int((gap & inside).sum())} gaps in the used windows, {int((gap & ~inside).sum())} outside")
     except Exception as exc:
@@ -508,8 +510,44 @@ def cmd_prep(a):
     print(f"prep done: {gt}")
 
 
-def episodes_for(ds):
+def glove_frame(unit):
+    """A frame built from what every unit's calibration has: origin at the back-marker centre, y towards the tool
+    point (fingertip midpoint), z towards the ball (the back of the hand), x = y x z. The same physical frame on two
+    units whose ball bundles define different body frames."""
+    g = load(C.CALIB / f"glove_{unit}_gripper_bundle.json")["markers"]
+    m = np.mean([np.array(v)[:3, 3] for v in g.values()], axis=0)
+    o = np.array(load(C.CALIB / f"handeye_glove_{unit}.json")["source"]["T_body_tool_glove"])[:3, 3]
+    y = (o - m) / np.linalg.norm(o - m)
+    up = -m - (-m @ y) * y
+    z = up / np.linalg.norm(up)
+    F = np.eye(4)
+    F[:3, 0], F[:3, 1], F[:3, 2], F[:3, 3] = np.cross(y, z), y, z, m
+    return F, m, o, g
+
+
+def unit_mask_points(unit, ref_params, ref_unit="yosub"):
+    """sam3_v2 prompt points (body frame, m) for `unit`, by the definitions behind yosub's: rig = back-marker
+    centre, each side's back-marker pair, halfway to the tool point; held = the tool point (fingertip midpoint);
+    hand = yosub's hand points carried over through glove_frame (the hand sits the same way in every glove)."""
+    F, m, o, g = glove_frame(unit)
+    Fr = glove_frame(ref_unit)[0]
+    pos = {int(k): np.array(v)[:3, 3] for k, v in g.items()}
+    ids = sorted(pos)
+    # the two back markers on one side are the closest pair; the other two form the other side
+    pairs = min(((a, b) for a in ids for b in ids if a < b), key=lambda ab: np.linalg.norm(pos[ab[0]] - pos[ab[1]]))
+    other = tuple(i for i in ids if i not in pairs)
+    side = [np.mean([pos[i] for i in grp], axis=0) for grp in (pairs, other)]
+    rnd = lambda v: [round(float(x), 4) for x in v]
+    hand = [rnd((F @ np.linalg.inv(Fr) @ np.r_[np.asarray(p, float), 1])[:3])
+            for p in ref_params["hand_points"] if not isinstance(p, str)]
+    return {"rig_points": ["ball", rnd(m), rnd(side[0]), rnd(side[1]), rnd((m + o) / 2)],
+            "hand_points": hand, "held_points": [rnd(o)]}
+
+
+def episodes_for(ds, all_episodes=False):
     eps = [e["episode_index"] for e in load(raw_dir() / f"{ds}_glove_episodes.json")["episodes"]]
+    if all_episodes:
+        return eps, []
     drop = set(C.session(ds).get("exclude_episodes", []))
     qc_p = raw_dir() / f"{ds}_field_qc.json"
     if qc_p.exists():
@@ -530,12 +568,16 @@ def cmd_config(a):
     if out.exists() and not a.force:
         raise SystemExit(f"{out} exists")
     cfg = yaml.safe_load(open(TEMPLATE))
-    keep, dropped = episodes_for(ds)
+    keep, dropped = episodes_for(ds, a.all_episodes)
     cfg["experiment"] = a.exp
     cfg["data"] = {"session": ds, "episodes": keep, "head_stem": s["head_stem"], "intrinsics": s["intrinsics"],
                    "glove": s["glove"], "tile_layout": s["tile_layout"], "raw_dir": str(raw_dir()),
                    "det_cache_dir": str(C.COLLECT_REPO / "calib"), "gt_dir": str(C.gt_dir(ds))}
     cfg["masks"]["motion"]["impl"] = a.masks
+    if s["glove"] != "yosub":             # the template's prompt points are in yosub's body frame
+        cfg["masks"]["motion"]["params"].update(unit_mask_points(s["glove"], cfg["masks"]["motion"]["params"]))
+    cfg["preprocess"] = {"impl": "undistort_crop_resample",
+                         "params": {**cfg["preprocess"]["params"], "target_fps": a.target_fps}}
     cfg["labels"]["params"]["gripper"] = a.gripper
     from slam.pipeline import registry as R
     warn = []
@@ -588,6 +630,8 @@ def main():
     p.add_argument("dataset"); p.add_argument("--exp", required=True)
     p.add_argument("--masks", default="sam3_v2_head", help="motion-mask impl (sam3_v2_head: held gate from the head width)")
     p.add_argument("--gripper", default="head", help="labels' gripper source")
+    p.add_argument("--target-fps", type=float, default=26.27, help="SLAM/mask frame rate (undistort_crop_resample)")
+    p.add_argument("--all-episodes", action="store_true", help="keep field-QC FAILs and exclusions (pilot checks)")
     p.add_argument("--force", action="store_true")
     p = sub.add_parser("handeye-provisional")
     p.add_argument("--unit", required=True); p.add_argument("--from", dest="src", required=True)

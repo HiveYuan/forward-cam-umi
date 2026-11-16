@@ -79,6 +79,17 @@ _IMPLS = [
          env_packages=CV_PKGS, tools=("ffmpeg",),
          doc="slam.preprocess: [episode start - preroll, episode end], undistort (alpha), "
              "area-resize to width, centre-crop to a multiple of 8; gt.npz slices of the tile and ball poses"),
+    Impl("preprocess", "undistort_crop_resample", "venv",
+         "slam.pipeline.impl_preprocess_resample:run_preprocess_resample",
+         {"preroll_s": 5.0, "width": 960, "alpha": 0.0, "jpg_quality": 95, "target_fps": 26.27},
+         data_inputs=("video", "video_ts", "episodes", "intrinsics", "gt_cam_world", "gt_ball_poses"),
+         exec_params={"jobs": 8},
+         code_files=("slam/preprocess.py", "slam/pipeline/impl_preprocess.py",
+                     "slam/pipeline/impl_preprocess_resample.py"),
+         env_packages=CV_PKGS, tools=("ffmpeg",),
+         doc="undistort_crop, then each segment resampled to target_fps (nearest frame per grid point; "
+             "a source at <= 1.1x target is unchanged): the yuan head camera's 60 fps to the 26.27 fps "
+             "every default was validated on; frames keep their original index k"),
     # ------------------------------------------------------------------ tiles
     Impl("tiles", "apriltag_36h11", "venv", "slam.pipeline.impl_tiles:run_tile_detect",
          {"detect_scale": 0.5, "subpix_win": 5},
