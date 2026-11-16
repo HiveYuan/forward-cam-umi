@@ -1,5 +1,6 @@
 # col012_yuan_slam_06: collected session yuan_slam_06 (unit yuan), current defaults from experiments/exp034_adaptive_glove8/config.yaml
-# with motion masks sam3_v2_head and the head-camera gripper width. Episodes: 39 kept, excluded [1, 2, 14, 17, 18, 19] (session exclusions + field-QC FAILs).
+# with motion masks sam3_v2_head and the head-camera gripper width. Episodes: 42 kept, excluded [1, 18, 19] (session exclusions + field-QC FAILs;
+# eps 2, 14, 17 added back by hand: field-QC false FAILs (IPPE ambiguity), user-approved 2026-11-16).
 # Written by python -m slam.collect config; run with HEADCAM_DATA_REPO=/home/student/yuanliu-hawaii/incoming/collect:
 #   python -m slam.run experiments/col012_yuan_slam_06/config.yaml
 experiment: col012_yuan_slam_06
@@ -7,6 +8,7 @@ data:
   session: yuan_slam_06
   episodes:
   - 0
+  - 2
   - 3
   - 4
   - 5
@@ -18,8 +20,10 @@ data:
   - 11
   - 12
   - 13
+  - 14
   - 15
   - 16
+  - 17
   - 20
   - 21
   - 22
