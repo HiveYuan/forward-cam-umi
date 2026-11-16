@@ -19,6 +19,29 @@ def rot_y(deg):
     return np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a), 0, np.cos(a)]])
 
 
+def head_turn(deg_s, tiles=(1, 2), n=20, dt=1 / 30, noise_deg=0.0):
+    """[(t, {tile: camera-from-tile R})] while the head turns at deg_s about y, with an
+    optional random pose error per tile and frame."""
+    rng = np.random.default_rng(0)
+    tile = {i: cv2.Rodrigues(np.array([2.3, 0.3 * i, 0.1 * i]))[0] for i in tiles}
+    err = lambda: cv2.Rodrigues(rng.normal(0.0, np.radians(noise_deg) / np.sqrt(3), 3))[0]
+    return [(k * dt, {i: err() @ rot_y(deg_s * k * dt) @ R for i, R in tile.items()}) for k in range(n)]
+
+
+def flip(samples, frames, tile):
+    """The tile's pose at `frames` replaced by one 120 deg away, the size of the IPPE
+    mirror-pose flips seen on yuan_pilot_01b."""
+    F = cv2.Rodrigues(np.array([np.radians(120.0), 0.0, 0.0]))[0]
+    for k in frames:
+        samples[k][1][tile] = F @ samples[k][1][tile]
+    return samples
+
+
+def turn_peak(samples):
+    """The preroll gate's reading: field_qc.main's chain."""
+    return Q.robust_peak(Q.pair_speeds(Q.drop_pose_flips(samples, Q.TURN_DEG_S)))[0]
+
+
 class FrameReaderTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("ffmpeg"), "requires ffmpeg")
     def test_wanted_frames_come_back_with_their_own_index(self):
@@ -83,6 +106,28 @@ class TurnSpeedTests(unittest.TestCase):
         self.assertEqual(t, 0.2)
         self.assertEqual(Q.robust_peak([(0.1, 200.0), (0.2, 210.0)])[0], 200.0)
         self.assertEqual(Q.robust_peak([]), (None, None))
+
+    def test_a_one_frame_pose_flip_is_not_a_turn(self):
+        # yuan_pilot_01b ep5: tile 2 flipped for one frame next to a calm tile 5 -> 1753 deg/s FAIL
+        for tiles in ((2,), (2, 5), (2, 3, 5)):
+            self.assertAlmostEqual(turn_peak(flip(head_turn(20.0, tiles), [8], 2)), 20.0, delta=0.5, msg=tiles)
+
+    def test_a_lasting_mirror_pose_on_one_of_two_tiles_is_not_a_turn(self):
+        for frames in ([8, 9, 10], range(8, 20)):       # out and back after 3 frames; switched for good
+            self.assertAlmostEqual(turn_peak(flip(head_turn(20.0), frames, 2)), 20.0, delta=0.5)
+
+    def test_a_flip_after_the_tile_was_out_of_view_is_not_a_turn(self):
+        s = flip(head_turn(20.0, tiles=(2,)), [12], 2)
+        del s[5:12]                                     # tile 2 unseen, then seen flipped for one frame
+        self.assertAlmostEqual(turn_peak(s), 20.0, delta=0.5)
+
+    def test_a_real_turn_above_the_gate_is_kept(self):
+        # yuan_rehearsal_01 ep0: a real 129 deg/s turn on one tile must still FAIL
+        for tiles in ((1,), (1, 2), (1, 2, 3)):
+            s = head_turn(150.0, tiles, noise_deg=0.5)
+            self.assertEqual(len(Q.drop_pose_flips(s, Q.TURN_DEG_S)), len(s))
+            self.assertGreater(turn_peak(s), Q.TURN_DEG_S, msg=tiles)
+            self.assertGreater(turn_peak(flip(s, [3], tiles[-1])), Q.TURN_DEG_S, msg=tiles)
 
 
 class HoldsAndGapsTests(unittest.TestCase):
