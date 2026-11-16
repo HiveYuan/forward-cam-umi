@@ -232,7 +232,7 @@ def build(cfg):
         _check_name(mname, f"masks.{mname}", reserved=False)
         n = _impl_node(f"masks.{mname}", "masks", mname, block, f"masks.{mname}")
         n.deps = {"preprocess": pre.id}
-        if n.impl.name == "tile_geometry":
+        if n.impl.name in ("tile_geometry", "tile_geometry_k"):
             if "tiles" not in nodes:
                 raise ConfigError(f"masks.{mname}: tile_geometry needs the 'tiles' step")
             n.deps["tiles"] = "tiles"
