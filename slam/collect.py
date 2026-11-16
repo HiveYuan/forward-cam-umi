@@ -578,6 +578,7 @@ def cmd_config(a):
         cfg["masks"]["motion"]["params"].update(unit_mask_points(s["glove"], cfg["masks"]["motion"]["params"]))
     cfg["preprocess"] = {"impl": "undistort_crop_resample",
                          "params": {**cfg["preprocess"]["params"], "target_fps": a.target_fps}}
+    cfg["masks"]["tiles"]["impl"] = "tile_geometry_k"        # resampled frames are matched by k
     cfg["labels"]["params"]["gripper"] = a.gripper
     from slam.pipeline import registry as R
     warn = []

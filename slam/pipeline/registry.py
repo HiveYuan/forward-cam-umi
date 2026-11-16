@@ -147,6 +147,14 @@ _IMPLS = [
          env_packages=CV_PKGS,
          doc="slam.tiles masks: printed tile squares projected with the tile pose (nearest pose, "
              "else the slam_fallback run aligned to the tile poses) + detected quads"),
+    Impl("masks", "tile_geometry_k", "venv", "slam.pipeline.impl_tiles_k:run_tile_geometry_k",
+         {"margin_mm": 10.0, "max_gap_s": 0.5, "grow_mm_per_s": 100.0, "slam_fallback": None,
+          "slam_margin_mm": 25.0},
+         data_inputs=("tile_layout", "tags", "video_ts"),
+         code_files=("slam/tiles.py", "slam/pipeline/impl_tiles_k.py", "slam/preprocess.py", "slam/geometry.py"),
+         env_packages=CV_PKGS,
+         doc="tile_geometry with frames matched by their original index k, for resampled segments "
+             "(undistort_crop_resample); identical to tile_geometry on consecutive frames"),
     # ------------------------------------------------------------------ slam
     Impl("slam", "droid", "droid", "slam.pipeline.impl_slam:run_slam",
          {"weights": {"path": f"{DROID_ROOT}/droid.pth",

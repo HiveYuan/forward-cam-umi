@@ -63,6 +63,8 @@ def load_segment(seg):
     strict = np.zeros(n, bool)
     tiles = np.zeros(n, int)
     for kk, T, nt, rms in zip(gt["cam_k"], gt["T_cam_world"], gt["cam_tiles"], gt["cam_rms"]):
+        if int(kk) not in idx:                     # a resampled segment keeps a subset of the posed frames
+            continue
         i = idx[int(kk)]
         T_wc[i] = G.inv(T[None])[0]
         tiles[i] = nt
@@ -71,7 +73,8 @@ def load_segment(seg):
     if len(gt["full_k"]):
         Tb = G.rt_to_T(gt["full_rvec"], gt["full_tvec"])
         for kk, T in zip(gt["full_k"], Tb):
-            T_cb[idx[int(kk)]] = T
+            if int(kk) in idx:
+                T_cb[idx[int(kk)]] = T
     tile_set = [frozenset() for _ in range(n)]
     if (seg / "tiles.npz").exists():
         z = np.load(seg / "tiles.npz")
