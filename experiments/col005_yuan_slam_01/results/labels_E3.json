@@ -1,0 +1,109 @@
+{
+ "ref": "E3",
+ "anchors": 0,
+ "excluded": [],
+ "by_step": {},
+ "chunk": {
+  "15": {
+   "anchors": 0,
+   "pos_mm_mean": null,
+   "pos_mm_median": null,
+   "pos_mm_p90": null,
+   "rot_deg_mean": null,
+   "rot_deg_median": null,
+   "rot_deg_p90": null,
+   "pooled_pos_mm_mean": null,
+   "pooled_rot_deg_mean": null
+  },
+  "30": {
+   "anchors": 0,
+   "pos_mm_mean": null,
+   "pos_mm_median": null,
+   "pos_mm_p90": null,
+   "rot_deg_mean": null,
+   "rot_deg_median": null,
+   "rot_deg_p90": null,
+   "pooled_pos_mm_mean": null,
+   "pooled_rot_deg_mean": null
+  },
+  "50": {
+   "anchors": 0,
+   "pos_mm_mean": null,
+   "pos_mm_median": null,
+   "pos_mm_p90": null,
+   "rot_deg_mean": null,
+   "rot_deg_median": null,
+   "rot_deg_p90": null,
+   "pooled_pos_mm_mean": null,
+   "pooled_rot_deg_mean": null
+  },
+  "100": {
+   "anchors": 0,
+   "pos_mm_mean": null,
+   "pos_mm_median": null,
+   "pos_mm_p90": null,
+   "rot_deg_mean": null,
+   "rot_deg_median": null,
+   "rot_deg_p90": null,
+   "pooled_pos_mm_mean": null,
+   "pooled_rot_deg_mean": null
+  }
+ },
+ "kept_episodes": 6,
+ "without_flagged": {
+  "ref": "E3",
+  "anchors": 0,
+  "excluded": [
+   "ep03",
+   "ep07"
+  ],
+  "by_step": {},
+  "chunk": {
+   "15": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "30": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "50": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "100": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   }
+  },
+  "kept_episodes": 4
+ }
+}

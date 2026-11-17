@@ -1,0 +1,29 @@
+{
+ "frames_with_all_tiles": 16,
+ "tile_switch": {
+  "n": 48,
+  "rot_deg_median": 0.7832503120927201,
+  "rot_deg_p95": 1.32254774706109,
+  "trans_mm_median": 8.216088446125914,
+  "trans_mm_p95": 15.902317648167642
+ },
+ "method": "by_dt: same tiles at both ends, (A vs B relative motion) / sqrt(2); tile_switch: |A - B| absolute, i.e. ends seeing different tile pairs",
+ "by_dt": {
+  "0.08": {
+   "n": 27,
+   "rot_deg_median": 0.23839052546095915,
+   "rot_deg_p95": 0.5691940143336446,
+   "trans_mm_median": 2.7140524724385555,
+   "trans_mm_p95": 5.927881036034104
+  },
+  "0.5": {
+   "n": 0
+  },
+  "1.0": {
+   "n": 0
+  },
+  "2.0": {
+   "n": 0
+  }
+ }
+}
