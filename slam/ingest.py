@@ -69,7 +69,8 @@ DEFAULTS = {
                 "val_fraction": 0.1},        # per session, evenly spread in recording order: "collected val"
     "train": [],                         # [{exp, template, sessions: all | [names], overrides: {dotted: value}}]
     "compare": [],                       # earlier arms for the report's table
-    "reference": "exp049_joint_G48",     # Yosub's paper arm (our reproduction), always in the table
+    "reference": {"exp": "exp049_joint_G48",  # Yosub's paper arm (arm 4, mix_gHs3_48, joint space): our reproduction
+                  "paper_val": 0.2946},       # gives the physical errors; his published robot val is shown with them
     "commit": True,                      # false: write configs / results / report but commit nothing (tests)
 }
 
@@ -98,6 +99,8 @@ def load_batch(path):
         raise SystemExit(f"{path}: raw_policy must be keep or delete_after_export")
     if b["train"] and not b["dataset"]["out"]:
         raise SystemExit(f"{path}: dataset.out is required to train")
+    if isinstance(raw.get("reference"), str):              # reference: <exp> is shorthand for {exp: <exp>}
+        b["reference"] = {"exp": raw["reference"], "paper_val": None}
     b["dataset"]["slam_run"] = b["slam"]["run"]
     b["_path"] = str(Path(path).resolve())
     return b
@@ -123,9 +126,16 @@ def sh_env():
 
 
 # ---------------------------------------------------------------- bucket
-def bucket_ls(url):
-    """{object name: size} for a gcloud storage ls pattern (empty when nothing matches)."""
-    r = subprocess.run(["gcloud", "storage", "ls", "-l", url], capture_output=True, text=True)
+def bucket_ls(url, tries=3):
+    """{object name: size} for a gcloud storage ls pattern (empty when nothing matches). A failing gcloud (network,
+    credentials) is retried, then raises RuntimeError: it must not look like an empty bucket."""
+    for i in range(tries):
+        r = subprocess.run(["gcloud", "storage", "ls", "-l", url], capture_output=True, text=True)
+        if r.returncode == 0 or "matched no objects" in r.stderr:
+            break
+        time.sleep(10 * (i + 1))
+    else:
+        raise RuntimeError(f"gcloud storage ls {url} failed: {r.stderr.strip()[-300:]}")
     out = {}
     for line in r.stdout.splitlines():
         parts = line.split()
@@ -162,7 +172,8 @@ class Ingest:
         with self.lock:
             self.st(ds).update(kv)
             tmp = self.state_p.with_suffix(".tmp")
-            json.dump(self.state, open(tmp, "w"), indent=1)
+            with open(tmp, "w") as f:
+                json.dump(self.state, f, indent=1)
             tmp.replace(self.state_p)
 
     def run(self, cmd, log_name, env=None, cwd=None):
@@ -217,10 +228,16 @@ class Ingest:
     def fetch(self, ds, name, dst_dir, big=False):
         """Download one bucket object (data/raw or calib) if it is missing or its size differs."""
         sub = "calib" if dst_dir.name == "calib" else "data/raw"
-        sizes = bucket_ls(f"{self.b['bucket']}/{sub}/{name}")
+        dst = dst_dir / name
+        try:
+            sizes = bucket_ls(f"{self.b['bucket']}/{sub}/{name}")
+        except RuntimeError as ex:
+            if dst.exists():
+                self.log(f"{ds}: WARN bucket not reachable ({ex}); using the local {name}")
+                return True
+            raise
         if name not in sizes:
             return False
-        dst = dst_dir / name
         if dst.exists() and dst.stat().st_size == sizes[name]:
             return True
         if big:
@@ -235,9 +252,27 @@ class Ingest:
             raise RuntimeError(f"{ds}: download of {name} failed or has the wrong size")
         return True
 
+    def head_video(self, ds):
+        return self.raw / f"{C.session(ds)['head_stem']}.mkv"
+
+    def ensure_head(self, ds):
+        """The head video on disk (downloaded again after delete_after_export) with a fresh fingerprint sidecar."""
+        from slam.pipeline import hashing as H
+        mkv = self.head_video(ds)
+        if not mkv.exists() and not self.fetch(ds, mkv.name, self.raw, big=True):
+            raise RuntimeError(f"{ds}: {mkv.name} is neither on disk nor in the bucket")
+        H.write_sidecar(mkv)
+        return mkv
+
     def stage_fetch(self, ds):
-        small = [n for n in bucket_ls(f"{self.b['bucket']}/data/raw/{ds}_*") if not n.endswith(".mkv")]
-        if f"{ds}_session.json" not in small:
+        try:
+            small = [n for n in bucket_ls(f"{self.b['bucket']}/data/raw/{ds}_*") if not n.endswith(".mkv")]
+        except RuntimeError as ex:
+            if not (self.raw / f"{ds}_session.json").exists():
+                raise
+            self.log(f"{ds}: WARN bucket not reachable ({ex}); using the local files")
+            small = []
+        if small and f"{ds}_session.json" not in small:
             raise Stop(f"{ds}: no {ds}_session.json in {self.b['bucket']}/data/raw")
         for n in small:
             self.fetch(ds, n, self.raw)
@@ -249,16 +284,13 @@ class Ingest:
             n = Path(name).name
             if not ((C.CALIB / name).exists() or (C.CALIB / n).exists() or (C.COLLECT_REPO / "calib" / n).exists()):
                 self.fetch(ds, n, C.COLLECT_REPO / "calib")
-        stem = s["head_stem"]
-        mkv = self.raw / f"{stem}.mkv"
+        mkv = self.head_video(ds)
         side = mkv.with_name(mkv.name + ".fingerprint")
         if not mkv.exists() and side.exists() and self.prep_outputs_ok(ds, wrist=False):
-            self.log(f"{ds}: head video deleted after processing (fingerprint kept), not fetched")
+            # deleted after processing; stage_slam / stage_export download it again if they still need it
+            self.log(f"{ds}: head video deleted after processing (fingerprint kept), not fetched now")
             return
-        self.fetch(ds, f"{stem}.mkv", self.raw, big=True)
-        if not side.exists():
-            from slam.pipeline import hashing as H
-            H.write_sidecar(mkv)
+        self.ensure_head(ds)
 
     def calib_check(self, ds):
         from slam import collect as K
@@ -356,9 +388,12 @@ class Ingest:
                      if not re.search(r"experiments/[^/]+/(results|run\.json|\.results\.tmp)", l)]
         if dirty:
             raise Stop(f"{ds}: the work tree of {C.REPO} is not clean ({dirty[:3]}); slam.run refuses to run")
-        self.log(f"{ds}: slam.run {exp} (waits for the GPU lock)")
-        GPU_LOCK.parent.mkdir(parents=True, exist_ok=True)
-        rc = self.run(["flock", GPU_LOCK, V, "-m", "slam.run", f"experiments/{exp}/config.yaml"], f"{exp}_run.log")
+        self.ensure_head(ds)
+        self.log(f"{ds}: slam.run {exp} (its GPU nodes wait for the GPU lock)")
+        # slam.run takes the GPU lock itself per GPU node (orchestrator.gpu_slot). Never wrap it in `flock GPU_LOCK`:
+        # the child would re-open the file and wait on its parent's lock forever (2026-11-16).
+        rc = self.run([V, "-m", "slam.run", f"experiments/{exp}/config.yaml"], f"{exp}_run.log",
+                      env={**sh_env(), "SLAM_GPU_LOCK": str(GPU_LOCK)})
         if rc or not self.slam_complete(exp):
             raise RuntimeError(f"{ds}: slam.run {exp} failed (rc {rc}, logs/{exp}_run.log)")
         self.commit([C.REPO / "experiments" / exp / "results", C.REPO / "experiments" / exp / "run.json"],
@@ -370,12 +405,22 @@ class Ingest:
         p = self.dir / "sessions" / f"{ds}.json"
         return json.load(open(p)) if p.exists() else None
 
+    def export_reusable(self, sj, exp):
+        """An earlier export of the same experiment with the same gates, dataset params and builder."""
+        from slam import collect_dataset as CD
+        d = self.b["dataset"]
+        return bool(sj and sj.get("experiment") == exp and sj.get("shard") and Path(sj["shard"]).exists()
+                    and sj.get("gates") == self.b["gates"] and sj.get("builder_version") == CD.BUILDER_VERSION
+                    and sj.get("params") == {k: d[k] for k in CD.EXPORT_PARAMS}
+                    and sj.get("base") == d["base"]["repo"])
+
     def stage_export(self, ds):
         exp = self.st(ds)["experiment"]
         sj = self.session_json(ds)
-        if sj and sj.get("experiment") == exp and sj.get("shard") and Path(sj["shard"]).exists():
+        if self.export_reusable(sj, exp):
             status = "exported"
         else:
+            self.ensure_head(ds)
             self.log(f"{ds}: gate + export ({exp})")
             rc = self.run([L52, "-m", "slam.collect_dataset", "export", "--batch", self.b["_path"], "--session", ds,
                            "--exp", exp], f"{ds}_export.log")
@@ -389,41 +434,43 @@ class Ingest:
             status = "exported"
         self.set(ds, export=status, shard=sj["shard"], kept=len(sj["kept"]), configured=len(sj["rows"]))
         if self.b["raw_policy"] == "delete_after_export":
-            mkv = self.raw / f"{C.session(ds)['head_stem']}.mkv"
+            mkv = self.head_video(ds)
             if mkv.exists():
                 from slam.pipeline import hashing as H
-                if not H.sidecar_path(mkv).exists():
-                    H.write_sidecar(mkv)
+                H.write_sidecar(mkv)                      # always from the file being deleted, never a stale one
                 mkv.unlink()
                 self.log(f"{ds}: local head video deleted (raw_policy delete_after_export; fingerprint kept)")
         return status
 
     # ------------------------------------------------------------ lanes
     def lane(self, name, sessions, step, wait_on=None, done=None):
-        for ds in sessions:
-            if wait_on is not None:
-                wait_on[ds].wait()
-                if self.st(ds).get("failed"):
+        try:
+            for ds in sessions:
+                if wait_on is not None:
+                    wait_on[ds].wait()
+                    if self.st(ds).get("failed"):
+                        if done is not None:
+                            done[ds].set()
+                        continue
+                if self.stop_reason:
+                    break
+                try:
+                    step(ds)
+                except Stop as ex:
+                    self.stop_reason = self.stop_reason or str(ex)
+                    self.log(f"STOP: {ex}")
+                    self.set(ds, failed=f"stopped: {ex}")
+                except (Exception, SystemExit) as ex:     # this session fails; the others go on
+                    # (SystemExit: slam.collect helpers exit on bad input; in a thread it would end the lane)
+                    self.log(f"{ds}: FAILED in {name}: {type(ex).__name__}: {ex}")
+                    self.set(ds, failed=f"{name}: {type(ex).__name__}: {ex}")
+                finally:
                     if done is not None:
                         done[ds].set()
-                    continue
-            if self.stop_reason:
-                break
-            try:
-                step(ds)
-            except Stop as ex:
-                self.stop_reason = self.stop_reason or str(ex)
-                self.log(f"STOP: {ex}")
-                self.set(ds, failed=f"stopped: {ex}")
-            except Exception as ex:                       # this session fails; the others go on
-                self.log(f"{ds}: FAILED in {name}: {type(ex).__name__}: {ex}")
-                self.set(ds, failed=f"{name}: {type(ex).__name__}: {ex}")
-            finally:
-                if done is not None:
+        finally:
+            if done is not None:                          # a stop or a crash: never leave a later lane waiting
+                for ds in sessions:
                     done[ds].set()
-        if done is not None:                              # a stop: release the lanes waiting on later sessions
-            for ds in sessions:
-                done[ds].set()
 
     def cpu_step(self, ds):
         if self.st(ds).get("failed"):
@@ -466,7 +513,10 @@ class Ingest:
                           "mix.log")
             if rc:
                 raise Stop(f"mix failed (rc {rc}, logs/mix.log)")
-        if not (self.dir / "verify.json").exists() or json.load(open(self.dir / "verify.json")).get("dataset") != str(out):
+        vj = self.dir / "verify.json"
+        fresh = (vj.exists() and mj.exists() and json.load(open(vj)).get("dataset") == str(out)
+                 and json.load(open(vj)).get("mix_time") == json.load(open(mj)).get("time"))
+        if not fresh:                                      # verify.json of this very mix build, or verify again
             rc = self.run([L52, "-m", "slam.collect_dataset", "verify", "--batch", self.b["_path"]], "verify.log")
             if rc:
                 raise Stop(f"verification of {out} failed (logs/verify.log, verify.json)")
@@ -504,22 +554,36 @@ class Ingest:
                     f"{exp}: training config (batch {self.b['batch']})")
         return cfg
 
+    @staticmethod
+    def train_finished(cfg):
+        """The run's final checkpoint exists (lerobot writes checkpoints/last from the first save on)."""
+        tc = json.load(open(C.REPO / cfg["base_train_config"]))
+        steps = int((cfg.get("overrides") or {}).get("steps", tc["steps"]))
+        return (Path(cfg["output_dir"]) / "checkpoints" / f"{steps:06d}" / "pretrained_model").exists()
+
     def stage_train(self, arm, mix_root):
+        import yaml
         exp = arm["exp"]
         edir = C.REPO / "experiments" / exp
+        cfg = yaml.safe_load(open(edir / "config.yaml")) if (edir / "config.yaml").exists() else None
+        if cfg is not None and cfg["dataset"]["root"] != str(mix_root):
+            if Path(cfg["output_dir"]).exists() or (edir / "results").exists():
+                raise Stop(f"{exp} was trained on {cfg['dataset']['root']}, not {mix_root}; give the arm a new exp name")
+            cfg = None                                     # an unused config for another mix: rewrite it
+        if cfg is None:
+            cfg = self.train_config(arm, mix_root)
         if (edir / "results" / "val.json").exists():
             return "done"
-        cfg = self.train_config(arm, mix_root) if not (edir / "config.yaml").exists() else \
-            __import__("yaml").safe_load(open(edir / "config.yaml"))
         out = Path(cfg["output_dir"])
-        if not (out / "checkpoints" / "last").exists():
+        if not self.train_finished(cfg):
             if out.exists():
                 raise Stop(f"{exp}: {out} exists without a finished training; look at it, remove it, run again")
             self.wait_disk(self.b["min_free_gb"], f"{exp}: train")
             self.log(f"{exp}: train (waits for the GPU lock)")
+            # train_rel / val_rel take no lock themselves, so flock serialises them with slam.run and the queues
             rc = self.run(["flock", GPU_LOCK, L52, "-m", "slam.train_rel", f"experiments/{exp}/config.yaml"],
                           f"{exp}_train.log")
-            if rc:
+            if rc or not self.train_finished(cfg):
                 raise Stop(f"{exp}: training failed (rc {rc}, logs/{exp}_train.log)")
         self.log(f"{exp}: val")
         rc = self.run(["flock", GPU_LOCK, L52, "-m", "slam.val_rel", f"experiments/{exp}/config.yaml"], f"{exp}_val.log")
@@ -540,6 +604,15 @@ class Ingest:
                 out.append(e)
         return out
 
+    def crossval_masks(self):
+        """Loss masks every collected-val row is scored with: the trained arms' (their template's) masks, so that
+        all rows see the same anchors and steps (exp052 trained with [] would otherwise score filler poses)."""
+        import yaml
+        if not self.b["train"]:
+            return ["slam_valid", "ik_unreached"]
+        t = yaml.safe_load(open(C.REPO / "experiments" / self.b["train"][0]["template"] / "config.yaml"))
+        return list((t.get("relative") or {}).get("masks", ["slam_valid", "ik_unreached"]))
+
     def stage_crossval(self, exp, mix_root):
         """Arm `exp` (trained without the collected sessions) on their val episodes, at its best robot-val step."""
         import yaml
@@ -549,6 +622,7 @@ class Ingest:
         val = json.load(open(C.REPO / "experiments" / exp / "results" / "val.json"))
         cfg = yaml.safe_load(open(C.REPO / "experiments" / exp / "config.yaml"))
         cfg["dataset"] = {**cfg["dataset"], "repo": mix_root.name, "root": str(mix_root)}
+        cfg["relative"] = {**cfg["relative"], "masks": self.crossval_masks()}
         odir.mkdir(parents=True, exist_ok=True)
         (odir / "config.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False, width=120))
         self.log(f"{exp}: on the collected val episodes (step {val['best_step_robot_val']})")
@@ -570,7 +644,19 @@ class Ingest:
         self.commit([rdir], f"batch {self.b['batch']}: report")
         return rdir / "report.md"
 
+    def acquire(self):
+        """One runner per batch, whether started by `start`, `run` or a driver script (Python's open() is not
+        inherited by the subprocesses, so they cannot hold it)."""
+        import fcntl
+        self._lockf = open(self.dir / "ingest.lock", "w")
+        try:
+            fcntl.flock(self._lockf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit(f"batch {self.b['batch']} is already running (lock {self.dir / 'ingest.lock'})")
+        (self.dir / "ingest.pid").write_text(f"{os.getpid()}\n")
+
     def main(self):
+        self.acquire()
         sessions = self.resolve_sessions()
         if not sessions:
             raise SystemExit("no sessions")
@@ -603,6 +689,21 @@ class Ingest:
 
 
 # ---------------------------------------------------------------- status / start
+def runner_active(d):
+    """Whether some runner holds the batch's lock (Ingest.acquire)."""
+    import fcntl
+    p = Path(d) / "ingest.lock"
+    if not p.exists():
+        return False
+    with open(p, "w") as f:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return False
+
+
 def cmd_status(a):
     b = load_batch(a.batch)
     ing = Ingest(a.batch)
@@ -631,21 +732,19 @@ def cmd_status(a):
         print(f"train {arm['exp']}: {'done' if r.exists() else '-'}")
     pid = ing.dir / "ingest.pid"
     if pid.exists():
-        p = int(pid.read_text())
-        print(f"runner pid {p}: {'running' if Path(f'/proc/{p}').exists() else 'not running'}  log {ing.dir / 'ingest.log'}")
+        print(f"runner pid {pid.read_text().strip()}: {'running' if runner_active(ing.dir) else 'not running'}  "
+              f"log {ing.dir / 'ingest.log'}")
 
 
 def cmd_start(a):
     b = load_batch(a.batch)
     d = batch_dir(b)
-    pid = d / "ingest.pid"
-    if pid.exists() and Path(f"/proc/{int(pid.read_text())}").exists():
-        raise SystemExit(f"already running (pid {pid.read_text().strip()}); log {d / 'ingest.log'}")
+    if runner_active(d):
+        raise SystemExit(f"already running (pid {(d / 'ingest.pid').read_text().strip()}); log {d / 'ingest.log'}")
     cmd = (f"source {ENV_SH} 2>/dev/null; exec {sys.executable} -m slam.ingest run {Path(a.batch).resolve()}")
     log = open(d / "ingest.log", "a")
     p = subprocess.Popen(["setsid", "bash", "-c", cmd], stdout=log, stderr=subprocess.STDOUT,
                          stdin=subprocess.DEVNULL, cwd=str(C.REPO), env=sh_env())
-    pid.write_text(f"{p.pid}\n")
     print(f"started pid {p.pid}; log {d / 'ingest.log'}; status: python -m slam.ingest status {a.batch}")
 
 

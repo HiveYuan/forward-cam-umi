@@ -44,6 +44,8 @@ from slam import config as C
 from slam import geometry as G
 
 BUILDER_VERSION = 1
+# dataset params that change a shard (shard_name hashes them; slam.ingest reuses an export only when they match)
+EXPORT_PARAMS = ("fps", "slow", "bridge_s", "gripper_median_s", "grip_label_tol_s", "slam_run", "task")
 FEATURES = ("action", "observation.state", "anchor_pose", "slam_valid", "ik_unreached")
 HELD = 3
 
@@ -297,7 +299,7 @@ def task_string(d):
 
 
 def shard_name(ds, exp, d, kept):
-    keys = ("fps", "slow", "bridge_s", "gripper_median_s", "grip_label_tol_s", "slam_run", "task")
+    keys = EXPORT_PARAMS
     h = hashlib.sha256(json.dumps({"v": BUILDER_VERSION, "episodes": kept, **{k: d[k] for k in keys},
                                    "base": d["base"]["repo"]}, sort_keys=True).encode()).hexdigest()[:8]
     return f"{ds}__{exp}__{h}"
@@ -370,6 +372,7 @@ def cmd_export(a):
         r["dropped"] = reasons[r["episode"]]
     accepted = ds in b["accept_held"]
     out = {"session": ds, "experiment": exp, "slam_run": run, "scale": label, "gates": b["gates"],
+           "params": {k: d[k] for k in EXPORT_PARAMS}, "base": d["base"]["repo"],
            "verdict": verdict, "accepted_by_review": accepted, "kept": kept, "rows": rows,
            "builder_version": BUILDER_VERSION, "time": time.strftime("%F %T")}
     sdir = batch_dir(b) / "sessions"
@@ -444,6 +447,9 @@ def cmd_mix(a):
     out_dir = Path(d["out_root"]) / d["out"]
     if out_dir.exists():
         raise SystemExit(f"{out_dir} exists")
+    vj = batch_dir(b) / "verify.json"
+    if vj.exists():                                  # belongs to an earlier mix
+        vj.unlink()
     tmp = out_dir.with_name(out_dir.name + ".partial")
     if tmp.exists():
         shutil.rmtree(tmp)
@@ -515,7 +521,7 @@ def cmd_mix(a):
               open(tmp / "meta" / "val_episodes_collected.json", "w"), indent=1)
     tmp.rename(out_dir)
     json.dump({"dataset": str(out_dir), "base_episodes": n_base_eps, "new_episodes": len(new_eps),
-               "shards": [s.name for s in shards]}, open(batch_dir(b) / "mix.json", "w"), indent=1)
+               "shards": [s.name for s in shards], "time": rl["time"]}, open(batch_dir(b) / "mix.json", "w"), indent=1)
     print(f"mix {out_dir}: {n_base_eps} base + {len(new_eps)} collected episodes")
     return 0
 
@@ -529,7 +535,8 @@ def cmd_verify(a):
     b = load_batch(a.batch)
     d = b["dataset"]
     root, base_root = Path(d["out_root"]) / d["out"], Path(d["base"]["root"])
-    problems, res = [], {"dataset": str(root)}
+    mj = batch_dir(b) / "mix.json"
+    problems, res = [], {"dataset": str(root), "mix_time": load(mj).get("time") if mj.exists() else None}
     read = lambda r, cols=None: pd.concat([pd.read_parquet(f, columns=cols) for f in
                                            sorted((r / "data").glob("chunk-*/file-*.parquet"))]).sort_values("index")
     mix, base = read(root), read(base_root)

@@ -181,11 +181,15 @@ def main():
                                                        for k, L in loaders.items()}}
     else:                                   # joint-space: chunks for slam.joint_physical (FK in the lerobot env)
         res["val_chunks"] = {}
+        # --only-step evaluates a run from outside (e.g. another dataset): its dumps go under --out, never over the
+        # run's own <run_dir>/val_chunks files
+        droot = (out if a.only_step is not None else run) / "val_chunks"
         for label, step in (("best", best["step"]), ("last", res["checkpoints"][-1]["step"])):
             c = run / "checkpoints" / f"{step:06d}" / "pretrained_model"
             for k, L in loaders.items():
-                evaluate(c, L, True, None, a.device, dump=run / "val_chunks" / f"{label}_{k}.npz")
-                res["val_chunks"][f"{label}_{k}"] = {"step": step, "file": f"val_chunks/{label}_{k}.npz"}
+                evaluate(c, L, True, None, a.device, dump=droot / f"{label}_{k}.npz")
+                res["val_chunks"][f"{label}_{k}"] = {"step": step, "file": str(droot / f"{label}_{k}.npz")
+                                                     if a.only_step is not None else f"val_chunks/{label}_{k}.npz"}
     json.dump(res, open(out / "val.json", "w"), indent=1)
     write_md(res, out / "val.md")
     print(f"best {sel} val: step {best['step']} loss {best[sel]['loss']:.4f}")

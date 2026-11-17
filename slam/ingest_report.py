@@ -131,7 +131,16 @@ def build(ing, sessions, mix_root=None):
               "(mm) at steps 14 / 49 / 99 and the chunk mean; rotation and gripper chunk means.", "",
               "| arm | val loss | pos j14 | pos j49 | pos j99 | pos chunk mean | rot (deg) | gripper |",
               "|---|---|---|---|---|---|---|---|"]
-        table = [arm_row(b["reference"], f"Yosub paper G48, joint space ({b['reference']})")]
+        ref = b["reference"]
+        r0 = arm_row(ref["exp"])
+        if r0 is not None:
+            pv = ref.get("paper_val")
+            r0["arm"] = (f"Yosub paper G48, joint space (paper val {pv:.3f}; physical errors from our reproduction "
+                         f"{ref['exp']}, val {r0['loss']:.3f})" if pv is not None and r0.get("loss") is not None
+                         else f"Yosub paper G48, joint space ({ref['exp']})")
+            if pv is not None:
+                r0["loss"] = pv
+        table = [r0]
         table += [arm_row(e) for e in b["compare"]] + [arm_row(e) for e in arms]
         tpl = {a["exp"]: arm_row(a["template"]) for a in b["train"]}
         for r in table:
@@ -161,7 +170,8 @@ def build(ing, sessions, mix_root=None):
             n = len(vj["val_episodes"]) if vj else "?"
             L += ["### Collected val", "",
                   f"The {n} held-out collected episodes (meta/val_episodes_collected.json: "
-                  f"{100 * b['dataset']['val_fraction']:.0f}% per session, evenly spread). Same checkpoints as above.", "",
+                  f"{100 * b['dataset']['val_fraction']:.0f}% per session, evenly spread). Same checkpoints as above; "
+                  f"every row scored with the loss masks {ing.crossval_masks()} (the same anchors and steps).", "",
                   "| arm | val loss | pos j14 | pos j49 | pos j99 | pos chunk mean | rot (deg) | gripper |",
                   "|---|---|---|---|---|---|---|---|"]
             for r in cv_rows:
