@@ -1,0 +1,425 @@
+{
+ "batch": "yuan_slam_b1",
+ "sessions": [
+  {
+   "session": "yuan_slam_01",
+   "experiment": "col005_yuan_slam_01",
+   "configured": 8,
+   "kept": 6,
+   "drops": {
+    "gripper coverage": 2
+   },
+   "slam_valid": 0.8717366628830874,
+   "label_err_1s_mm": null,
+   "scale_abs_err_median": 0.06423788187580753,
+   "scale_bias_median": -0.033580719396881564,
+   "width_head_vs_wrist": {
+    "median": 0.02413277760245669,
+    "p90": 0.1665643083843515
+   },
+   "status": "held: slam_valid 0.872 < 0.9",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_01b",
+   "experiment": "col006_yuan_slam_01b",
+   "configured": 23,
+   "kept": 15,
+   "drops": {
+    "gripper coverage": 8
+   },
+   "slam_valid": 0.9518716577540107,
+   "label_err_1s_mm": 4.4563864201512615,
+   "scale_abs_err_median": 0.09060205125795795,
+   "scale_bias_median": -0.03369672264291523,
+   "width_head_vs_wrist": {
+    "median": 0.040133326402424244,
+    "p90": 0.21783041312586138
+   },
+   "status": "held: 8/23 episodes dropped (> 30%)",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_02",
+   "experiment": "col007_yuan_slam_02",
+   "configured": 10,
+   "kept": 10,
+   "drops": {},
+   "slam_valid": 0.9817833173537871,
+   "label_err_1s_mm": 3.4115070369029983,
+   "scale_abs_err_median": 0.13954953621636806,
+   "scale_bias_median": -0.024935988695576283,
+   "width_head_vs_wrist": {
+    "median": 0.05130963091577968,
+    "p90": 0.26584784961084207
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_02b",
+   "experiment": "col008_yuan_slam_02b",
+   "configured": 27,
+   "kept": 23,
+   "drops": {
+    "gripper coverage": 4
+   },
+   "slam_valid": 0.9616128552298765,
+   "label_err_1s_mm": 4.0222791265352935,
+   "scale_abs_err_median": 0.18828752461415788,
+   "scale_bias_median": -0.18828752461415788,
+   "width_head_vs_wrist": {
+    "median": 0.05672116741787192,
+    "p90": 0.23011874370546923
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_03",
+   "experiment": "col009_yuan_slam_03",
+   "configured": 32,
+   "kept": 16,
+   "drops": {
+    "gripper coverage": 16
+   },
+   "slam_valid": 0.8947996183206107,
+   "label_err_1s_mm": 5.907048666612484,
+   "scale_abs_err_median": 0.31506884994453455,
+   "scale_bias_median": -0.2865482813414253,
+   "width_head_vs_wrist": {
+    "median": 0.05868383028081048,
+    "p90": 0.2770454182304652
+   },
+   "status": "held: 16/32 episodes dropped (> 30%); slam_valid 0.895 < 0.9",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_04",
+   "experiment": "col010_yuan_slam_04",
+   "configured": 33,
+   "kept": 30,
+   "drops": {
+    "gripper coverage": 3
+   },
+   "slam_valid": 0.9568504758180159,
+   "label_err_1s_mm": 4.552568876529801,
+   "scale_abs_err_median": 0.28396465995333275,
+   "scale_bias_median": -0.2098118198124042,
+   "width_head_vs_wrist": {
+    "median": 0.044959009871326505,
+    "p90": 0.1962939463108128
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_05",
+   "experiment": "col011_yuan_slam_05",
+   "configured": 35,
+   "kept": 32,
+   "drops": {
+    "gripper coverage": 3
+   },
+   "slam_valid": 0.9669677100086601,
+   "label_err_1s_mm": 3.6796076124147525,
+   "scale_abs_err_median": 0.2082325226013042,
+   "scale_bias_median": -0.17325095435931304,
+   "width_head_vs_wrist": {
+    "median": 0.04592725947185283,
+    "p90": 0.19384464628881778
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_06",
+   "experiment": "col012_yuan_slam_06",
+   "configured": 42,
+   "kept": 39,
+   "drops": {
+    "gripper coverage": 3
+   },
+   "slam_valid": 0.9799453053783045,
+   "label_err_1s_mm": 4.006566892426608,
+   "scale_abs_err_median": 0.1450693398160579,
+   "scale_bias_median": -0.10602981417588725,
+   "width_head_vs_wrist": {
+    "median": 0.04479743812515086,
+    "p90": 0.17421595552922195
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  }
+ ],
+ "episodes_kept": 171,
+ "what_if": {
+  "variants": {
+   "current": {
+    "label_err_1s_mm_max": 8.0,
+    "slam_valid_min": 0.9,
+    "grip_coverage_min": 0.7,
+    "max_rejected_fraction": 0.3
+   },
+   "coverage >= 0.6": {
+    "label_err_1s_mm_max": 8.0,
+    "slam_valid_min": 0.9,
+    "grip_coverage_min": 0.6,
+    "max_rejected_fraction": 0.3
+   },
+   "coverage >= 0.5": {
+    "label_err_1s_mm_max": 8.0,
+    "slam_valid_min": 0.9,
+    "grip_coverage_min": 0.5,
+    "max_rejected_fraction": 0.3
+   },
+   "coverage >= 0.5, no session holds": {
+    "label_err_1s_mm_max": 1000000000.0,
+    "slam_valid_min": 0.0,
+    "grip_coverage_min": 0.5,
+    "max_rejected_fraction": 1.0
+   }
+  },
+  "sessions": {
+   "yuan_slam_01": {
+    "current": {
+     "kept": 6,
+     "held": true,
+     "reasons": [
+      "slam_valid 0.872 < 0.9"
+     ],
+     "slam_valid": 0.8717366628830874
+    },
+    "coverage >= 0.6": {
+     "kept": 8,
+     "held": true,
+     "reasons": [
+      "slam_valid 0.854 < 0.9"
+     ],
+     "slam_valid": 0.8539841468502295
+    },
+    "coverage >= 0.5": {
+     "kept": 8,
+     "held": true,
+     "reasons": [
+      "slam_valid 0.854 < 0.9"
+     ],
+     "slam_valid": 0.8539841468502295
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 8,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.8539841468502295
+    }
+   },
+   "yuan_slam_01b": {
+    "current": {
+     "kept": 15,
+     "held": true,
+     "reasons": [
+      "8/23 episodes dropped (> 30%)"
+     ],
+     "slam_valid": 0.9518716577540107
+    },
+    "coverage >= 0.6": {
+     "kept": 19,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9315168029064487
+    },
+    "coverage >= 0.5": {
+     "kept": 20,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9350068775790922
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 20,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9350068775790922
+    }
+   },
+   "yuan_slam_02": {
+    "current": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9817833173537871
+    },
+    "coverage >= 0.6": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9817833173537871
+    },
+    "coverage >= 0.5": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9817833173537871
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9817833173537871
+    }
+   },
+   "yuan_slam_02b": {
+    "current": {
+     "kept": 23,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9616128552298765
+    },
+    "coverage >= 0.6": {
+     "kept": 27,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9608832807570978
+    },
+    "coverage >= 0.5": {
+     "kept": 27,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9608832807570978
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 27,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9608832807570978
+    }
+   },
+   "yuan_slam_03": {
+    "current": {
+     "kept": 16,
+     "held": true,
+     "reasons": [
+      "16/32 episodes dropped (> 30%)",
+      "slam_valid 0.895 < 0.9"
+     ],
+     "slam_valid": 0.8947996183206107
+    },
+    "coverage >= 0.6": {
+     "kept": 18,
+     "held": true,
+     "reasons": [
+      "14/32 episodes dropped (> 30%)"
+     ],
+     "slam_valid": 0.9029374201787995
+    },
+    "coverage >= 0.5": {
+     "kept": 24,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9138958594730239
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 24,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9138958594730239
+    }
+   },
+   "yuan_slam_04": {
+    "current": {
+     "kept": 30,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9568504758180159
+    },
+    "coverage >= 0.6": {
+     "kept": 30,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9568504758180159
+    },
+    "coverage >= 0.5": {
+     "kept": 31,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9573495811119573
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 31,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9573495811119573
+    }
+   },
+   "yuan_slam_05": {
+    "current": {
+     "kept": 32,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9669677100086601
+    },
+    "coverage >= 0.6": {
+     "kept": 34,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9684689945112694
+    },
+    "coverage >= 0.5": {
+     "kept": 35,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9672112548218743
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 35,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9672112548218743
+    }
+   },
+   "yuan_slam_06": {
+    "current": {
+     "kept": 39,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9799453053783045
+    },
+    "coverage >= 0.6": {
+     "kept": 41,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9805345729227194
+    },
+    "coverage >= 0.5": {
+     "kept": 41,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9805345729227194
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 41,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9805345729227194
+    }
+   }
+  },
+  "totals": {
+   "current": {
+    "kept": 171,
+    "kept_not_held": 134
+   },
+   "coverage >= 0.6": {
+    "kept": 187,
+    "kept_not_held": 161
+   },
+   "coverage >= 0.5": {
+    "kept": 196,
+    "kept_not_held": 188
+   },
+   "coverage >= 0.5, no session holds": {
+    "kept": 196,
+    "kept_not_held": 196
+   }
+  }
+ }
+}
