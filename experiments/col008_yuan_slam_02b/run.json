@@ -1,0 +1,2754 @@
+{
+ "experiment": "col008_yuan_slam_02b",
+ "config": "experiments/col008_yuan_slam_02b/config.yaml",
+ "invocations": [
+  {
+   "start": "2026-11-16T18:18:08-10:00",
+   "status": "complete",
+   "command": [
+    "/home/student/yuanliu-hawaii/.venv-headcam/bin/python",
+    "-m",
+    "slam.run",
+    "experiments/col008_yuan_slam_02b/config.yaml"
+   ],
+   "env_vars": {
+    "HEADCAM_DATA_REPO": "/home/student/yuanliu-hawaii/incoming/collect",
+    "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
+    "HF_TOKEN_PATH": "/home/student/.config/yuanliu/hf_token"
+   },
+   "cwd": "/home/student/yuanliu-hawaii/head-cam-umi-collect",
+   "config_sha256": "130796b840a92e77661179fa662b7a1e174616da89df6609563c4b0779b55d11",
+   "git": {
+    "commit": "6d22f623baed34f7d3ce6c21a43030c656a85572",
+    "branch": "collect",
+    "clean": true,
+    "dirty_files": [],
+    "describe": "legacy-sam2-156-g6d22f62"
+   },
+   "keys": {
+    "preprocess": "d32624cc45b13af7",
+    "tiles": "3e796db7b8d8ec95",
+    "masks.motion": "30562e9f4e97519d",
+    "slam.E1": "0e555269486667c7",
+    "masks.tiles": "71fec62d4bb700da",
+    "slam.E3": "ebd57a44d15a8eff",
+    "depth.da3m@E3": "d7da283174a08620"
+   },
+   "scratch": false,
+   "segments": [
+    "ep00",
+    "ep01",
+    "ep02",
+    "ep03",
+    "ep04",
+    "ep05",
+    "ep07",
+    "ep08",
+    "ep09",
+    "ep10",
+    "ep11",
+    "ep12",
+    "ep13",
+    "ep14",
+    "ep15",
+    "ep16",
+    "ep18",
+    "ep19",
+    "ep21",
+    "ep22",
+    "ep24",
+    "ep25",
+    "ep26",
+    "ep27",
+    "ep29",
+    "ep30",
+    "ep31"
+   ],
+   "host": {
+    "host": "student-MS-7C37",
+    "user": "student",
+    "platform": "Linux-6.14.0-37-generic-x86_64-with-glibc2.41"
+   },
+   "gpu": [
+    {
+     "name": "NVIDIA GeForce RTX 3090",
+     "driver": "580.95.05",
+     "memory_total_mb": 24576,
+     "memory_used_mb": 4144,
+     "memory_free_mb": 19959
+    }
+   ],
+   "data_fingerprints": {
+    "ball_bundle": "sha256:ff833b0583ece488a76403547483ba343e6a4f077ca99876525f84b48118e59c",
+    "episodes": "sha256:e668029561e374c751d44bb6b90980ce83631c1068081e9bb10ec65bf469de63",
+    "gt_ball_poses": "sha256:7839b93761d635077399794289fb369ea253d5e1a0652e67b9ef6dd24b7a9f70",
+    "gt_cam_world": "sha256:363c3be568183875241644870ee40524120c2e125c738ac512ec5d9b8ae7246e",
+    "gt_gripper_dataset": null,
+    "gt_gripper_head": "sha256:0c510894762e0e2bd25543856449154d37e9920e88c2feed0554d5fde204f80e",
+    "gt_gripper_wrist": "sha256:fa3171c75b33f9c74ef061f0a47945fc50eb404f070912978ccd9a6e003adb38",
+    "handeye": "sha256:973f18b1cc427775f661573a13c24c4c7a05d260bc06e8e8250bff6dcc1a5d42",
+    "intrinsics": "sha256:d55cbf0550fae55ec7fb025200fbb3fa752011a75274aa88b045b5e68b3d5ba0",
+    "tags": "sha256:d84085c95016079d667350edaea25a4d51ed9dbbb41ec83dc184b7c608fd913c",
+    "tile_layout": "sha256:73f6a2f9bbbc920bd211668656fdd2712740b6a54187aee89c605ab4ae4a3472",
+    "video": "quick:12357073534:97a3be89e9aa705b14107cf00b43beeff2a6d0a0eea001fd2a2ecbf1f03f0b23",
+    "video_ts": "sha256:6994a0a16728a7af852f8ca1b6652cdbc45ac59d70551eb6c7f9451e2c725895"
+   },
+   "code_fingerprints": {
+    "preprocess/undistort_crop_resample": {
+     "src:slam/preprocess.py": "ast:80bee372174b41ac634bde9d85b917e2842220cf147f038a1ffe50eb88b092b2",
+     "src:slam/pipeline/impl_preprocess.py": "ast:4aa7d9c6f9358d9b1c027a622cf2af5b7fa51bc2fc4177008e03f48866b7860d",
+     "src:slam/pipeline/impl_preprocess_resample.py": "ast:c7ad194d79854a126e8b83fbbf24f949d45fe458e18678e23f82631963949171",
+     "python:venv": "3.14.7",
+     "pkg:numpy": "2.5.4",
+     "pkg:opencv-contrib-python": "5.0.0.93",
+     "tool:ffmpeg": "/usr/bin/ffmpeg: ffmpeg version 7.1.1-1ubuntu1.3 Copyright (c) 2000-2025 the FFmpeg developers"
+    },
+    "tiles/apriltag_36h11": {
+     "src:slam/tiles.py": "ast:7ec0f0f2403e3f399b7f224582556a6af530f0770e53a609eb3eaf5ea985a8df",
+     "src:slam/pipeline/impl_tiles.py": "ast:503d802ba6146521eda30ed8e27b04371df2680d71b330d6453a027a7dc65ed9",
+     "src:slam/preprocess.py": "ast:80bee372174b41ac634bde9d85b917e2842220cf147f038a1ffe50eb88b092b2",
+     "src:slam/geometry.py": "ast:a937449edc0555f0096e80efa6f5cc8b6dac548181148afeca8232a150e8f1eb",
+     "python:venv": "3.14.7",
+     "pkg:numpy": "2.5.4",
+     "pkg:opencv-contrib-python": "5.0.0.93",
+     "tool:ffmpeg": "/usr/bin/ffmpeg: ffmpeg version 7.1.1-1ubuntu1.3 Copyright (c) 2000-2025 the FFmpeg developers"
+    },
+    "masks/sam3_v2_head": {
+     "src:slam/masks_sam3v2.py": "ast:a7b8460fb3b74e9877df7ec46ede3656b3c5f5c7023493f167c0c19ec1710fdc",
+     "src:slam/masks_sam3.py": "ast:cdf01296190809b3a1daf0a2a6290953a486d6c4113401616304f9ecb6d3a5cb",
+     "src:slam/masks.py": "ast:3170847b7419eb1e01ebcf32a8c7f2acfdc2d6585c6a4ec84f7fe9ddf8f6403a",
+     "src:slam/pipeline/impl_masks_sam3v2.py": "ast:f462ea7cd0929280a54e7d5cbebe25b6369d06e2aee91b2b3e63dad27a11a9f1",
+     "src:slam/pipeline/impl_masks.py": "ast:82362485a5765fa7af3ae8569f73f82685dc2f677680a41739b8ea2736234780",
+     "src:slam/geometry.py": "ast:a937449edc0555f0096e80efa6f5cc8b6dac548181148afeca8232a150e8f1eb",
+     "src:slam/pipeline/impl_masks_sam3v2_head.py": "ast:03dd5a5bd5e6536ca43d713d7b95ff46c2ec26ce4db2957020becd32f0d467f0",
+     "bin:/home/student/.cache/huggingface/hub/kernels--kernels-community--cv-utils/snapshots/eae3e7faebf2f866c929e086d2c34e67185732e5/build/torch-stable-abi210-cu126-x86_64-linux/_cv_utils_cuda_5fe9dbb.abi3.so": "sha256:b50dc93fd839e7810a291830177e11f596692d07c623b3581764b1ad51e600ef",
+     "python:sam3": "3.12.16",
+     "pkg:torch": "2.10.0+cu126",
+     "pkg:transformers": "5.20.2",
+     "pkg:safetensors": "0.8.0",
+     "pkg:numpy": "2.2.6",
+     "pkg:opencv-python-headless": "5.0.0.93",
+     "pkg:kernels": "0.17.2"
+    },
+    "slam/droid": {
+     "src:slam/backends/droid.py": "ast:dafef3665b8de712881cbfa824a08bb70997991c012222cc2e921e65e92b7ca2",
+     "src:slam/backends/base.py": "ast:6234d3da87aea9bc6dd054b677f7476417140a7d21fe69ad7786fa7d009acfb5",
+     "src:slam/droid_masked.py": "ast:57a68910b48f05358593ff0c3965c73446841a0dfb9ddd20f379c866bcb34a09",
+     "src:slam/pipeline/impl_slam.py": "ast:a0ad25c076ef1f709d12a24bd4230200730521c62bb133d5b154bd5c5173fff0",
+     "bin:/home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid_backends.cpython-310-x86_64-linux-gnu.so": "sha256:1f482dd3377fcdc844083fea0b6d00e35b9c0e44f20534e29f9747c1dfe11ba4",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch_backends.cpython-310-x86_64-linux-gnu.so": "sha256:4e67263806fa54478b8ad30cf604cf726660093ffa97d7c37bf41661150e507d",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch_extras.cpython-310-x86_64-linux-gnu.so": "sha256:a3edc4f6cf03da3553a61871acc3be56dd0c91980b9fd0aab222e7e3a8ea1941",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/__init__.py": "sha256:a48acae939f2005c2efec3aa49194a62d4bec0727b811fda27320df6b00bbcc6",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/broadcasting.py": "sha256:6dd188ee0ae2890006029c86359eaaa38597c3591c2b455976033d867b22b143",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/gradcheck.py": "sha256:767c8f5d9f11d4101063d4811b08cd1b38259d5402f994f2d15cd018699cfafe",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/group_ops.py": "sha256:304185cd507e142aa379eabd379b63fb0959763b6a7fcc87d678ebf70ec4b81d",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/groups.py": "sha256:c169847978bcf82f69d7612b60a6cfa863b62b13f32bdd0cde93cd5e938a1bca",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/run_tests.py": "sha256:e470a784e8707bf62d2edcf3db3023d8a00058cc4ead78d6e345b580415b3bc9",
+     "git:/home/student/yuanliu-hawaii/third_party/DROID-SLAM": {
+      "commit": "2dfd39f0dcad44012ca7bbb8aa70b55edbfa9c99",
+      "dirty": true,
+      "diff_sha256": "fab93f712ca31b9a3a3ed6bbcfc7647b7fa0452b403a7cbad92717d696b6b9e8",
+      "submodules": {
+       "thirdparty/lietorch": {
+        "commit": "7f687644fcea81ab337831749445224503c1290d",
+        "diff_sha256": "857983af174181a9199ba9d59b1ad7477b190b9572e90a985f628c37784d45f6"
+       },
+       "thirdparty/lietorch/eigen": {
+        "commit": "824272cde8ca2541e8b67b0887f5ded92b128d1f",
+        "diff_sha256": null
+       },
+       "thirdparty/pytorch_scatter": {
+        "commit": "6cf77c420f837a427b0d57965e414d68c1bd89ec",
+        "diff_sha256": null
+       }
+      }
+     },
+     "python:droid": "3.10.22",
+     "pkg:torch": "2.5.1+cu124",
+     "pkg:lietorch": "0.2",
+     "pkg:droid_backends": "0.0.0",
+     "pkg:torch_scatter": "2.1.2",
+     "pkg:numpy": "2.2.6",
+     "pkg:opencv-python": "5.0.0.93"
+    },
+    "masks/tile_geometry_k": {
+     "src:slam/tiles.py": "ast:7ec0f0f2403e3f399b7f224582556a6af530f0770e53a609eb3eaf5ea985a8df",
+     "src:slam/pipeline/impl_tiles_k.py": "ast:8af2932915cd10510e44a92301e054e98378cd710564e36bdeef378a754e89eb",
+     "src:slam/preprocess.py": "ast:80bee372174b41ac634bde9d85b917e2842220cf147f038a1ffe50eb88b092b2",
+     "src:slam/geometry.py": "ast:a937449edc0555f0096e80efa6f5cc8b6dac548181148afeca8232a150e8f1eb",
+     "python:venv": "3.14.7",
+     "pkg:numpy": "2.5.4",
+     "pkg:opencv-contrib-python": "5.0.0.93"
+    },
+    "slam/droid_adaptive": {
+     "src:slam/backends/droid.py": "ast:dafef3665b8de712881cbfa824a08bb70997991c012222cc2e921e65e92b7ca2",
+     "src:slam/backends/base.py": "ast:6234d3da87aea9bc6dd054b677f7476417140a7d21fe69ad7786fa7d009acfb5",
+     "src:slam/droid_masked.py": "ast:57a68910b48f05358593ff0c3965c73446841a0dfb9ddd20f379c866bcb34a09",
+     "src:slam/pipeline/impl_slam_preroll.py": "ast:9edec3ffbb7e729dcfad79be6292f1f388ae3a8c7795f03445d3e62c91beee13",
+     "src:slam/pipeline/impl_slam_adaptive.py": "ast:2d1623221276e64bc2e386f4ec28e6b73d8e5ed697c223fe06a2bce8b330ac25",
+     "bin:/home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid_backends.cpython-310-x86_64-linux-gnu.so": "sha256:1f482dd3377fcdc844083fea0b6d00e35b9c0e44f20534e29f9747c1dfe11ba4",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch_backends.cpython-310-x86_64-linux-gnu.so": "sha256:4e67263806fa54478b8ad30cf604cf726660093ffa97d7c37bf41661150e507d",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch_extras.cpython-310-x86_64-linux-gnu.so": "sha256:a3edc4f6cf03da3553a61871acc3be56dd0c91980b9fd0aab222e7e3a8ea1941",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/__init__.py": "sha256:a48acae939f2005c2efec3aa49194a62d4bec0727b811fda27320df6b00bbcc6",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/broadcasting.py": "sha256:6dd188ee0ae2890006029c86359eaaa38597c3591c2b455976033d867b22b143",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/gradcheck.py": "sha256:767c8f5d9f11d4101063d4811b08cd1b38259d5402f994f2d15cd018699cfafe",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/group_ops.py": "sha256:304185cd507e142aa379eabd379b63fb0959763b6a7fcc87d678ebf70ec4b81d",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/groups.py": "sha256:c169847978bcf82f69d7612b60a6cfa863b62b13f32bdd0cde93cd5e938a1bca",
+     "bin:/home/student/miniconda3/envs/droid/lib/python3.10/site-packages/lietorch/run_tests.py": "sha256:e470a784e8707bf62d2edcf3db3023d8a00058cc4ead78d6e345b580415b3bc9",
+     "git:/home/student/yuanliu-hawaii/third_party/DROID-SLAM": {
+      "commit": "2dfd39f0dcad44012ca7bbb8aa70b55edbfa9c99",
+      "dirty": true,
+      "diff_sha256": "fab93f712ca31b9a3a3ed6bbcfc7647b7fa0452b403a7cbad92717d696b6b9e8",
+      "submodules": {
+       "thirdparty/lietorch": {
+        "commit": "7f687644fcea81ab337831749445224503c1290d",
+        "diff_sha256": "857983af174181a9199ba9d59b1ad7477b190b9572e90a985f628c37784d45f6"
+       },
+       "thirdparty/lietorch/eigen": {
+        "commit": "824272cde8ca2541e8b67b0887f5ded92b128d1f",
+        "diff_sha256": null
+       },
+       "thirdparty/pytorch_scatter": {
+        "commit": "6cf77c420f837a427b0d57965e414d68c1bd89ec",
+        "diff_sha256": null
+       }
+      }
+     },
+     "python:droid": "3.10.22",
+     "pkg:torch": "2.5.1+cu124",
+     "pkg:lietorch": "0.2",
+     "pkg:droid_backends": "0.0.0",
+     "pkg:torch_scatter": "2.1.2",
+     "pkg:numpy": "2.2.6",
+     "pkg:opencv-python": "5.0.0.93"
+    },
+    "depth/da3_metric": {
+     "src:slam/depth_models.py": "ast:f44c290530d6fabf83f191d6c76eccdc74ceb9b35ed0ec240b4158cd88cd6f3e",
+     "src:slam/pipeline/impl_depth_models.py": "ast:6dcd344629e0aac85ceb4f42f08c910690448807186526ec70789c26732bdda5",
+     "git:/home/student/yuanliu-hawaii/third_party/Depth-Anything-3": {
+      "commit": "3d835ec1a5802d64a8b8b15f817a1ab54809bfe4",
+      "dirty": false,
+      "diff_sha256": null,
+      "submodules": {
+       "da3_streaming/loop_utils/salad": {
+        "commit": "3d835ec1a5802d64a8b8b15f817a1ab54809bfe4",
+        "diff_sha256": null
+       }
+      }
+     },
+     "python:mdepth": "3.11.18",
+     "pkg:torch": "2.7.1+cu126",
+     "pkg:torchvision": "0.22.1+cu126",
+     "pkg:xformers": "0.0.31.post1",
+     "pkg:numpy": "2.2.6",
+     "pkg:timm": "1.0.31",
+     "pkg:einops": "0.8.2",
+     "pkg:huggingface-hub": "0.36.2",
+     "pkg:safetensors": "0.8.0",
+     "pkg:opencv-python": "5.0.0.93",
+     "pkg:opencv-python-headless": "5.0.0.93"
+    }
+   },
+   "seeds": {
+    "slam.E1": 0,
+    "slam.E3": 0
+   },
+   "weights": {
+    "masks.motion": {
+     "repo": "facebook/sam3",
+     "revision": "3c879f39826c281e95690f02c7821c4de09afae7",
+     "local": true,
+     "files_sha256": {
+      ".gitattributes": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361",
+      "LICENSE": "bec48f70bd37bf8280a9d1ebf01642d26086f6122ba735baa08fe03c5a6e7448",
+      "README.md": "1ac8a322aa4a797db79cbc334acee7c0cae8635032b71c7d5b23ae63a05f4bd5",
+      "config.json": "4616385e4b21f2e5e22c875b65679185cbccfa95de42542b9166f7dc3d57160f",
+      "merges.txt": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+      "model.safetensors": "6d06f0a5f84e435071fe6603e61d0b4cc7b40e0d39d487cfd4d67d8cc11cc14a",
+      "processor_config.json": "6420cf2671fa9309ea95bc0144a8b9861666d1c5f43c8db09e410dacda974fce",
+      "special_tokens_map.json": "2cdb3b8331a60c92fc1e55a13e9fd61fd2293c5a51275fdcccd62b780052530e",
+      "tokenizer.json": "6d9109cc838977f3ca94a379eec36aecc7c807e1785cd729660ca2fc0171fb35",
+      "tokenizer_config.json": "39670ad98457fe8f14ca59f6bb74591e9fc850974380a63993e5b8ffc865baa2",
+      "vocab.json": "5047b556ce86ccaf6aa22b3ffccfc52d391ea4accdab9c2f2407da5b742d4363"
+     }
+    },
+    "slam.E1": {
+     "path": "/home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth",
+     "sha256": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526",
+     "sha256_actual": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526"
+    },
+    "slam.E3": {
+     "path": "/home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth",
+     "sha256": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526",
+     "sha256_actual": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526"
+    },
+    "depth.da3m@E3": {
+     "repo": "depth-anything/DA3METRIC-LARGE",
+     "revision": "4010e39f3634a45bc60553321fb49fb760bd594e",
+     "local": true,
+     "files_sha256": {
+      ".gitattributes": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361",
+      "README.md": "4fdd25492cf6401d1459483fd829f6abb399bda8218e1a3ef5ad4a66e9aa5a2a",
+      "config.json": "a336f3e76fe375aaae17a9aed9130c9f2aa061535d317ec57dcb2f1f02e1dd53",
+      "model.safetensors": "bbea5b0b3ee389849cffa7ddae89de064a90abd2b055fc5aa99aac68db324776"
+     }
+    }
+   },
+   "third_party_patches": {
+    "/home/student/yuanliu-hawaii/third_party/DROID-SLAM": {
+     ".": "third_party_patches/DROID-SLAM/root_fab93f712ca3.diff",
+     "thirdparty/lietorch": "third_party_patches/DROID-SLAM/thirdparty__lietorch_857983af1741.diff"
+    },
+    "/home/student/yuanliu-hawaii/third_party/Depth-Anything-3": {}
+   },
+   "envs": {
+    "droid": {
+     "python": "3.10.22",
+     "executable": "/home/student/miniconda3/envs/droid/bin/python",
+     "kind": "conda",
+     "packages": {
+      "-openmp-mutex": "4.5 (conda-forge, 20_gnu)",
+      "absl-py": "2.5.1 (pypi, pypi_0)",
+      "annotated-types": "0.8.0 (pypi, pypi_0)",
+      "apsw": "3.54.0.0 (pypi, pypi_0)",
+      "argcomplete": "3.7.2 (pypi, pypi_0)",
+      "asttokens": "3.0.2 (pypi, pypi_0)",
+      "attrs": "26.1.0 (pypi, pypi_0)",
+      "backports-zstd": "1.8.0 (pypi, pypi_0)",
+      "beautifulsoup4": "4.15.0 (pypi, pypi_0)",
+      "binutils-impl-linux-64": "2.46.1 (conda-forge, default_hfdba357_103)",
+      "blinker": "1.9.0 (pypi, pypi_0)",
+      "bzip2": "1.0.8 (conda-forge, hda65f42_10)",
+      "ca-certificates": "2026.10.23 (conda-forge, hbd8a1cb_0)",
+      "certifi": "2026.10.23 (pypi, pypi_0)",
+      "charset-normalizer": "3.5.2 (pypi, pypi_0)",
+      "click": "8.5.1 (pypi, pypi_0)",
+      "colorama": "0.4.6 (pypi, pypi_0)",
+      "comm": "0.2.3 (pypi, pypi_0)",
+      "configargparse": "1.9.0 (pypi, pypi_0)",
+      "contourpy": "1.3.2 (pypi, pypi_0)",
+      "cuda-cccl": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-command-line-tools": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-compiler": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-cudart": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-cudart-dev": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-cudart-static": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-cuobjdump": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-cupti": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-cupti-static": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-cuxxfilt": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-documentation": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-driver-dev": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-gdb": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-libraries": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-libraries-dev": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-libraries-static": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nsight": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nsight-compute": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvcc": "12.4.131 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvdisasm": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvml-dev": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvprof": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvprune": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvrtc": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvrtc-dev": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvrtc-static": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvtx": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-nvvp": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-opencl": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-opencl-dev": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-profiler-api": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-sanitizer-api": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-toolkit": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-tools": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cuda-visual-tools": "12.4.1 (nvidia/label/cuda-12.4.1, 0)",
+      "cycler": "0.12.1 (pypi, pypi_0)",
+      "dash": "4.5.0 (pypi, pypi_0)",
+      "decorator": "5.3.1 (pypi, pypi_0)",
+      "droid-backends": "0.0.0 (pypi, pypi_0)",
+      "evo": "1.38.0 (pypi, pypi_0)",
+      "exceptiongroup": "1.3.1 (pypi, pypi_0)",
+      "executing": "2.3.0 (pypi, pypi_0)",
+      "fastjsonschema": "2.22.3 (pypi, pypi_0)",
+      "filelock": "4.1.0 (pypi, pypi_0)",
+      "flask": "3.1.3 (pypi, pypi_0)",
+      "fonttools": "4.65.0 (pypi, pypi_0)",
+      "fsspec": "2026.9.0 (pypi, pypi_0)",
+      "gcc": "12.4.0 (conda-forge, h236703b_2)",
+      "gcc-impl-linux-64": "12.4.0 (conda-forge, h26ba24d_2)",
+      "gdown": "6.5.1 (pypi, pypi_0)",
+      "gds-tools": "1.9.1.3 (nvidia/label/cuda-12.4.1, 0)",
+      "grpcio": "1.85.1 (pypi, pypi_0)",
+      "gxx": "12.4.0 (conda-forge, h236703b_2)",
+      "gxx-impl-linux-64": "12.4.0 (conda-forge, h3ff227c_2)",
+      "idna": "3.20 (pypi, pypi_0)",
+      "importlib-metadata": "9.0.1 (pypi, pypi_0)",
+      "ipython": "8.39.0 (pypi, pypi_0)",
+      "ipywidgets": "8.1.9 (pypi, pypi_0)",
+      "itsdangerous": "2.2.0 (pypi, pypi_0)",
+      "janus": "2.0.0 (pypi, pypi_0)",
+      "jedi": "0.20.1 (pypi, pypi_0)",
+      "jinja2": "3.1.6 (pypi, pypi_0)",
+      "jsonschema": "4.26.0 (pypi, pypi_0)",
+      "jsonschema-specifications": "2025.9.1 (pypi, pypi_0)",
+      "jupyter-core": "5.9.1 (pypi, pypi_0)",
+      "jupyterlab-widgets": "3.0.17 (pypi, pypi_0)",
+      "kernel-headers-linux-64": "6.12.0 (conda-forge, he073ed8_6)",
+      "kiwisolver": "1.5.1 (pypi, pypi_0)",
+      "ld-impl-linux-64": "2.46.1 (conda-forge, default_hbd61a6d_103)",
+      "libcublas": "12.4.5.8 (nvidia/label/cuda-12.4.1, 0)",
+      "libcublas-dev": "12.4.5.8 (nvidia/label/cuda-12.4.1, 0)",
+      "libcublas-static": "12.4.5.8 (nvidia/label/cuda-12.4.1, 0)",
+      "libcufft": "11.2.1.3 (nvidia/label/cuda-12.4.1, 0)",
+      "libcufft-dev": "11.2.1.3 (nvidia/label/cuda-12.4.1, 0)",
+      "libcufft-static": "11.2.1.3 (nvidia/label/cuda-12.4.1, 0)",
+      "libcufile": "1.9.1.3 (nvidia/label/cuda-12.4.1, 0)",
+      "libcufile-dev": "1.9.1.3 (nvidia/label/cuda-12.4.1, 0)",
+      "libcufile-static": "1.9.1.3 (nvidia/label/cuda-12.4.1, 0)",
+      "libcurand": "10.3.5.147 (nvidia/label/cuda-12.4.1, 0)",
+      "libcurand-dev": "10.3.5.147 (nvidia/label/cuda-12.4.1, 0)",
+      "libcurand-static": "10.3.5.147 (nvidia/label/cuda-12.4.1, 0)",
+      "libcusolver": "11.6.1.9 (nvidia/label/cuda-12.4.1, 0)",
+      "libcusolver-dev": "11.6.1.9 (nvidia/label/cuda-12.4.1, 0)",
+      "libcusolver-static": "11.6.1.9 (nvidia/label/cuda-12.4.1, 0)",
+      "libcusparse": "12.3.1.170 (nvidia/label/cuda-12.4.1, 0)",
+      "libcusparse-dev": "12.3.1.170 (nvidia/label/cuda-12.4.1, 0)",
+      "libcusparse-static": "12.3.1.170 (nvidia/label/cuda-12.4.1, 0)",
+      "libexpat": "2.9.0 (conda-forge, hd2095e1_0)",
+      "libffi": "3.7.0 (conda-forge, h81df57d_1)",
+      "libgcc": "16.2.0 (conda-forge, ha9f2e26_7)",
+      "libgcc-devel-linux-64": "12.4.0 (conda-forge, h1762d19_102)",
+      "libgomp": "16.2.0 (conda-forge, he0feb66_7)",
+      "liblzma": "5.8.3 (conda-forge, hb03c661_1)",
+      "libnpp": "12.2.5.30 (nvidia/label/cuda-12.4.1, 0)",
+      "libnpp-dev": "12.2.5.30 (nvidia/label/cuda-12.4.1, 0)",
+      "libnpp-static": "12.2.5.30 (nvidia/label/cuda-12.4.1, 0)",
+      "libnsl": "2.0.1 (conda-forge, hb9d3cd8_1)",
+      "libnvfatbin": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "libnvfatbin-dev": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "libnvjitlink": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "libnvjitlink-dev": "12.4.127 (nvidia/label/cuda-12.4.1, 0)",
+      "libnvjpeg": "12.3.1.117 (nvidia/label/cuda-12.4.1, 0)",
+      "libnvjpeg-dev": "12.3.1.117 (nvidia/label/cuda-12.4.1, 0)",
+      "libnvjpeg-static": "12.3.1.117 (nvidia/label/cuda-12.4.1, 0)",
+      "libsanitizer": "12.4.0 (conda-forge, ha732cd4_2)",
+      "libsqlite": "3.54.1 (conda-forge, h0737f62_101)",
+      "libstdcxx": "16.2.0 (conda-forge, h934c35e_7)",
+      "libstdcxx-devel-linux-64": "12.4.0 (conda-forge, h1762d19_102)",
+      "libuuid": "2.42.4 (conda-forge, hcfc3c73_1)",
+      "libxcrypt": "4.4.38 (conda-forge, h280c20c_0)",
+      "libzlib": "1.3.2 (conda-forge, h25fd6f3_3)",
+      "lietorch": "0.2 (pypi, pypi_0)",
+      "lz4": "4.4.5 (pypi, pypi_0)",
+      "markdown": "3.10.3 (pypi, pypi_0)",
+      "markupsafe": "3.0.3 (pypi, pypi_0)",
+      "matplotlib": "3.10.9 (pypi, pypi_0)",
+      "matplotlib-inline": "0.2.2 (pypi, pypi_0)",
+      "mpmath": "1.3.0 (pypi, pypi_0)",
+      "narwhals": "2.28.0 (pypi, pypi_0)",
+      "natsort": "8.4.0 (pypi, pypi_0)",
+      "nbformat": "5.11.1 (pypi, pypi_0)",
+      "ncurses": "6.6 (conda-forge, hdb14827_1)",
+      "nest-asyncio": "1.6.0 (pypi, pypi_0)",
+      "networkx": "3.4.2 (pypi, pypi_0)",
+      "ninja": "1.13.2 (conda-forge, h171cf75_1)",
+      "nsight-compute": "2024.1.1.4 (nvidia/label/cuda-12.4.1, 0)",
+      "numexpr": "2.14.1 (pypi, pypi_0)",
+      "numpy": "2.2.6 (pypi, pypi_0)",
+      "nvidia-cublas-cu12": "12.4.5.8 (pypi, pypi_0)",
+      "nvidia-cuda-cupti-cu12": "12.4.127 (pypi, pypi_0)",
+      "nvidia-cuda-nvrtc-cu12": "12.4.127 (pypi, pypi_0)",
+      "nvidia-cuda-runtime-cu12": "12.4.127 (pypi, pypi_0)",
+      "nvidia-cudnn-cu12": "9.1.0.70 (pypi, pypi_0)",
+      "nvidia-cufft-cu12": "11.2.1.3 (pypi, pypi_0)",
+      "nvidia-curand-cu12": "10.3.5.147 (pypi, pypi_0)",
+      "nvidia-cusolver-cu12": "11.6.1.9 (pypi, pypi_0)",
+      "nvidia-cusparse-cu12": "12.3.1.170 (pypi, pypi_0)",
+      "nvidia-nccl-cu12": "2.21.5 (pypi, pypi_0)",
+      "nvidia-nvjitlink-cu12": "12.4.127 (pypi, pypi_0)",
+      "nvidia-nvtx-cu12": "12.4.127 (pypi, pypi_0)",
+      "open3d": "0.20.0 (pypi, pypi_0)",
+      "opencv-python": "5.0.0.93 (pypi, pypi_0)",
+      "openssl": "3.6.5 (conda-forge, h781a0a9_0)",
+      "packaging": "26.3 (conda-forge, pyhc364b38_0)",
+      "pandas": "2.3.3 (pypi, pypi_0)",
+      "parso": "0.8.7 (pypi, pypi_0)",
+      "pexpect": "4.9.0 (pypi, pypi_0)",
+      "pillow": "12.3.0 (pypi, pypi_0)",
+      "pip": "26.2.1 (conda-forge, pyh8b19718_0)",
+      "platformdirs": "4.12.4 (pypi, pypi_0)",
+      "plotly": "7.1.0 (pypi, pypi_0)",
+      "prompt-toolkit": "3.0.53 (pypi, pypi_0)",
+      "protobuf": "7.36.2 (pypi, pypi_0)",
+      "ptyprocess": "0.7.0 (pypi, pypi_0)",
+      "pure-eval": "0.2.4 (pypi, pypi_0)",
+      "pydantic": "2.14.3 (pypi, pypi_0)",
+      "pydantic-core": "2.50.4 (pypi, pypi_0)",
+      "pygments": "2.21.0 (pypi, pypi_0)",
+      "pyparsing": "3.3.3 (pypi, pypi_0)",
+      "pysocks": "1.7.1 (pypi, pypi_0)",
+      "python": "3.10.22 (conda-forge, h267e890_0_cpython)",
+      "python-dateutil": "3.0.0 (pypi, pypi_0)",
+      "pytz": "2026.6 (pypi, pypi_0)",
+      "pyyaml": "6.0.3 (pypi, pypi_0)",
+      "readline": "8.3 (conda-forge, hd6e31c0_1)",
+      "referencing": "0.37.0 (pypi, pypi_0)",
+      "requests": "2.34.2 (pypi, pypi_0)",
+      "retrying": "1.4.2 (pypi, pypi_0)",
+      "rosbags": "0.11.9 (pypi, pypi_0)",
+      "rpds-py": "0.30.0 (pypi, pypi_0)",
+      "ruamel-yaml": "0.19.1 (pypi, pypi_0)",
+      "scipy": "1.15.3 (pypi, pypi_0)",
+      "seaborn": "0.13.2 (pypi, pypi_0)",
+      "setuptools": "84.0.0 (conda-forge, pyh332efcf_0)",
+      "six": "1.17.0 (pypi, pypi_0)",
+      "soupsieve": "2.10 (pypi, pypi_0)",
+      "stack-data": "0.6.3 (pypi, pypi_0)",
+      "sympy": "1.13.1 (pypi, pypi_0)",
+      "sysroot-linux-64": "2.39 (conda-forge, hc4b9eeb_6)",
+      "tensorboard": "2.21.0 (pypi, pypi_0)",
+      "tensorboard-data-server": "0.7.2 (pypi, pypi_0)",
+      "tk": "8.6.13 (conda-forge, noxft_h1df4ec4_4)",
+      "torch": "2.5.1+cu124 (pypi, pypi_0)",
+      "torch-scatter": "2.1.2 (pypi, pypi_0)",
+      "torchaudio": "2.5.1+cu124 (pypi, pypi_0)",
+      "torchvision": "0.20.1+cu124 (pypi, pypi_0)",
+      "tqdm": "4.70.1 (pypi, pypi_0)",
+      "traitlets": "5.16.1 (pypi, pypi_0)",
+      "triton": "3.1.0 (pypi, pypi_0)",
+      "typing-extensions": "4.16.0 (pypi, pypi_0)",
+      "typing-inspection": "0.4.5 (pypi, pypi_0)",
+      "tzdata": "2026.6 (pypi, pypi_0)",
+      "urllib3": "2.8.0 (pypi, pypi_0)",
+      "wcwidth": "0.9.4 (pypi, pypi_0)",
+      "werkzeug": "3.1.9 (pypi, pypi_0)",
+      "wheel": "0.48.0 (conda-forge, pyhd8ed1ab_0)",
+      "widgetsnbextension": "4.0.16 (pypi, pypi_0)",
+      "zipp": "4.1.2 (pypi, pypi_0)",
+      "zstd": "1.5.7 (conda-forge, hb78ec9c_7)"
+     }
+    },
+    "mdepth": {
+     "python": "3.11.18",
+     "executable": "/home/student/miniconda3/envs/mdepth/bin/python",
+     "kind": "conda",
+     "packages": {
+      "-libgcc-mutex": "0.1 (pkgs/main, main)",
+      "-openmp-mutex": "5.1 (pkgs/main, 52_gnu)",
+      "addict": "2.4.0 (pypi, pypi_0)",
+      "annotated-types": "0.8.0 (pypi, pypi_0)",
+      "anyio": "4.16.0 (pypi, pypi_0)",
+      "apsw": "3.54.1.0 (pypi, pypi_0)",
+      "argcomplete": "3.7.2 (pypi, pypi_0)",
+      "backports-zstd": "1.8.0 (pypi, pypi_0)",
+      "bzip2": "1.0.8 (pkgs/main, h5eee18b_6)",
+      "ca-certificates": "2026.10.20 (pkgs/main, h59cdc77_1)",
+      "certifi": "2026.10.23 (pypi, pypi_0)",
+      "charset-normalizer": "3.5.2 (pypi, pypi_0)",
+      "click": "8.5.1 (pypi, pypi_0)",
+      "colorama": "0.4.6 (pypi, pypi_0)",
+      "contourpy": "1.3.3 (pypi, pypi_0)",
+      "cwevals": "0.0.1b1 (pypi, pypi_0)",
+      "cycler": "0.12.1 (pypi, pypi_0)",
+      "decorator": "4.4.2 (pypi, pypi_0)",
+      "depth-anything-3": "0.0.0 (pypi, pypi_0)",
+      "distro": "1.9.0 (pypi, pypi_0)",
+      "einops": "0.8.2 (pypi, pypi_0)",
+      "evo": "1.38.1 (pypi, pypi_0)",
+      "filelock": "4.2.4 (pypi, pypi_0)",
+      "fonttools": "4.68.0 (pypi, pypi_0)",
+      "fsspec": "2026.9.0 (pypi, pypi_0)",
+      "glcontext": "3.1.0 (pypi, pypi_0)",
+      "googleapis-common-protos": "1.76.0 (pypi, pypi_0)",
+      "h11": "0.16.0 (pypi, pypi_0)",
+      "hf-xet": "1.8.0 (pypi, pypi_0)",
+      "httpcore": "1.0.9 (pypi, pypi_0)",
+      "httpx": "0.28.1 (pypi, pypi_0)",
+      "huggingface-hub": "0.36.2 (pypi, pypi_0)",
+      "idna": "3.20 (pypi, pypi_0)",
+      "imageio": "2.38.1 (pypi, pypi_0)",
+      "imageio-ffmpeg": "0.8.1 (pypi, pypi_0)",
+      "jinja2": "3.1.6 (pypi, pypi_0)",
+      "kiwisolver": "1.5.1 (pypi, pypi_0)",
+      "ld-impl-linux-64": "2.44 (pkgs/main, h9e0c5a2_3)",
+      "libexpat": "2.10.0 (pkgs/main, h7354ed3_0)",
+      "libffi": "3.4.8 (pkgs/main, h06d3fd0_3)",
+      "libgcc": "15.2.0 (pkgs/main, h69a1729_8)",
+      "libgcc-ng": "15.2.0 (pkgs/main, h166f726_8)",
+      "libnsl": "2.0.0 (pkgs/main, h5eee18b_0)",
+      "libstdcxx": "15.2.0 (pkgs/main, h39759b7_8)",
+      "libuuid": "1.41.5 (pkgs/main, h5eee18b_0)",
+      "libxcb": "1.17.0 (pkgs/main, h9b100fa_0)",
+      "libzlib": "1.3.2 (pkgs/main, h47b2149_0)",
+      "lz4": "4.4.5 (pypi, pypi_0)",
+      "markdown-it-py": "4.2.0 (pypi, pypi_0)",
+      "markupsafe": "3.0.3 (pypi, pypi_0)",
+      "matplotlib": "3.11.2 (pypi, pypi_0)",
+      "mdurl": "0.1.2 (pypi, pypi_0)",
+      "mmengine": "0.10.7 (pypi, pypi_0)",
+      "moderngl": "5.13.0 (pypi, pypi_0)",
+      "moge": "3.0.0 (pypi, pypi_0)",
+      "moviepy": "1.0.3 (pypi, pypi_0)",
+      "mpmath": "1.3.0 (pypi, pypi_0)",
+      "natsort": "8.4.0 (pypi, pypi_0)",
+      "ncurses": "6.6 (pkgs/main, hfaaeb4e_0)",
+      "networkx": "3.6.1 (pypi, pypi_0)",
+      "numexpr": "2.14.2 (pypi, pypi_0)",
+      "numpy": "2.2.6 (pypi, pypi_0)",
+      "nvidia-cublas-cu12": "12.6.4.1 (pypi, pypi_0)",
+      "nvidia-cuda-cupti-cu12": "12.6.80 (pypi, pypi_0)",
+      "nvidia-cuda-nvrtc-cu12": "12.6.77 (pypi, pypi_0)",
+      "nvidia-cuda-runtime-cu12": "12.6.77 (pypi, pypi_0)",
+      "nvidia-cudnn-cu12": "9.5.1.17 (pypi, pypi_0)",
+      "nvidia-cufft-cu12": "11.3.0.4 (pypi, pypi_0)",
+      "nvidia-cufile-cu12": "1.11.1.6 (pypi, pypi_0)",
+      "nvidia-curand-cu12": "10.3.7.77 (pypi, pypi_0)",
+      "nvidia-cusolver-cu12": "11.7.1.2 (pypi, pypi_0)",
+      "nvidia-cusparse-cu12": "12.5.4.2 (pypi, pypi_0)",
+      "nvidia-cusparselt-cu12": "0.6.3 (pypi, pypi_0)",
+      "nvidia-nccl-cu12": "2.26.2 (pypi, pypi_0)",
+      "nvidia-nvjitlink-cu12": "12.6.85 (pypi, pypi_0)",
+      "nvidia-nvtx-cu12": "12.6.77 (pypi, pypi_0)",
+      "omegaconf": "2.4.0 (pypi, pypi_0)",
+      "opencv-python": "5.0.0.93 (pypi, pypi_0)",
+      "opencv-python-headless": "5.0.0.93 (pypi, pypi_0)",
+      "openssl": "3.5.9 (pkgs/main, h1b28b03_0)",
+      "opentelemetry-api": "1.45.2 (pypi, pypi_0)",
+      "opentelemetry-exporter-http-transport": "0.66b2 (pypi, pypi_0)",
+      "opentelemetry-exporter-otlp-common": "0.66b2 (pypi, pypi_0)",
+      "opentelemetry-exporter-otlp-proto-common": "1.45.2 (pypi, pypi_0)",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.2 (pypi, pypi_0)",
+      "opentelemetry-proto": "1.45.2 (pypi, pypi_0)",
+      "opentelemetry-sdk": "1.45.2 (pypi, pypi_0)",
+      "opentelemetry-semantic-conventions": "0.66b2 (pypi, pypi_0)",
+      "packaging": "26.3 (pkgs/main, py311h06a4308_0)",
+      "pandas": "3.1.1 (pypi, pypi_0)",
+      "pillow": "13.0.0 (pypi, pypi_0)",
+      "pip": "26.2.2 (pkgs/main, pyhc872135_0)",
+      "platformdirs": "4.14.5 (pypi, pypi_0)",
+      "plyfile": "1.1.5 (pypi, pypi_0)",
+      "proglog": "0.1.12 (pypi, pypi_0)",
+      "protobuf": "7.36.2 (pypi, pypi_0)",
+      "pthread-stubs": "0.3 (pkgs/main, h47b2149_2)",
+      "pycolmap": "4.2.1 (pypi, pypi_0)",
+      "pydantic": "2.14.3 (pypi, pypi_0)",
+      "pydantic-core": "2.50.4 (pypi, pypi_0)",
+      "pygments": "2.21.0 (pypi, pypi_0)",
+      "pyparsing": "3.3.3 (pypi, pypi_0)",
+      "python": "3.11.18 (pkgs/main, hd9cb797_0)",
+      "python-dateutil": "4.0.0 (pypi, pypi_0)",
+      "pyyaml": "6.0.3 (pypi, pypi_0)",
+      "readline": "8.3 (pkgs/main, hc2a1206_0)",
+      "regex": "2026.11.9 (pypi, pypi_0)",
+      "requests": "2.34.2 (pypi, pypi_0)",
+      "rich": "15.0.0 (pypi, pypi_0)",
+      "rosbags": "0.11.9 (pypi, pypi_0)",
+      "ruamel-yaml": "0.19.1 (pypi, pypi_0)",
+      "safetensors": "0.8.0 (pypi, pypi_0)",
+      "scipy": "1.17.1 (pypi, pypi_0)",
+      "seaborn": "0.13.2 (pypi, pypi_0)",
+      "setuptools": "84.2.1 (pkgs/main, py311h06a4308_0)",
+      "sniffio": "1.3.1 (pypi, pypi_0)",
+      "sqlite": "3.53.4 (pkgs/main, h795bf6d_0)",
+      "sympy": "1.14.0 (pypi, pypi_0)",
+      "termcolor": "3.3.0 (pypi, pypi_0)",
+      "timm": "1.0.31 (pypi, pypi_0)",
+      "tk": "8.6.15 (pkgs/main, h54e0aa7_0)",
+      "tokenizers": "0.22.2 (pypi, pypi_0)",
+      "torch": "2.7.1+cu126 (pypi, pypi_0)",
+      "torchvision": "0.22.1+cu126 (pypi, pypi_0)",
+      "tqdm": "4.70.1 (pypi, pypi_0)",
+      "transformers": "4.57.1 (pypi, pypi_0)",
+      "trimesh": "5.2.0 (pypi, pypi_0)",
+      "triton": "3.3.1 (pypi, pypi_0)",
+      "typing-extensions": "4.16.0 (pypi, pypi_0)",
+      "typing-inspection": "0.4.5 (pypi, pypi_0)",
+      "tzdata": "2026.6 (pypi, pypi_0)",
+      "unidepth": "0.1 (pypi, pypi_0)",
+      "urllib3": "2.8.0 (pypi, pypi_0)",
+      "utils3d-moge": "1.7 (pypi, pypi_0)",
+      "wandb": "0.31.0 (pypi, pypi_0)",
+      "wheel": "0.48.0 (pkgs/main, py311h06a4308_0)",
+      "xformers": "0.0.31.post1 (pypi, pypi_0)",
+      "xorg-libx11": "1.8.14 (pkgs/main, h65de747_0)",
+      "xorg-libxau": "1.0.12 (pkgs/main, h9b100fa_0)",
+      "xorg-libxdmcp": "1.1.5 (pkgs/main, h9b100fa_0)",
+      "xorg-xorgproto": "2025.1 (pkgs/main, h47b2149_0)",
+      "xxhash": "4.1.0 (pypi, pypi_0)",
+      "xz": "5.8.4 (pkgs/main, h140a991_0)",
+      "yapf": "0.43.0 (pypi, pypi_0)",
+      "zlib": "1.3.2 (pkgs/main, h47b2149_0)"
+     }
+    },
+    "sam3": {
+     "python": "3.12.16",
+     "executable": "/home/student/miniconda3/envs/sam3/bin/python",
+     "kind": "conda",
+     "packages": {
+      "-libgcc-mutex": "0.1 (pkgs/main, main)",
+      "-openmp-mutex": "5.1 (pkgs/main, 52_gnu)",
+      "accelerate": "1.15.0 (pypi, pypi_0)",
+      "annotated-doc": "0.0.5 (pypi, pypi_0)",
+      "annotated-types": "0.8.0 (pypi, pypi_0)",
+      "anyio": "4.16.0 (pypi, pypi_0)",
+      "bzip2": "1.0.8 (pkgs/main, h5eee18b_6)",
+      "ca-certificates": "2026.10.20 (pkgs/main, h59cdc77_1)",
+      "certifi": "2026.10.23 (pypi, pypi_0)",
+      "cffi": "2.1.1 (pypi, pypi_0)",
+      "charset-normalizer": "3.5.2 (pypi, pypi_0)",
+      "click": "8.5.1 (pypi, pypi_0)",
+      "cryptography": "50.0.2 (pypi, pypi_0)",
+      "cuda-bindings": "12.9.4 (pypi, pypi_0)",
+      "cuda-pathfinder": "1.6.0 (pypi, pypi_0)",
+      "dnspython": "2.9.2 (pypi, pypi_0)",
+      "email-validator": "2.3.0 (pypi, pypi_0)",
+      "filelock": "4.2.4 (pypi, pypi_0)",
+      "fsspec": "2026.9.0 (pypi, pypi_0)",
+      "h11": "0.16.0 (pypi, pypi_0)",
+      "hf-xet": "1.8.0 (pypi, pypi_0)",
+      "httpcore2": "2.16.0 (pypi, pypi_0)",
+      "httpx2": "2.16.0 (pypi, pypi_0)",
+      "huggingface-hub": "2.4.0 (pypi, pypi_0)",
+      "id": "1.6.1 (pypi, pypi_0)",
+      "idna": "3.20 (pypi, pypi_0)",
+      "jinja2": "3.1.6 (pypi, pypi_0)",
+      "kernels": "0.17.2 (pypi, pypi_0)",
+      "ld-impl-linux-64": "2.44 (pkgs/main, h9e0c5a2_3)",
+      "libexpat": "2.10.0 (pkgs/main, h7354ed3_0)",
+      "libffi": "3.4.8 (pkgs/main, h06d3fd0_3)",
+      "libgcc": "15.2.0 (pkgs/main, h69a1729_8)",
+      "libgcc-ng": "15.2.0 (pkgs/main, h166f726_8)",
+      "libstdcxx": "15.2.0 (pkgs/main, h39759b7_8)",
+      "libuuid": "1.41.5 (pkgs/main, h5eee18b_0)",
+      "libxcb": "1.17.0 (pkgs/main, h9b100fa_0)",
+      "libzlib": "1.3.2 (pkgs/main, h47b2149_0)",
+      "markdown-it-py": "4.2.0 (pypi, pypi_0)",
+      "markupsafe": "3.0.3 (pypi, pypi_0)",
+      "mdurl": "0.1.2 (pypi, pypi_0)",
+      "mpmath": "1.3.0 (pypi, pypi_0)",
+      "ncurses": "6.6 (pkgs/main, hfaaeb4e_0)",
+      "networkx": "3.7 (pypi, pypi_0)",
+      "numpy": "2.2.6 (pypi, pypi_0)",
+      "nvidia-cublas-cu12": "12.6.4.1 (pypi, pypi_0)",
+      "nvidia-cuda-cupti-cu12": "12.6.80 (pypi, pypi_0)",
+      "nvidia-cuda-nvrtc-cu12": "12.6.77 (pypi, pypi_0)",
+      "nvidia-cuda-runtime-cu12": "12.6.77 (pypi, pypi_0)",
+      "nvidia-cudnn-cu12": "9.10.2.21 (pypi, pypi_0)",
+      "nvidia-cufft-cu12": "11.3.0.4 (pypi, pypi_0)",
+      "nvidia-cufile-cu12": "1.11.1.6 (pypi, pypi_0)",
+      "nvidia-curand-cu12": "10.3.7.77 (pypi, pypi_0)",
+      "nvidia-cusolver-cu12": "11.7.1.2 (pypi, pypi_0)",
+      "nvidia-cusparse-cu12": "12.5.4.2 (pypi, pypi_0)",
+      "nvidia-cusparselt-cu12": "0.7.1 (pypi, pypi_0)",
+      "nvidia-nccl-cu12": "2.27.5 (pypi, pypi_0)",
+      "nvidia-nvjitlink-cu12": "12.6.85 (pypi, pypi_0)",
+      "nvidia-nvshmem-cu12": "3.4.5 (pypi, pypi_0)",
+      "nvidia-nvtx-cu12": "12.6.77 (pypi, pypi_0)",
+      "opencv-python-headless": "5.0.0.93 (pypi, pypi_0)",
+      "openssl": "3.5.9 (pkgs/main, h1b28b03_0)",
+      "packaging": "26.3 (pkgs/main, py312h06a4308_0)",
+      "pillow": "12.3.0 (pypi, pypi_0)",
+      "pip": "26.2.2 (pkgs/main, pyhc872135_0)",
+      "platformdirs": "4.14.5 (pypi, pypi_0)",
+      "psutil": "7.2.2 (pypi, pypi_0)",
+      "pthread-stubs": "0.3 (pkgs/main, h47b2149_2)",
+      "pycparser": "3.12 (pypi, pypi_0)",
+      "pydantic": "2.14.3 (pypi, pypi_0)",
+      "pydantic-core": "2.50.4 (pypi, pypi_0)",
+      "pygments": "2.21.0 (pypi, pypi_0)",
+      "pyjwt": "2.15.1 (pypi, pypi_0)",
+      "python": "3.12.16 (pkgs/main, hcd0331c_0)",
+      "pyyaml": "6.0.3 (pypi, pypi_0)",
+      "readline": "8.3 (pkgs/main, hc2a1206_0)",
+      "regex": "2026.11.9 (pypi, pypi_0)",
+      "requests": "2.34.2 (pypi, pypi_0)",
+      "rfc3161-client": "1.0.9 (pypi, pypi_0)",
+      "rfc8785": "0.1.4 (pypi, pypi_0)",
+      "rich": "15.0.0 (pypi, pypi_0)",
+      "safetensors": "0.8.0 (pypi, pypi_0)",
+      "securesystemslib": "1.6.0 (pypi, pypi_0)",
+      "setuptools": "84.2.1 (pkgs/main, py312h06a4308_0)",
+      "shellingham": "1.5.4 (pypi, pypi_0)",
+      "sigstore": "4.5.1 (pypi, pypi_0)",
+      "sigstore-models": "0.0.6 (pypi, pypi_0)",
+      "sigstore-rekor-types": "0.0.18 (pypi, pypi_0)",
+      "sqlite": "3.53.4 (pkgs/main, h795bf6d_0)",
+      "sympy": "1.14.0 (pypi, pypi_0)",
+      "tk": "8.6.15 (pkgs/main, h54e0aa7_0)",
+      "tokenizers": "0.23.3 (pypi, pypi_0)",
+      "tomlkit": "0.15.2 (pypi, pypi_0)",
+      "torch": "2.10.0+cu126 (pypi, pypi_0)",
+      "torchvision": "0.25.0+cu126 (pypi, pypi_0)",
+      "tqdm": "4.70.1 (pypi, pypi_0)",
+      "transformers": "5.20.2 (pypi, pypi_0)",
+      "triton": "3.6.0 (pypi, pypi_0)",
+      "truststore": "0.10.5 (pypi, pypi_0)",
+      "tuf": "7.0.1 (pypi, pypi_0)",
+      "typer": "0.28.0 (pypi, pypi_0)",
+      "typing-extensions": "4.16.0 (pypi, pypi_0)",
+      "typing-inspection": "0.4.5 (pypi, pypi_0)",
+      "tzdata": "2026c (pkgs/main, he532380_0)",
+      "urllib3": "2.8.0 (pypi, pypi_0)",
+      "wheel": "0.48.0 (pkgs/main, py312h06a4308_0)",
+      "xorg-libx11": "1.8.14 (pkgs/main, h65de747_0)",
+      "xorg-libxau": "1.0.12 (pkgs/main, h9b100fa_0)",
+      "xorg-libxdmcp": "1.1.5 (pkgs/main, h9b100fa_0)",
+      "xorg-xorgproto": "2025.1 (pkgs/main, h47b2149_0)",
+      "xz": "5.8.4 (pkgs/main, h140a991_0)",
+      "zlib": "1.3.2 (pkgs/main, h47b2149_0)"
+     }
+    },
+    "venv": {
+     "python": "3.14.7",
+     "executable": "/home/student/yuanliu-hawaii/.venv-headcam/bin/python",
+     "kind": "venv",
+     "packages": {
+      "contourpy": "1.4.0",
+      "cycler": "0.12.1",
+      "fonttools": "4.68.0",
+      "kiwisolver": "1.5.1",
+      "matplotlib": "3.11.2",
+      "numpy": "2.5.4",
+      "opencv-contrib-python": "5.0.0.93",
+      "packaging": "26.3",
+      "pillow": "13.0.0",
+      "pip": "26.2.1",
+      "pupil-apriltags": "1.0.4.post11",
+      "pyparsing": "3.3.3",
+      "python-dateutil": "4.0.0",
+      "pyyaml": "6.0.3",
+      "scipy": "1.18.1",
+      "tzdata": "2026.6"
+     }
+    }
+   },
+   "record": {
+    "nodes": [
+     {
+      "id": "preprocess",
+      "variant": "main",
+      "tag": null,
+      "step": "preprocess",
+      "impl": "undistort_crop_resample",
+      "env": "venv",
+      "key": "d32624cc45b13af7",
+      "cache_dir": "/home/student/yuanliu-hawaii/work/cache/preprocess/d32624cc45b13af7",
+      "segments_cached": 0,
+      "segments_computed": 27,
+      "start": "2026-11-16T18:18:14-10:00",
+      "gpu_free_mb_at_start": null,
+      "status": "computed",
+      "end": "2026-11-16T18:19:49-10:00",
+      "runtime_s": 95.36001968383789,
+      "results": [
+       {
+        "ep01": "ep01: frames 2234-2900 (667), in-episode 367, tile poses 664 (>=2 tiles 474), ball 561, full 612; ep01: 292/667 frames kept (60.0 -> 26.27 fps)",
+        "ep08": "ep08: frames 11769-12485 (717), in-episode 417, tile poses 717 (>=2 tiles 574), ball 562, full 609; ep08: 316/717 frames kept (59.5 -> 26.27 fps)",
+        "ep04": "ep04: frames 6087-6833 (747), in-episode 447, tile poses 722 (>=2 tiles 613), ball 579, full 607; ep04: 329/747 frames kept (59.7 -> 26.27 fps)",
+        "ep02": "ep02: frames 3447-4202 (756), in-episode 456, tile poses 756 (>=2 tiles 585), ball 649, full 738; ep02: 331/756 frames kept (60.0 -> 26.27 fps)",
+        "ep03": "ep03: frames 4725-5489 (765), in-episode 464, tile poses 764 (>=2 tiles 608), ball 715, full 737; ep03: 335/765 frames kept (60.0 -> 26.27 fps)",
+        "ep00": "ep00: frames 1237-1974 (738), in-episode 438, tile poses 738 (>=2 tiles 722), ball 737, full 737; ep00: 323/738 frames kept (60.0 -> 26.27 fps)",
+        "ep07": "ep07: frames 10383-11216 (834), in-episode 534, tile poses 834 (>=2 tiles 721), ball 802, full 827; ep07: 365/834 frames kept (60.0 -> 26.27 fps)",
+        "ep05": "ep05: frames 7549-8399 (851), in-episode 551, tile poses 644 (>=2 tiles 364), ball 814, full 838; ep05: 372/851 frames kept (60.0 -> 26.27 fps)",
+        "ep12": "ep12: frames 16888-17608 (721), in-episode 421, tile poses 571 (>=2 tiles 389), ball 680, full 705; ep12: 317/721 frames kept (59.7 -> 26.27 fps)",
+        "ep09": "ep09: frames 12897-13697 (801), in-episode 501, tile poses 801 (>=2 tiles 659), ball 710, full 755; ep09: 351/801 frames kept (60.0 -> 26.27 fps)",
+        "ep15": "ep15: frames 21066-21755 (690), in-episode 394, tile poses 690 (>=2 tiles 551), ball 581, full 593; ep15: 304/690 frames kept (59.7 -> 26.27 fps)",
+        "ep13": "ep13: frames 18262-19014 (753), in-episode 455, tile poses 753 (>=2 tiles 501), ball 749, full 752; ep13: 330/753 frames kept (59.9 -> 26.27 fps)",
+        "ep14": "ep14: frames 19667-20428 (762), in-episode 462, tile poses 762 (>=2 tiles 475), ball 617, full 687; ep14: 334/762 frames kept (60.0 -> 26.27 fps)",
+        "ep10": "ep10: frames 14285-15107 (823), in-episode 522, tile poses 740 (>=2 tiles 473), ball 676, full 711; ep10: 360/823 frames kept (60.0 -> 26.27 fps)",
+        "ep11": "ep11: frames 15562-16429 (868), in-episode 568, tile poses 585 (>=2 tiles 176), ball 819, full 863; ep11: 380/868 frames kept (60.0 -> 26.27 fps)",
+        "ep16": "ep16: frames 22113-22879 (767), in-episode 467, tile poses 767 (>=2 tiles 596), ball 470, full 475; ep16: 336/767 frames kept (60.0 -> 26.27 fps)",
+        "ep21": "ep21: frames 29242-29954 (713), in-episode 413, tile poses 570 (>=2 tiles 216), ball 666, full 666; ep21: 314/713 frames kept (59.0 -> 26.27 fps)",
+        "ep19": "ep19: frames 25880-26642 (763), in-episode 463, tile poses 763 (>=2 tiles 648), ball 555, full 605; ep19: 334/763 frames kept (60.0 -> 26.27 fps)",
+        "ep24": "ep24: frames 33538-34237 (700), in-episode 400, tile poses 700 (>=2 tiles 530), ball 655, full 659; ep24: 308/700 frames kept (59.7 -> 26.27 fps)",
+        "ep22": "ep22: frames 30470-31161 (692), in-episode 392, tile poses 692 (>=2 tiles 604), ball 666, full 683; ep22: 303/692 frames kept (60.0 -> 26.27 fps)",
+        "ep26": "ep26: frames 37263-38048 (786), in-episode 486, tile poses 786 (>=2 tiles 727), ball 786, full 786; ep26: 345/786 frames kept (59.9 -> 26.27 fps)",
+        "ep27": "ep27: frames 38438-39160 (723), in-episode 423, tile poses 723 (>=2 tiles 585), ball 720, full 720; ep27: 318/723 frames kept (59.7 -> 26.27 fps)",
+        "ep18": "ep18: frames 24504-25422 (919), in-episode 619, tile poses 919 (>=2 tiles 518), ball 535, full 600; ep18: 403/919 frames kept (59.6 -> 26.27 fps)",
+        "ep25": "ep25: frames 35337-36284 (948), in-episode 648, tile poses 639 (>=2 tiles 269), ball 800, full 890; ep25: 415/948 frames kept (60.0 -> 26.27 fps)",
+        "ep29": "ep29: frames 40669-41390 (722), in-episode 422, tile poses 722 (>=2 tiles 589), ball 510, full 510; ep29: 316/722 frames kept (60.0 -> 26.27 fps)",
+        "ep30": "ep30: frames 41930-42674 (745), in-episode 445, tile poses 745 (>=2 tiles 630), ball 693, full 693; ep30: 326/745 frames kept (60.0 -> 26.27 fps)",
+        "ep31": "ep31: frames 43243-43986 (744), in-episode 444, tile poses 670 (>=2 tiles 231), ball 434, full 435; ep31: 326/744 frames kept (60.0 -> 26.27 fps)"
+       }
+      ]
+     },
+     {
+      "id": "tiles",
+      "variant": "main",
+      "tag": null,
+      "step": "tiles",
+      "impl": "apriltag_36h11",
+      "env": "venv",
+      "key": "3e796db7b8d8ec95",
+      "cache_dir": "/home/student/yuanliu-hawaii/work/cache/tiles/3e796db7b8d8ec95",
+      "segments_cached": 0,
+      "segments_computed": 27,
+      "start": "2026-11-16T18:19:49-10:00",
+      "gpu_free_mb_at_start": null,
+      "status": "computed",
+      "end": "2026-11-16T18:21:21-10:00",
+      "runtime_s": 91.9004762172699,
+      "results": [
+       {
+        "ep00": "ep00: 1903 tile detections in 737 frames",
+        "ep08": "ep08: 2025 tile detections in 717 frames",
+        "ep01": "ep01: 1196 tile detections in 666 frames",
+        "ep02": "ep02: 2000 tile detections in 755 frames",
+        "ep07": "ep07: 2403 tile detections in 833 frames",
+        "ep04": "ep04: 1465 tile detections in 746 frames",
+        "ep03": "ep03: 1953 tile detections in 764 frames",
+        "ep05": "ep05: 1384 tile detections in 849 frames",
+        "ep09": "ep09: 2052 tile detections in 801 frames",
+        "ep10": "ep10: 1244 tile detections in 821 frames",
+        "ep15": "ep15: 1729 tile detections in 689 frames",
+        "ep12": "ep12: 1047 tile detections in 719 frames",
+        "ep13": "ep13: 1276 tile detections in 751 frames",
+        "ep14": "ep14: 1310 tile detections in 762 frames",
+        "ep11": "ep11: 1015 tile detections in 867 frames",
+        "ep16": "ep16: 1454 tile detections in 766 frames",
+        "ep19": "ep19: 2003 tile detections in 762 frames",
+        "ep21": "ep21: 889 tile detections in 711 frames",
+        "ep24": "ep24: 1510 tile detections in 698 frames",
+        "ep18": "ep18: 1632 tile detections in 917 frames",
+        "ep22": "ep22: 1665 tile detections in 691 frames",
+        "ep26": "ep26: 1880 tile detections in 785 frames",
+        "ep27": "ep27: 1484 tile detections in 721 frames",
+        "ep25": "ep25: 1221 tile detections in 947 frames",
+        "ep29": "ep29: 1725 tile detections in 721 frames",
+        "ep30": "ep30: 1427 tile detections in 744 frames",
+        "ep31": "ep31: 976 tile detections in 744 frames"
+       }
+      ]
+     },
+     {
+      "id": "masks.motion",
+      "variant": "main",
+      "tag": null,
+      "step": "masks",
+      "impl": "sam3_v2_head",
+      "env": "sam3",
+      "key": "30562e9f4e97519d",
+      "cache_dir": "/home/student/yuanliu-hawaii/work/cache/masks/30562e9f4e97519d",
+      "segments_cached": 0,
+      "segments_computed": 27,
+      "start": "2026-11-16T18:21:21-10:00",
+      "gpu_free_mb_at_start": 19959,
+      "status": "computed",
+      "end": "2026-11-16T20:11:40-10:00",
+      "runtime_s": 6615.945648908615,
+      "results": [
+       {
+        "ep00": {
+         "frac_mean": {
+          "rig": 0.07366085353033593,
+          "hand_track": 0.041760545906304396,
+          "held": 0.0018382232606318253,
+          "hand": 0.00936034321426921,
+          "arm": 0.0074343176243396045,
+          "cable": 0.0017277017101027371
+         },
+         "masked_frac_mean": 0.09159322630269705,
+         "held_frames": 78,
+         "runtime_s": {
+          "text": 105.0,
+          "total": 179.7
+         }
+        },
+        "ep01": {
+         "frac_mean": {
+          "rig": 0.06159227540593267,
+          "hand_track": 0.01831148197369318,
+          "held": 0.0007819687947250052,
+          "hand": 0.007918808408726911,
+          "arm": 0.0018431427515675047,
+          "cable": 0.0003449615684420364
+         },
+         "masked_frac_mean": 0.07893623305774211,
+         "held_frames": 110,
+         "runtime_s": {
+          "text": 133.3,
+          "total": 202.6
+         }
+        },
+        "ep02": {
+         "frac_mean": {
+          "rig": 0.06455239733169499,
+          "hand_track": 0.04319847726060032,
+          "held": 0.0033479987242789073,
+          "hand": 0.000525307281567991,
+          "arm": 0.0004152199726443312,
+          "cable": 0.003813993899460402
+         },
+         "masked_frac_mean": 0.09293397415302641,
+         "held_frames": 104,
+         "runtime_s": {
+          "text": 157.9,
+          "total": 239.6
+         }
+        },
+        "ep03": {
+         "frac_mean": {
+          "rig": 0.05746518689203237,
+          "hand_track": 0.03023896956449098,
+          "held": 0.0010480712111086358,
+          "hand": 0.002780129204722655,
+          "arm": 0.002344956653300661,
+          "cable": 0.0008643350412118511
+         },
+         "masked_frac_mean": 0.07415392139117843,
+         "held_frames": 146,
+         "runtime_s": {
+          "text": 155.6,
+          "total": 233.7
+         }
+        },
+        "ep04": {
+         "frac_mean": {
+          "rig": 0.045239607433954845,
+          "hand_track": 0.019285252357135296,
+          "held": 0.002286280650319829,
+          "hand": 0.011753223339986994,
+          "arm": 0.010187332713333032,
+          "cable": 0.00383726787793555
+         },
+         "masked_frac_mean": 0.07104248301615025,
+         "held_frames": 133,
+         "runtime_s": {
+          "text": 195.0,
+          "total": 292.9
+         }
+        },
+        "ep05": {
+         "frac_mean": {
+          "rig": 0.04849223932421227,
+          "hand_track": 0.036219691194564814,
+          "held": 3.565004279676884e-05,
+          "hand": 0.003162724056130637,
+          "arm": 0.0034928683196918634,
+          "cable": 0.0024511180655860483
+         },
+         "masked_frac_mean": 0.07104040554117852,
+         "held_frames": 18,
+         "runtime_s": {
+          "text": 219.8,
+          "total": 320.2
+         }
+        },
+        "ep07": {
+         "frac_mean": {
+          "rig": 0.04384171820691066,
+          "hand_track": 0.058795220174810876,
+          "held": 0.0037782938901383496,
+          "hand": 0.0016507413702037757,
+          "arm": 0.0018307914622095005,
+          "cable": 0.004292801829891638
+         },
+         "masked_frac_mean": 0.0937135810672664,
+         "held_frames": 135,
+         "runtime_s": {
+          "text": 167.3,
+          "total": 267.3
+         }
+        },
+        "ep08": {
+         "frac_mean": {
+          "rig": 0.04737725410723282,
+          "hand_track": 0.024359099724872473,
+          "held": 0.0032325639405819014,
+          "hand": 0.00023258165265444927,
+          "arm": 0.0001595070533408905,
+          "cable": 0.003795721747276277
+         },
+         "masked_frac_mean": 0.057733816577712704,
+         "held_frames": 94,
+         "runtime_s": {
+          "text": 156.1,
+          "total": 230.6
+         }
+        },
+        "ep09": {
+         "frac_mean": {
+          "rig": 0.050108554007030376,
+          "hand_track": 0.045406946304800785,
+          "held": 0.0019052540449462094,
+          "hand": 0.0006619491130529688,
+          "arm": 0.0005492868191095804,
+          "cable": 0.0012531105600912813
+         },
+         "masked_frac_mean": 0.07328802922708395,
+         "held_frames": 100,
+         "runtime_s": {
+          "text": 168.2,
+          "total": 255.4
+         }
+        },
+        "ep10": {
+         "frac_mean": {
+          "rig": 0.05495574968041736,
+          "hand_track": 0.029981283901672196,
+          "held": 0.0013094358934494196,
+          "hand": 0.0012840096393034828,
+          "arm": 0.01424598470322001,
+          "cable": 0.0039976387593283575
+         },
+         "masked_frac_mean": 0.08417670220943892,
+         "held_frames": 86,
+         "runtime_s": {
+          "text": 162.8,
+          "total": 252.0
+         }
+        },
+        "ep11": {
+         "frac_mean": {
+          "rig": 0.050847044587915675,
+          "hand_track": 0.06217513890252685,
+          "held": 0.005732946083726105,
+          "hand": 0.0009696327163524484,
+          "arm": 0.0008055886275857555,
+          "cable": 0.001615462981146897
+         },
+         "masked_frac_mean": 0.09399941084053418,
+         "held_frames": 113,
+         "runtime_s": {
+          "text": 188.4,
+          "total": 290.3
+         }
+        },
+        "ep12": {
+         "frac_mean": {
+          "rig": 0.06099214838661581,
+          "hand_track": 0.018144000031388795,
+          "held": 0.0013879917741732976,
+          "hand": 0.0014041153165560212,
+          "arm": 0.011552009275389614,
+          "cable": 0.0017995038117770768
+         },
+         "masked_frac_mean": 0.07731413295313652,
+         "held_frames": 107,
+         "runtime_s": {
+          "text": 139.2,
+          "total": 212.6
+         }
+        },
+        "ep13": {
+         "frac_mean": {
+          "rig": 0.05452802276496306,
+          "hand_track": 0.035778111101688534,
+          "held": 0.006461330892884064,
+          "hand": 0.0010284632707673752,
+          "arm": 0.0002467185851047791,
+          "cable": 0.003720259969093924
+         },
+         "masked_frac_mean": 0.07050195283054425,
+         "held_frames": 121,
+         "runtime_s": {
+          "text": 152.5,
+          "total": 229.1
+         }
+        },
+        "ep14": {
+         "frac_mean": {
+          "rig": 0.062461009650475165,
+          "hand_track": 0.036690884788259305,
+          "held": 0.001843997406306789,
+          "hand": 0.002850583813715852,
+          "arm": 0.0030125674490571095,
+          "cable": 0.0017687921731164536
+         },
+         "masked_frac_mean": 0.06826983858774988,
+         "held_frames": 47,
+         "runtime_s": {
+          "text": 139.4,
+          "total": 218.0
+         }
+        },
+        "ep15": {
+         "frac_mean": {
+          "rig": 0.060634155752896705,
+          "hand_track": 0.01774466355516824,
+          "held": 0.00025149872553351663,
+          "hand": 0.0011791819582187746,
+          "arm": 0.006531909224437026,
+          "cable": 0.0008639663013059703
+         },
+         "masked_frac_mean": 0.06896872289457319,
+         "held_frames": 46,
+         "runtime_s": {
+          "text": 123.1,
+          "total": 194.5
+         }
+        },
+        "ep16": {
+         "frac_mean": {
+          "rig": 0.046288264314587775,
+          "hand_track": 0.03310205621816512,
+          "held": 0.0010385549003494431,
+          "hand": 0.0011321855195747454,
+          "arm": 0.012856800447168918,
+          "cable": 0.003038686080386757
+         },
+         "masked_frac_mean": 0.06149866483245973,
+         "held_frames": 136,
+         "runtime_s": {
+          "text": 145.0,
+          "total": 222.3
+         }
+        },
+        "ep18": {
+         "frac_mean": {
+          "rig": 0.046940969778897085,
+          "hand_track": 0.04265219633069146,
+          "held": 0.005551525676518154,
+          "hand": 0.023551047106280015,
+          "arm": 0.06216257519011642,
+          "cable": 0.004937862062207573
+         },
+         "masked_frac_mean": 0.12079396364949446,
+         "held_frames": 120,
+         "runtime_s": {
+          "text": 186.8,
+          "total": 311.9
+         }
+        },
+        "ep19": {
+         "frac_mean": {
+          "rig": 0.052892727837235975,
+          "hand_track": 0.046470340568862276,
+          "held": 0.0012965905874817532,
+          "hand": 0.0023008262858611136,
+          "arm": 0.0021424327185181878,
+          "cable": 0.00672839838047785
+         },
+         "masked_frac_mean": 0.08461192121354306,
+         "held_frames": 92,
+         "runtime_s": {
+          "text": 148.8,
+          "total": 235.5
+         }
+        },
+        "ep21": {
+         "frac_mean": {
+          "rig": 0.04355133295504959,
+          "hand_track": 0.040716921958677946,
+          "held": 0.0003964923590645499,
+          "hand": 0.0007624967321038121,
+          "arm": 0.0006826189514212377,
+          "cable": 0.003687542334109706
+         },
+         "masked_frac_mean": 0.0674747468370726,
+         "held_frames": 84,
+         "runtime_s": {
+          "text": 161.6,
+          "total": 241.8
+         }
+        },
+        "ep22": {
+         "frac_mean": {
+          "rig": 0.03911460000944124,
+          "hand_track": 0.033142096858939624,
+          "held": 0.005770805625338654,
+          "hand": 0.0011739274440503752,
+          "arm": 0.001147656160205573,
+          "cable": 0.007125688081867887
+         },
+         "masked_frac_mean": 0.06358077855360163,
+         "held_frames": 90,
+         "runtime_s": {
+          "text": 149.5,
+          "total": 223.7
+         }
+        },
+        "ep24": {
+         "frac_mean": {
+          "rig": 0.056619575620275246,
+          "hand_track": 0.034200238408202494,
+          "held": 0.003762355783985915,
+          "hand": 0.006301525550009692,
+          "arm": 0.006071307423919364,
+          "cable": 0.003095009681705111
+         },
+         "masked_frac_mean": 0.0769828439983524,
+         "held_frames": 94,
+         "runtime_s": {
+          "text": 161.5,
+          "total": 234.3
+         }
+        },
+        "ep25": {
+         "frac_mean": {
+          "rig": 0.04395722348348618,
+          "hand_track": 0.04050026130641971,
+          "held": 0.005472102964095188,
+          "hand": 0.0005226362539711083,
+          "arm": 0.056706288774500985,
+          "cable": 0.0020174119987412336
+         },
+         "masked_frac_mean": 0.10738298810915303,
+         "held_frames": 93,
+         "runtime_s": {
+          "text": 160.5,
+          "total": 274.4
+         }
+        },
+        "ep26": {
+         "frac_mean": {
+          "rig": 0.05442156856117961,
+          "hand_track": 0.043439820823419135,
+          "held": 0.00173870232172471,
+          "hand": 0.0014023293856802942,
+          "arm": 0.020997807610498232,
+          "cable": 0.0041111415296704885
+         },
+         "masked_frac_mean": 0.08237714845158267,
+         "held_frames": 96,
+         "runtime_s": {
+          "text": 174.1,
+          "total": 269.4
+         }
+        },
+        "ep27": {
+         "frac_mean": {
+          "rig": 0.04662946446032417,
+          "hand_track": 0.040044037135470445,
+          "held": 0.003564051304014519,
+          "hand": 0.0008550567230670546,
+          "arm": 0.0008884185597171377,
+          "cable": 0.003288227934619356
+         },
+         "masked_frac_mean": 0.07159790547068119,
+         "held_frames": 113,
+         "runtime_s": {
+          "text": 158.1,
+          "total": 234.5
+         }
+        },
+        "ep29": {
+         "frac_mean": {
+          "rig": 0.04968732656928962,
+          "hand_track": 0.019379731829381575,
+          "held": 0.002783974953161408,
+          "hand": 0.0032795193829113925,
+          "arm": 0.002303067583364821,
+          "cable": 0.0031910020703444794
+         },
+         "masked_frac_mean": 0.0667474718476447,
+         "held_frames": 78,
+         "runtime_s": {
+          "text": 144.3,
+          "total": 220.1
+         }
+        },
+        "ep30": {
+         "frac_mean": {
+          "rig": 0.049029148496398375,
+          "hand_track": 0.02029931940184049,
+          "held": 0.001028432416140158,
+          "hand": 0.0019117530636693831,
+          "arm": 0.0017339133511888411,
+          "cable": 0.0031260909314623207
+         },
+         "masked_frac_mean": 0.06089483444548729,
+         "held_frames": 122,
+         "runtime_s": {
+          "text": 167.3,
+          "total": 245.8
+         }
+        },
+        "ep31": {
+         "frac_mean": {
+          "rig": 0.05208793551414705,
+          "hand_track": 0.019520841440802125,
+          "held": 0.0007745076858804139,
+          "hand": 7.952473064127217e-05,
+          "arm": 0.0070382009622134735,
+          "cable": 0.0037674095969538806
+         },
+         "masked_frac_mean": 0.06291369551780973,
+         "held_frames": 18,
+         "runtime_s": {
+          "text": 160.3,
+          "total": 239.9
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "slam.E1",
+      "variant": "main",
+      "tag": null,
+      "step": "slam",
+      "impl": "droid",
+      "env": "droid",
+      "key": "0e555269486667c7",
+      "cache_dir": "/home/student/yuanliu-hawaii/work/cache/slam/0e555269486667c7",
+      "segments_cached": 0,
+      "segments_computed": 27,
+      "start": "2026-11-16T20:11:40-10:00",
+      "gpu_free_mb_at_start": 19947,
+      "status": "computed",
+      "end": "2026-11-16T20:28:01-10:00",
+      "runtime_s": 967.6820232868195,
+      "results": [
+       {
+        "ep00": {
+         "n_frames": 323,
+         "n_tracked": 323,
+         "n_keyframes": 10,
+         "runtime_s": 18.364143133163452,
+         "peak_gpu_gb": 16.354987144470215,
+         "peak_reserved_gb": 18.732421875,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep01": {
+         "n_frames": 292,
+         "n_tracked": 292,
+         "n_keyframes": 14,
+         "runtime_s": 33.449511766433716,
+         "peak_gpu_gb": 16.656385898590088,
+         "peak_reserved_gb": 18.84375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep02": {
+         "n_frames": 331,
+         "n_tracked": 331,
+         "n_keyframes": 14,
+         "runtime_s": 47.17465043067932,
+         "peak_gpu_gb": 17.016671180725098,
+         "peak_reserved_gb": 18.80859375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep03": {
+         "n_frames": 335,
+         "n_tracked": 335,
+         "n_keyframes": 13,
+         "runtime_s": 30.62938690185547,
+         "peak_gpu_gb": 17.051296710968018,
+         "peak_reserved_gb": 18.828125,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep04": {
+         "n_frames": 329,
+         "n_tracked": 329,
+         "n_keyframes": 15,
+         "runtime_s": 34.72001934051514,
+         "peak_gpu_gb": 16.995885372161865,
+         "peak_reserved_gb": 18.80859375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep05": {
+         "n_frames": 372,
+         "n_tracked": 372,
+         "n_keyframes": 16,
+         "runtime_s": 34.56475591659546,
+         "peak_gpu_gb": 17.384326934814453,
+         "peak_reserved_gb": 18.732421875,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep07": {
+         "n_frames": 365,
+         "n_tracked": 365,
+         "n_keyframes": 15,
+         "runtime_s": 44.18652319908142,
+         "peak_gpu_gb": 17.33529758453369,
+         "peak_reserved_gb": 18.771484375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep08": {
+         "n_frames": 316,
+         "n_tracked": 316,
+         "n_keyframes": 12,
+         "runtime_s": 31.467815399169922,
+         "peak_gpu_gb": 16.87131690979004,
+         "peak_reserved_gb": 18.80859375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep09": {
+         "n_frames": 351,
+         "n_tracked": 351,
+         "n_keyframes": 13,
+         "runtime_s": 34.148329734802246,
+         "peak_gpu_gb": 17.193385124206543,
+         "peak_reserved_gb": 18.828125,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep10": {
+         "n_frames": 360,
+         "n_tracked": 360,
+         "n_keyframes": 17,
+         "runtime_s": 45.70224452018738,
+         "peak_gpu_gb": 17.289802074432373,
+         "peak_reserved_gb": 18.828125,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep11": {
+         "n_frames": 380,
+         "n_tracked": 380,
+         "n_keyframes": 19,
+         "runtime_s": 42.04923057556152,
+         "peak_gpu_gb": 17.488319396972656,
+         "peak_reserved_gb": 18.810546875,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep12": {
+         "n_frames": 317,
+         "n_tracked": 317,
+         "n_keyframes": 17,
+         "runtime_s": 43.41082501411438,
+         "peak_gpu_gb": 16.887460708618164,
+         "peak_reserved_gb": 18.810546875,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep13": {
+         "n_frames": 330,
+         "n_tracked": 330,
+         "n_keyframes": 15,
+         "runtime_s": 40.02915978431702,
+         "peak_gpu_gb": 17.007477283477783,
+         "peak_reserved_gb": 18.771484375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep14": {
+         "n_frames": 334,
+         "n_tracked": 334,
+         "n_keyframes": 16,
+         "runtime_s": 40.810564279556274,
+         "peak_gpu_gb": 17.043299198150635,
+         "peak_reserved_gb": 18.771484375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep15": {
+         "n_frames": 304,
+         "n_tracked": 304,
+         "n_keyframes": 11,
+         "runtime_s": 24.842705249786377,
+         "peak_gpu_gb": 16.75953722000122,
+         "peak_reserved_gb": 18.75,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep16": {
+         "n_frames": 336,
+         "n_tracked": 336,
+         "n_keyframes": 16,
+         "runtime_s": 33.81186008453369,
+         "peak_gpu_gb": 17.058334350585938,
+         "peak_reserved_gb": 18.75,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep18": {
+         "n_frames": 403,
+         "n_tracked": 403,
+         "n_keyframes": 18,
+         "runtime_s": 52.56124687194824,
+         "peak_gpu_gb": 17.693576335906982,
+         "peak_reserved_gb": 18.791015625,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep19": {
+         "n_frames": 334,
+         "n_tracked": 334,
+         "n_keyframes": 15,
+         "runtime_s": 32.486002922058105,
+         "peak_gpu_gb": 17.03754949569702,
+         "peak_reserved_gb": 18.791015625,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep21": {
+         "n_frames": 314,
+         "n_tracked": 314,
+         "n_keyframes": 13,
+         "runtime_s": 31.47471284866333,
+         "peak_gpu_gb": 16.857240676879883,
+         "peak_reserved_gb": 18.59375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep22": {
+         "n_frames": 303,
+         "n_tracked": 303,
+         "n_keyframes": 12,
+         "runtime_s": 26.681905269622803,
+         "peak_gpu_gb": 16.755614280700684,
+         "peak_reserved_gb": 18.671875,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep24": {
+         "n_frames": 308,
+         "n_tracked": 308,
+         "n_keyframes": 13,
+         "runtime_s": 34.689441204071045,
+         "peak_gpu_gb": 16.80254888534546,
+         "peak_reserved_gb": 18.80859375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep25": {
+         "n_frames": 415,
+         "n_tracked": 415,
+         "n_keyframes": 12,
+         "runtime_s": 33.18271541595459,
+         "peak_gpu_gb": 17.785465717315674,
+         "peak_reserved_gb": 18.80859375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep26": {
+         "n_frames": 345,
+         "n_tracked": 345,
+         "n_keyframes": 10,
+         "runtime_s": 24.578206062316895,
+         "peak_gpu_gb": 15.429909706115723,
+         "peak_reserved_gb": 18.615234375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep27": {
+         "n_frames": 318,
+         "n_tracked": 318,
+         "n_keyframes": 11,
+         "runtime_s": 25.197378396987915,
+         "peak_gpu_gb": 16.886591911315918,
+         "peak_reserved_gb": 18.6328125,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep29": {
+         "n_frames": 316,
+         "n_tracked": 316,
+         "n_keyframes": 12,
+         "runtime_s": 28.034467935562134,
+         "peak_gpu_gb": 16.87107753753662,
+         "peak_reserved_gb": 18.615234375,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep30": {
+         "n_frames": 326,
+         "n_tracked": 326,
+         "n_keyframes": 13,
+         "runtime_s": 30.842838525772095,
+         "peak_gpu_gb": 16.968539714813232,
+         "peak_reserved_gb": 18.76953125,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       },
+       {
+        "ep31": {
+         "n_frames": 326,
+         "n_tracked": 326,
+         "n_keyframes": 11,
+         "runtime_s": 23.704073667526245,
+         "peak_gpu_gb": 16.96015214920044,
+         "peak_reserved_gb": 18.828125,
+         "valid_frac": 1.0,
+         "masks_used": []
+        }
+       }
+      ]
+     },
+     {
+      "id": "masks.tiles",
+      "variant": "main",
+      "tag": null,
+      "step": "masks",
+      "impl": "tile_geometry_k",
+      "env": "venv",
+      "key": "71fec62d4bb700da",
+      "cache_dir": "/home/student/yuanliu-hawaii/work/cache/masks/71fec62d4bb700da",
+      "segments_cached": 0,
+      "segments_computed": 27,
+      "start": "2026-11-16T20:28:01-10:00",
+      "gpu_free_mb_at_start": null,
+      "status": "computed",
+      "end": "2026-11-16T20:28:11-10:00",
+      "runtime_s": 9.463616132736206,
+      "results": [
+       {
+        "ep00": {
+         "frames_pose": 323,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.04787428472960276
+        },
+        "ep01": {
+         "frames_pose": 290,
+         "frames_near_pose": 2,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.0449471459589893
+        },
+        "ep02": {
+         "frames_pose": 331,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.04292702250642558
+        },
+        "ep03": {
+         "frames_pose": 335,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.04624027715898121
+        },
+        "ep04": {
+         "frames_pose": 318,
+         "frames_near_pose": 11,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.037390720221083036
+        },
+        "ep05": {
+         "frames_pose": 282,
+         "frames_near_pose": 13,
+         "frames_slam": 77,
+         "frames_no_pose": 0,
+         "masked_frac": 0.04945501512096774
+        },
+        "ep07": {
+         "frames_pose": 365,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.05097511159953656
+        },
+        "ep08": {
+         "frames_pose": 316,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.043207616978399144
+        },
+        "ep09": {
+         "frames_pose": 351,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03959429614746779
+        },
+        "ep10": {
+         "frames_pose": 323,
+         "frames_near_pose": 27,
+         "frames_slam": 10,
+         "frames_no_pose": 0,
+         "masked_frac": 0.04861946236698452
+        },
+        "ep11": {
+         "frames_pose": 256,
+         "frames_near_pose": 26,
+         "frames_slam": 98,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03969738069520817
+        },
+        "ep12": {
+         "frames_pose": 252,
+         "frames_near_pose": 13,
+         "frames_slam": 52,
+         "frames_no_pose": 0,
+         "masked_frac": 0.046040646530753175
+        },
+        "ep13": {
+         "frames_pose": 330,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03957366929556762
+        },
+        "ep14": {
+         "frames_pose": 334,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.04329718594527363
+        },
+        "ep15": {
+         "frames_pose": 304,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.04344221915709282
+        },
+        "ep16": {
+         "frames_pose": 336,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.030049552275823264
+        },
+        "ep18": {
+         "frames_pose": 403,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.028043106813945163
+        },
+        "ep19": {
+         "frames_pose": 334,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03969800022157178
+        },
+        "ep21": {
+         "frames_pose": 251,
+         "frames_near_pose": 37,
+         "frames_slam": 26,
+         "frames_no_pose": 0,
+         "masked_frac": 0.0428777626101182
+        },
+        "ep22": {
+         "frames_pose": 303,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03516621076753198
+        },
+        "ep24": {
+         "frames_pose": 308,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03358783774916004
+        },
+        "ep25": {
+         "frames_pose": 280,
+         "frames_near_pose": 26,
+         "frames_slam": 109,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03641908585835881
+        },
+        "ep26": {
+         "frames_pose": 345,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.035243692092075854
+        },
+        "ep27": {
+         "frames_pose": 318,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.030924790845301794
+        },
+        "ep29": {
+         "frames_pose": 316,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.03724479240466969
+        },
+        "ep30": {
+         "frames_pose": 326,
+         "frames_near_pose": 0,
+         "frames_slam": 0,
+         "frames_no_pose": 0,
+         "masked_frac": 0.022478791815462563
+        },
+        "ep31": {
+         "frames_pose": 294,
+         "frames_near_pose": 26,
+         "frames_slam": 6,
+         "frames_no_pose": 0,
+         "masked_frac": 0.037046518271373195
+        }
+       }
+      ]
+     },
+     {
+      "id": "slam.E3",
+      "variant": "main",
+      "tag": null,
+      "step": "slam",
+      "impl": "droid_adaptive",
+      "env": "droid",
+      "key": "ebd57a44d15a8eff",
+      "cache_dir": "/home/student/yuanliu-hawaii/work/cache/slam/ebd57a44d15a8eff",
+      "segments_cached": 0,
+      "segments_computed": 27,
+      "start": "2026-11-16T20:28:11-10:00",
+      "gpu_free_mb_at_start": 19948,
+      "status": "computed",
+      "end": "2026-11-16T20:47:14-10:00",
+      "runtime_s": 1130.8601894378662,
+      "results": [
+       {
+        "ep00": {
+         "n_frames": 323,
+         "n_tracked": 323,
+         "n_keyframes": 10,
+         "runtime_s": 19.05715012550354,
+         "peak_gpu_gb": 16.364901065826416,
+         "valid_frac": 0.7974242568016052,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 4.878836511415788,
+         "preroll_peak_t_rel_s": -4.5750017166137695,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep01": {
+         "n_frames": 292,
+         "n_tracked": 292,
+         "n_keyframes": 16,
+         "runtime_s": 38.85462427139282,
+         "peak_gpu_gb": 16.672083377838135,
+         "valid_frac": 0.8210369348526001,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 74.4804392492357,
+         "preroll_peak_t_rel_s": -1.7633590698242188,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep02": {
+         "n_frames": 331,
+         "n_tracked": 226,
+         "n_keyframes": 9,
+         "runtime_s": 18.561490058898926,
+         "peak_gpu_gb": 14.342462062835693,
+         "valid_frac": 0.7979020476341248,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 275.521450507887,
+         "preroll_peak_t_rel_s": -2.7023160457611084,
+         "short_start": true,
+         "first_frame": 105
+        }
+       },
+       {
+        "ep03": {
+         "n_frames": 335,
+         "n_tracked": 229,
+         "n_keyframes": 10,
+         "runtime_s": 15.448968648910522,
+         "peak_gpu_gb": 14.937894821166992,
+         "valid_frac": 0.8201009035110474,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 688.9034735555994,
+         "preroll_peak_t_rel_s": -2.9496123790740967,
+         "short_start": true,
+         "first_frame": 106
+        }
+       },
+       {
+        "ep04": {
+         "n_frames": 329,
+         "n_tracked": 329,
+         "n_keyframes": 12,
+         "runtime_s": 30.593076467514038,
+         "peak_gpu_gb": 16.99926996231079,
+         "valid_frac": 0.837849497795105,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 86.71172686661001,
+         "preroll_peak_t_rel_s": -3.957581043243408,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep05": {
+         "n_frames": 372,
+         "n_tracked": 372,
+         "n_keyframes": 15,
+         "runtime_s": 35.57093524932861,
+         "peak_gpu_gb": 17.395469188690186,
+         "valid_frac": 0.826701819896698,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 59.02908761555104,
+         "preroll_peak_t_rel_s": -1.9046001434326172,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep07": {
+         "n_frames": 365,
+         "n_tracked": 260,
+         "n_keyframes": 9,
+         "runtime_s": 17.783440828323364,
+         "peak_gpu_gb": 14.656114101409912,
+         "valid_frac": 0.7713599801063538,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 397.3219194115121,
+         "preroll_peak_t_rel_s": -3.3591561317443848,
+         "short_start": true,
+         "first_frame": 105
+        }
+       },
+       {
+        "ep08": {
+         "n_frames": 316,
+         "n_tracked": 316,
+         "n_keyframes": 12,
+         "runtime_s": 34.65001153945923,
+         "peak_gpu_gb": 16.878864765167236,
+         "valid_frac": 0.8410109281539917,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 76.72885350094758,
+         "preroll_peak_t_rel_s": -4.342353582382202,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep09": {
+         "n_frames": 351,
+         "n_tracked": 351,
+         "n_keyframes": 13,
+         "runtime_s": 37.396034479141235,
+         "peak_gpu_gb": 17.20341968536377,
+         "valid_frac": 0.8302720189094543,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 68.3150461622815,
+         "preroll_peak_t_rel_s": -3.8888790607452393,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep10": {
+         "n_frames": 360,
+         "n_tracked": 254,
+         "n_keyframes": 10,
+         "runtime_s": 16.120389461517334,
+         "peak_gpu_gb": 16.305713176727295,
+         "valid_frac": 0.8027161955833435,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 336.3185661093722,
+         "preroll_peak_t_rel_s": -2.0671918392181396,
+         "short_start": true,
+         "first_frame": 106
+        }
+       },
+       {
+        "ep11": {
+         "n_frames": 380,
+         "n_tracked": 275,
+         "n_keyframes": 10,
+         "runtime_s": 17.939385414123535,
+         "peak_gpu_gb": 14.79448938369751,
+         "valid_frac": 0.7982410788536072,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 146.25733539405994,
+         "preroll_peak_t_rel_s": -3.0121009349823,
+         "short_start": true,
+         "first_frame": 105
+        }
+       },
+       {
+        "ep12": {
+         "n_frames": 317,
+         "n_tracked": 317,
+         "n_keyframes": 12,
+         "runtime_s": 32.1128613948822,
+         "peak_gpu_gb": 16.888090133666992,
+         "valid_frac": 0.827331006526947,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 73.45116095067509,
+         "preroll_peak_t_rel_s": -1.4028394222259521,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep13": {
+         "n_frames": 330,
+         "n_tracked": 330,
+         "n_keyframes": 12,
+         "runtime_s": 33.061057329177856,
+         "peak_gpu_gb": 17.010172843933105,
+         "valid_frac": 0.8335975408554077,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 103.25407375154354,
+         "preroll_peak_t_rel_s": -3.748063087463379,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep14": {
+         "n_frames": 334,
+         "n_tracked": 334,
+         "n_keyframes": 19,
+         "runtime_s": 37.943445444107056,
+         "peak_gpu_gb": 17.060972690582275,
+         "valid_frac": 0.8390807509422302,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 46.99669720280511,
+         "preroll_peak_t_rel_s": -3.089354991912842,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep15": {
+         "n_frames": 304,
+         "n_tracked": 304,
+         "n_keyframes": 12,
+         "runtime_s": 25.533485651016235,
+         "peak_gpu_gb": 16.76936149597168,
+         "valid_frac": 0.8367590308189392,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 77.42892013550913,
+         "preroll_peak_t_rel_s": -1.729905128479004,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep16": {
+         "n_frames": 336,
+         "n_tracked": 336,
+         "n_keyframes": 15,
+         "runtime_s": 28.404611587524414,
+         "peak_gpu_gb": 17.069115161895752,
+         "valid_frac": 0.8659041523933411,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 60.55318453529619,
+         "preroll_peak_t_rel_s": -2.590794801712036,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep18": {
+         "n_frames": 403,
+         "n_tracked": 403,
+         "n_keyframes": 13,
+         "runtime_s": 38.1179678440094,
+         "peak_gpu_gb": 17.683122634887695,
+         "valid_frac": 0.788805365562439,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 57.76677639105709,
+         "preroll_peak_t_rel_s": -1.8274381160736084,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep19": {
+         "n_frames": 334,
+         "n_tracked": 334,
+         "n_keyframes": 12,
+         "runtime_s": 33.079402446746826,
+         "peak_gpu_gb": 17.046833515167236,
+         "valid_frac": 0.8111902475357056,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 57.70350459174725,
+         "preroll_peak_t_rel_s": -1.5191583633422852,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep21": {
+         "n_frames": 314,
+         "n_tracked": 314,
+         "n_keyframes": 14,
+         "runtime_s": 34.360557556152344,
+         "peak_gpu_gb": 16.8635311126709,
+         "valid_frac": 0.8278250098228455,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 48.74358733944473,
+         "preroll_peak_t_rel_s": -2.9370310306549072,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep22": {
+         "n_frames": 303,
+         "n_tracked": 303,
+         "n_keyframes": 12,
+         "runtime_s": 27.407358646392822,
+         "peak_gpu_gb": 16.764211177825928,
+         "valid_frac": 0.8452112078666687,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 109.66221023665375,
+         "preroll_peak_t_rel_s": -4.95438551902771,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep24": {
+         "n_frames": 308,
+         "n_tracked": 308,
+         "n_keyframes": 10,
+         "runtime_s": 31.784586668014526,
+         "peak_gpu_gb": 15.66691255569458,
+         "valid_frac": 0.8393923044204712,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 40.76166286102872,
+         "preroll_peak_t_rel_s": -3.922964334487915,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep25": {
+         "n_frames": 415,
+         "n_tracked": 415,
+         "n_keyframes": 11,
+         "runtime_s": 28.889792919158936,
+         "peak_gpu_gb": 17.790947437286377,
+         "valid_frac": 0.7987439632415771,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 35.536017776306956,
+         "preroll_peak_t_rel_s": -4.645308494567871,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep26": {
+         "n_frames": 345,
+         "n_tracked": 345,
+         "n_keyframes": 10,
+         "runtime_s": 28.84229588508606,
+         "peak_gpu_gb": 15.441441059112549,
+         "valid_frac": 0.8227766752243042,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 55.92644218575365,
+         "preroll_peak_t_rel_s": -4.727236747741699,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep27": {
+         "n_frames": 318,
+         "n_tracked": 318,
+         "n_keyframes": 10,
+         "runtime_s": 24.828885078430176,
+         "peak_gpu_gb": 15.195718765258789,
+         "valid_frac": 0.8432245254516602,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 53.680084015367775,
+         "preroll_peak_t_rel_s": -4.907446622848511,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep29": {
+         "n_frames": 316,
+         "n_tracked": 316,
+         "n_keyframes": 11,
+         "runtime_s": 27.237873315811157,
+         "peak_gpu_gb": 16.877665996551514,
+         "valid_frac": 0.8401674628257751,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 74.1373963823692,
+         "preroll_peak_t_rel_s": -2.4748520851135254,
+         "short_start": false,
+         "first_frame": 0
+        }
+       },
+       {
+        "ep30": {
+         "n_frames": 326,
+         "n_tracked": 221,
+         "n_keyframes": 9,
+         "runtime_s": 14.01861023902893,
+         "peak_gpu_gb": 14.011857509613037,
+         "valid_frac": 0.8700783252716064,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 288.16868553565166,
+         "preroll_peak_t_rel_s": -4.195761442184448,
+         "short_start": true,
+         "first_frame": 105
+        }
+       },
+       {
+        "ep31": {
+         "n_frames": 326,
+         "n_tracked": 326,
+         "n_keyframes": 11,
+         "runtime_s": 23.710625410079956,
+         "peak_gpu_gb": 15.266164302825928,
+         "valid_frac": 0.8440027832984924,
+         "masks_used": [
+          "motion",
+          "tiles"
+         ],
+         "preroll_peak_deg_s": 47.593973407384716,
+         "preroll_peak_t_rel_s": -4.810882091522217,
+         "short_start": false,
+         "first_frame": 0
+        }
+       }
+      ]
+     },
+     {
+      "id": "depth.da3m@E3",
+      "variant": "main",
+      "tag": null,
+      "step": "depth",
+      "impl": "da3_metric",
+      "env": "mdepth",
+      "key": "d7da283174a08620",
+      "cache_dir": "/home/student/yuanliu-hawaii/work/cache/depth/d7da283174a08620",
+      "segments_cached": 0,
+      "segments_computed": 27,
+      "start": "2026-11-16T20:47:14-10:00",
+      "gpu_free_mb_at_start": 19948,
+      "status": "computed",
+      "end": "2026-11-16T20:47:44-10:00",
+      "runtime_s": 28.999732732772827,
+      "results": [
+       {
+        "ep00": {
+         "n_kf": 10,
+         "median_m": 0.60302734375,
+         "p5_m": 0.392578125,
+         "p95_m": 1.0302734375,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep01": {
+         "n_kf": 16,
+         "median_m": 0.5830078125,
+         "p5_m": 0.322021484375,
+         "p95_m": 1.0205078125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep02": {
+         "n_kf": 9,
+         "median_m": 0.6708984375,
+         "p5_m": 0.470947265625,
+         "p95_m": 1.111328125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep03": {
+         "n_kf": 10,
+         "median_m": 0.65283203125,
+         "p5_m": 0.43896484375,
+         "p95_m": 1.130859375,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep04": {
+         "n_kf": 12,
+         "median_m": 0.60400390625,
+         "p5_m": 0.442626953125,
+         "p95_m": 1.1376953125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep05": {
+         "n_kf": 15,
+         "median_m": 0.60498046875,
+         "p5_m": 0.3837890625,
+         "p95_m": 1.1875,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep07": {
+         "n_kf": 9,
+         "median_m": 0.6865234375,
+         "p5_m": 0.477783203125,
+         "p95_m": 1.1953125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep08": {
+         "n_kf": 12,
+         "median_m": 0.6728515625,
+         "p5_m": 0.472412109375,
+         "p95_m": 1.1953125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep09": {
+         "n_kf": 13,
+         "median_m": 0.646484375,
+         "p5_m": 0.43994140625,
+         "p95_m": 1.1904296875,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep10": {
+         "n_kf": 10,
+         "median_m": 0.638671875,
+         "p5_m": 0.4189453125,
+         "p95_m": 1.080078125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep11": {
+         "n_kf": 10,
+         "median_m": 0.6162109375,
+         "p5_m": 0.400390625,
+         "p95_m": 1.05859375,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep12": {
+         "n_kf": 12,
+         "median_m": 0.59130859375,
+         "p5_m": 0.40673828125,
+         "p95_m": 1.033203125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep13": {
+         "n_kf": 12,
+         "median_m": 0.6123046875,
+         "p5_m": 0.425048828125,
+         "p95_m": 1.1240234375,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep14": {
+         "n_kf": 19,
+         "median_m": 0.53662109375,
+         "p5_m": 0.332275390625,
+         "p95_m": 0.9638671875,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep15": {
+         "n_kf": 12,
+         "median_m": 0.5751953125,
+         "p5_m": 0.349365234375,
+         "p95_m": 0.97119140625,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep16": {
+         "n_kf": 15,
+         "median_m": 0.5888671875,
+         "p5_m": 0.239990234375,
+         "p95_m": 1.01953125,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep18": {
+         "n_kf": 13,
+         "median_m": 0.6015625,
+         "p5_m": 0.333984375,
+         "p95_m": 1.1123046875,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep19": {
+         "n_kf": 12,
+         "median_m": 0.54150390625,
+         "p5_m": 0.29541015625,
+         "p95_m": 1.00390625,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep21": {
+         "n_kf": 14,
+         "median_m": 0.60107421875,
+         "p5_m": 0.344482421875,
+         "p95_m": 0.98974609375,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep22": {
+         "n_kf": 12,
+         "median_m": 0.67041015625,
+         "p5_m": 0.4814453125,
+         "p95_m": 1.2353515625,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep24": {
+         "n_kf": 10,
+         "median_m": 0.57275390625,
+         "p5_m": 0.4013671875,
+         "p95_m": 0.9794921875,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep25": {
+         "n_kf": 11,
+         "median_m": 0.62353515625,
+         "p5_m": 0.43994140625,
+         "p95_m": 1.0712890625,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep26": {
+         "n_kf": 10,
+         "median_m": 0.62939453125,
+         "p5_m": 0.4228515625,
+         "p95_m": 1.04296875,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep27": {
+         "n_kf": 10,
+         "median_m": 0.64453125,
+         "p5_m": 0.4541015625,
+         "p95_m": 1.0390625,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep29": {
+         "n_kf": 11,
+         "median_m": 0.67236328125,
+         "p5_m": 0.435791015625,
+         "p95_m": 1.2421875,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep30": {
+         "n_kf": 9,
+         "median_m": 0.654296875,
+         "p5_m": 0.414794921875,
+         "p95_m": 1.1474609375,
+         "fx_used_median": 618.3480254265536
+        },
+        "ep31": {
+         "n_kf": 11,
+         "median_m": 0.59423828125,
+         "p5_m": 0.41259765625,
+         "p95_m": 1.0712890625,
+         "fx_used_median": 618.3480254265536
+        }
+       }
+      ]
+     }
+    ],
+    "variants": {
+     "main": {
+      "view": "/home/student/yuanliu-hawaii/work/runs/col008_yuan_slam_02b/main/view",
+      "results": "/home/student/yuanliu-hawaii/work/runs/col008_yuan_slam_02b/main/results",
+      "steps": {
+       "scale": {
+        "runtime_s": 19.117714643478394,
+        "result": {
+         "E3": {
+          "label": "Bnet+Acheck",
+          "segments_ok": 27,
+          "abs_err_median": 0.18828752461415788,
+          "flagged": [
+           "ep01",
+           "ep08",
+           "ep09",
+           "ep12",
+           "ep14",
+           "ep19",
+           "ep24",
+           "ep25",
+           "ep26"
+          ]
+         }
+        }
+       },
+       "labels": {
+        "runtime_s": 4.49522590637207,
+        "result": {
+         "E3": {
+          "kept_episodes": 23,
+          "anchors": 1205
+         },
+         "E3@Bnet+Acheck": {
+          "kept_episodes": 23,
+          "anchors": 1205
+         }
+        }
+       },
+       "evaluate": {
+        "runtime_s": 1.7516658306121826,
+        "result": {
+         "eval_oracle": {
+          "E3": 0.0037220843672456576
+         },
+         "eval_Bnet+Acheck": {
+          "E3": [
+           27,
+           27
+          ]
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "end": "2026-11-16T20:48:12-10:00",
+   "duration_s": 8997.722146511078,
+   "repro": null,
+   "git_end": {
+    "commit": "6d22f623baed34f7d3ce6c21a43030c656a85572",
+    "clean": true,
+    "dirty_files": []
+   },
+   "git_changed_during_run": false,
+   "weights_end": {
+    "masks.motion": {
+     "repo": "facebook/sam3",
+     "revision": "3c879f39826c281e95690f02c7821c4de09afae7",
+     "local": true,
+     "files_sha256": {
+      ".gitattributes": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361",
+      "LICENSE": "bec48f70bd37bf8280a9d1ebf01642d26086f6122ba735baa08fe03c5a6e7448",
+      "README.md": "1ac8a322aa4a797db79cbc334acee7c0cae8635032b71c7d5b23ae63a05f4bd5",
+      "config.json": "4616385e4b21f2e5e22c875b65679185cbccfa95de42542b9166f7dc3d57160f",
+      "merges.txt": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+      "model.safetensors": "6d06f0a5f84e435071fe6603e61d0b4cc7b40e0d39d487cfd4d67d8cc11cc14a",
+      "processor_config.json": "6420cf2671fa9309ea95bc0144a8b9861666d1c5f43c8db09e410dacda974fce",
+      "special_tokens_map.json": "2cdb3b8331a60c92fc1e55a13e9fd61fd2293c5a51275fdcccd62b780052530e",
+      "tokenizer.json": "6d9109cc838977f3ca94a379eec36aecc7c807e1785cd729660ca2fc0171fb35",
+      "tokenizer_config.json": "39670ad98457fe8f14ca59f6bb74591e9fc850974380a63993e5b8ffc865baa2",
+      "vocab.json": "5047b556ce86ccaf6aa22b3ffccfc52d391ea4accdab9c2f2407da5b742d4363"
+     }
+    },
+    "slam.E1": {
+     "path": "/home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth",
+     "sha256": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526",
+     "sha256_actual": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526"
+    },
+    "slam.E3": {
+     "path": "/home/student/yuanliu-hawaii/third_party/DROID-SLAM/droid.pth",
+     "sha256": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526",
+     "sha256_actual": "46476ef64cde45a97504910d6f3de2eef7b398ec1c6e4e668815c29076024526"
+    },
+    "depth.da3m@E3": {
+     "repo": "depth-anything/DA3METRIC-LARGE",
+     "revision": "4010e39f3634a45bc60553321fb49fb760bd594e",
+     "local": true,
+     "files_sha256": {
+      ".gitattributes": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361",
+      "README.md": "4fdd25492cf6401d1459483fd829f6abb399bda8218e1a3ef5ad4a66e9aa5a2a",
+      "config.json": "a336f3e76fe375aaae17a9aed9130c9f2aa061535d317ec57dcb2f1f02e1dd53",
+      "model.safetensors": "bbea5b0b3ee389849cffa7ddae89de064a90abd2b055fc5aa99aac68db324776"
+     }
+    }
+   }
+  }
+ ]
+}
