@@ -7,8 +7,11 @@ sessions: [yuan_slam_01, yuan_slam_01b, yuan_slam_02, yuan_slam_02b, yuan_slam_0
            yuan_slam_06]
 overrides:
   yuan_slam_06: {include: [2, 14, 17]}       # field-QC false FAILs (IPPE ambiguity); user-approved 2026-11-16
-dataset:
-  out: pilot_mix_gHs3_yuan_rel_slam_v1
-train:
-  - {exp: exp058_rel_Gslam48yuan_startstate, template: exp053_rel_Gslam48_startstate}
+# Stage 1 (user, 2026-11-16): SLAM, gates and export of every session under the current gates, then a look at
+# the report's "What other gates would keep" table before deciding on the gates. No mix, no training yet: the
+# two keys below stay commented out until then (a change of gates re-exports only; SLAM is not rerun).
+# dataset:
+#   out: pilot_mix_gHs3_yuan_rel_slam_v1
+# train:
+#   - {exp: exp058_rel_Gslam48yuan_startstate, template: exp053_rel_Gslam48_startstate}
 compare: [exp052_rel_T48_startstate]

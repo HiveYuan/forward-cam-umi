@@ -206,6 +206,24 @@ class TestOrchestration(unittest.TestCase):
             self.assertFalse(ing.export_reusable({**sj, "gates": {**sj["gates"], "slam_valid_min": 0.8}}, "col1"))
             self.assertFalse(ing.export_reusable({k: v for k, v in sj.items() if k != "params"}, "col1"))
 
+    def test_what_if_table(self):
+        from slam import ingest_report as R
+        with tempfile.TemporaryDirectory() as d:
+            ing = bare_ingest("batch: t\nbucket: gs://x\n", d)
+            ing.dir = Path(d)
+            (ing.dir / "sessions").mkdir()
+            rows = [row(i, cov=c) for i, c in enumerate([1.0, 0.9, 0.65, 0.55, 0.3])]
+            json.dump({"rows": rows, "verdict": {"label_err_1s_mm": 5.0, "slam_valid": 1.0}},
+                      open(ing.dir / "sessions" / "s1.json", "w"))
+            wi = R.what_if(ing, ["s1", "s_without_export"])
+            s = wi["data"]["sessions"]["s1"]
+            self.assertEqual((s["current"]["kept"], s["current"]["held"]), (2, True))          # 3/5 dropped
+            self.assertEqual(s["coverage >= 0.6"]["kept"], 3)
+            self.assertEqual(s["coverage >= 0.5"]["kept"], 4)
+            self.assertFalse(s["coverage >= 0.5, no session holds"]["held"])
+            self.assertEqual(wi["data"]["totals"]["current"], {"kept": 2, "kept_not_held": 0})
+            self.assertNotIn("s_without_export", wi["data"]["sessions"])
+
     def test_reference_shorthand(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(bare_ingest("batch: t\nbucket: gs://x\n", d).b["reference"]["paper_val"], 0.2946)

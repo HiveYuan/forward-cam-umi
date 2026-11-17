@@ -77,6 +77,47 @@ def collected_row(val_json, label):
             "rot": phys["rot_deg"]["chunk_mean"], "grip": phys["grip"]["chunk_mean"]}
 
 
+def what_if(ing, sessions):
+    """Episodes kept per session under the batch's gates and looser ones, recomputed from the export's per-episode
+    rows (sessions/<ds>.json): changing the gates needs a re-export only, never SLAM again."""
+    from slam.collect_dataset import gate_session
+    g0 = ing.b["gates"]
+    variants = [("current", g0)]
+    for cov in (0.6, 0.5):
+        if cov < g0["grip_coverage_min"]:
+            variants.append((f"coverage >= {cov}", {**g0, "grip_coverage_min": cov}))
+    variants.append(("coverage >= 0.5, no session holds", {**g0, "grip_coverage_min": min(0.5, g0["grip_coverage_min"]),
+                                                            "slam_valid_min": 0.0, "max_rejected_fraction": 1.0,
+                                                            "label_err_1s_mm_max": 1e9}))
+    data, md_rows, tot = {}, [], {name: [0, 0] for name, _ in variants}
+    for ds in sessions:
+        sj = ing.session_json(ds)
+        if not sj or not sj.get("rows"):
+            continue
+        err = (sj.get("verdict") or {}).get("label_err_1s_mm")
+        cells, data[ds] = [], {}
+        for name, g in variants:
+            kept, _, v = gate_session(sj["rows"], err, g)
+            data[ds][name] = {"kept": len(kept), "held": v["held"], "reasons": v["reasons"], "slam_valid": v["slam_valid"]}
+            cells.append(f"{len(kept)}{' (held)' if v['held'] else ''}")
+            tot[name][0] += len(kept)
+            tot[name][1] += 0 if v["held"] else len(kept)
+        sv = (sj.get("verdict") or {}).get("slam_valid")
+        md_rows.append(f"| {ds} | {len(sj['rows'])} | " + " | ".join(cells) + f" | {_f(sv, 1, True)} | {_f(err)} |")
+    if not md_rows:
+        return None
+    names = [n for n, _ in variants]
+    md = ["## What other gates would keep", "",
+          "Episodes kept per session (\"held\": the session itself fails a gate and would not be mixed). Recomputed from "
+          "the exported per-episode rows: a change of gates needs a re-export only (minutes), not SLAM. The last "
+          "column set keeps every episode with a SLAM pose, a scale and gripper coverage >= 0.5, and holds no session.",
+          "", "| session | configured | " + " | ".join(names) + " | SLAM valid (current, kept steps) | label error 1 s (mm) |",
+          "|---|---|" + "---|" * len(names) + "---|---|", *md_rows,
+          "| **total (not held)** | | " + " | ".join(f"**{tot[n][1]}** of {tot[n][0]}" for n in names) + " | | |", ""]
+    return {"md": md, "data": {"variants": dict(variants), "sessions": data,
+                               "totals": {n: {"kept": tot[n][0], "kept_not_held": tot[n][1]} for n in names}}}
+
+
 def build(ing, sessions, mix_root=None):
     b = ing.b
     rows = session_rows(ing, sessions)
@@ -107,6 +148,10 @@ def build(ing, sessions, mix_root=None):
           "config (field-QC FAILs and session exclusions removed, review overrides applied: "
           f"{json.dumps(b['overrides']) if b['overrides'] else 'none'}).", ""]
     summary = {"batch": b["batch"], "sessions": rows, "episodes_kept": tot}
+    wi = what_if(ing, sessions)
+    if wi:
+        L += wi["md"]
+        summary["what_if"] = wi["data"]
     if mix_root is not None:
         mj, vj = _load(ing.dir / "mix.json"), _load(ing.dir / "verify.json")
         L += ["## Training dataset", "",
