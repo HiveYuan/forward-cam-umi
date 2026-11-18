@@ -302,12 +302,14 @@ class RelChunkDataset:
         self.idx = np.where(ok)[0]
         ep_of = df["episode_index"].values[self.idx]
         from_idx, to_idx, off = [], [], 0
+        self.episode_ids = []                             # the source episode of each meta.episodes range
         for e in sorted(set(int(x) for x in episodes)):
             n = int((ep_of == e).sum())
             if n:
                 from_idx.append(off)
                 to_idx.append(off + n)
                 off += n
+                self.episode_ids.append(e)
         self.meta = _Meta(base, stats, from_idx, to_idx, state)
         self.episodes = None
         self.repo_id, self.root, self.streaming = repo, Path(root), False

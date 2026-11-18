@@ -68,7 +68,8 @@ DEFAULTS = {
                 "fps": 15.0, "slow": 2.5, "bridge_s": 0.3, "gripper_median_s": 0.3, "grip_label_tol_s": 0.12,
                 "task": "base_glove",
                 "val_fraction": 0.1},        # per session, evenly spread in recording order: "collected val"
-    "train": [],                         # [{exp, template, sessions: all | [names], overrides: {dotted: value}}]
+    "train": [],                         # [{exp, template, sessions: all | [names], overrides: {dotted: value},
+                                         #   sampling: {groups, shares} (slam.train_rel)}]
     "compare": [],                       # earlier arms for the report's table
     "reference": {"exp": "exp049_joint_G48",  # Yosub's paper arm (arm 4, mix_gHs3_48, joint space): our reproduction
                   "paper_val": 0.2946},       # gives the physical errors; his published robot val is shown with them
@@ -545,7 +546,11 @@ class Ingest:
         cfg["output_dir"] = str(C.WORK / "train" / exp)
         if arm.get("overrides"):
             cfg["overrides"] = {**(cfg.get("overrides") or {}), **arm["overrides"]}
-        head = (f"# {exp}: {tpl} on {mix_root.name} (batch {self.b['batch']}): the template's {len(base_eps)} "
+        if arm.get("sampling"):                            # group shares (slam.train_rel WeightedEpisodeSampler)
+            cfg["sampling"] = arm["sampling"]
+        samp = (f"; sampling shares {arm['sampling']['shares']} over groups {arm['sampling']['groups']}"
+                if arm.get("sampling") else "")
+        head = (f"# {exp}: {tpl} on {mix_root.name} (batch {self.b['batch']}){samp}: the template's {len(base_eps)} "
                 f"episodes ({tcfg['dataset']['episodes']}) + {len(add)} collected episodes "
                 f"({'all sessions' if use == 'all' else ', '.join(use)}; the collected val episodes, "
                 f"meta/val_episodes_collected.json, held out); everything else as {tpl}.\n"

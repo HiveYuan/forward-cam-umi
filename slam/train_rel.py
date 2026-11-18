@@ -12,6 +12,14 @@ An experiment config (YAML) names Yosub's train_config.json for the arm being mi
    relative.state: gripper (default) or pose_gripper, the current tool pose + gripper, test D1)
   overrides: {steps: 50000}                                               # dotted keys allowed
   output_dir: /home/student/yuanliu-hawaii/work/train/exp018_T48_rel
+  sampling:                                                               # optional (2026-11-17), see below
+    groups: {teleop: [0, 178], glove: [178, 378], collected: [378, 100000]}   # episode index ranges [lo, hi)
+    shares: {teleop: 0.18}
+
+`sampling` replaces lerobot's uniform frame sampling by group shares: every training anchor belongs to the group
+whose episode range holds its episode; a group listed in `shares` gets that fraction of the samples, the other
+groups share the rest in proportion to their anchors. Each epoch draws len(dataset) positions with replacement,
+seeded from (seed, epoch) like lerobot's EpisodeAwareSampler (WeightedEpisodeSampler). Without it, nothing changes.
 
 Everything else (ACT architecture, chunk 100, VAE, lr, batch 8, seed, image augmentation, save every
 2000 steps) is Yosub's file. With `relative`, lerobot_train.make_dataset is replaced by one that returns
@@ -98,6 +106,70 @@ def relative_make_dataset(rel, chunk):
     return make_dataset
 
 
+def group_weights(episode_ids, lengths, groups, shares):
+    """Per-episode sampling weight per anchor from group shares (see the module doc), and a summary
+    {group: {episodes, anchors, frame_share, share}}. groups: {name: [lo, hi)}; shares: {name: fraction}."""
+    import numpy as np
+    unknown = set(shares) - set(groups)
+    if unknown:
+        raise ValueError(f"sampling.shares {sorted(unknown)} are not in sampling.groups")
+    if not 0 < sum(shares.values()) <= 1 or any(v <= 0 for v in shares.values()):
+        raise ValueError(f"sampling.shares {shares}: positive fractions summing to at most 1")
+    g_of = []
+    for e in episode_ids:
+        hit = [g for g, (lo, hi) in groups.items() if lo <= e < hi]
+        if len(hit) != 1:
+            raise ValueError(f"episode {e} is in {len(hit)} sampling groups ({hit}); the ranges must cover it once")
+        g_of.append(hit[0])
+    lengths = np.asarray(lengths, float)
+    n = {g: float(lengths[[k for k, x in enumerate(g_of) if x == g]].sum()) for g in groups}
+    rest = [g for g in groups if g not in shares and n[g] > 0]
+    if any(n[g] == 0 for g in shares):
+        raise ValueError(f"sampling.shares {[g for g in shares if n[g] == 0]}: no training anchors in that group")
+    if not rest and abs(sum(shares.values()) - 1) > 1e-9:
+        raise ValueError("sampling.shares must sum to 1 when every group with anchors has a share")
+    left = 1 - sum(shares.values())
+    w_g = {g: shares[g] / n[g] for g in shares}
+    w_g.update({g: left / sum(n[x] for x in rest) for g in rest})
+    w = np.array([w_g[g] for g in g_of])
+    tot = sum(n.values())
+    summary = {g: {"episodes": g_of.count(g), "anchors": int(n[g]), "frame_share": round(n[g] / tot, 4),
+                   "share": round(w_g.get(g, 0.0) * n[g], 4)} for g in groups}
+    return w, summary
+
+
+def weighted_sampler_class(holder, groups, shares):
+    """An EpisodeAwareSampler drop-in (same constructor) that samples by group shares. holder["ds"] is the
+    RelChunkDataset (its episode_ids align with the boundaries lerobot passes in)."""
+    import numpy as np
+    import torch
+    from lerobot.datasets import EpisodeAwareSampler
+
+    class WeightedEpisodeSampler(EpisodeAwareSampler):
+        def __init__(self, dataset_from_indices, dataset_to_indices, episode_indices_to_use=None,
+                     drop_n_first_frames=0, drop_n_last_frames=0, shuffle=False, seed=0):
+            if episode_indices_to_use is not None or drop_n_first_frames or drop_n_last_frames:
+                raise ValueError("WeightedEpisodeSampler: episode subsets and dropped frames are not supported")
+            super().__init__(dataset_from_indices, dataset_to_indices, shuffle=True, seed=seed)
+            ids = holder["ds"].episode_ids
+            lengths = np.asarray(dataset_to_indices) - np.asarray(dataset_from_indices)
+            if len(ids) != len(lengths):
+                raise RuntimeError(f"{len(ids)} episode ids for {len(lengths)} sampler ranges")
+            w_ep, self.summary = group_weights(ids, lengths, groups, shares)
+            self._w = torch.as_tensor(np.repeat(w_ep, lengths), dtype=torch.float64)
+            print(f"[train_rel] WeightedEpisodeSampler: {json.dumps(self.summary)}", flush=True)
+
+        def __iter__(self):
+            if self._start_index:
+                raise RuntimeError("WeightedEpisodeSampler does not resume mid-epoch")
+            g = self._epoch_generator(self._epoch)
+            self._epoch += 1
+            for p in torch.multinomial(self._w, self._num_frames, replacement=True, generator=g).tolist():
+                yield self._frame_index(p)
+
+    return WeightedEpisodeSampler
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
@@ -117,6 +189,18 @@ def main():
     import lerobot.scripts.lerobot_train as LT
     if cfg.get("relative"):
         LT.make_dataset = relative_make_dataset(cfg["relative"], tc["policy"]["chunk_size"])
+    if cfg.get("sampling"):
+        if not cfg.get("relative"):
+            raise SystemExit("sampling needs a relative config (RelChunkDataset's episode ids)")
+        sp = cfg["sampling"]
+        holder, make = {}, LT.make_dataset
+
+        def make_and_keep(tcfg):
+            holder["ds"] = make(tcfg)
+            return holder["ds"]
+        LT.make_dataset = make_and_keep
+        LT.EpisodeAwareSampler = weighted_sampler_class(holder, {k: tuple(v) for k, v in sp["groups"].items()},
+                                                        dict(sp["shares"]))
     record = None if (a.steps or a.output_dir or a.device) else provenance(a.config, tc)
     sys.argv = ["lerobot-train", f"--config_path={tc_path}"]
     LT.train()
