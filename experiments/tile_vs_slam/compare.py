@@ -4,7 +4,8 @@
 Pairs that differ only in where the glove poses come from (tiles: FK of Yosub's HHs3 joints; SLAM):
   gripper state:       exp019_rel_Gtile48 (pilot_mix_gHs3_rel_tile)     vs exp046_rel_Gslam48_head (_rel_slam_v3)
   start-relative pose: exp059_rel_Gtile48_startstate (_rel_tile_v3)     vs exp053_rel_Gslam48_startstate (_rel_slam_v3)
-with the teleop-only baselines exp018 / exp052 and Yosub's joint-space G48 (exp049) as the reference.
+with the teleop-only baselines exp018 / exp052, Yosub's joint-space G48 (exp049) as the reference, and D1 (exp051:
+tiles, state = the tool pose in the robot base, the relative-space arm closest to Yosub's joint state).
 Numbers: the 6 robot-val episodes (meta/val_episodes.json), best checkpoint by robot val, from each run's
 results/val.json (exp049: results/physical_fk.json).
 
@@ -30,6 +31,7 @@ ROWS = [  # (state, experiment, label, glove labels)
     ("start", "exp052_rel_T48_startstate", "T48 (exp052)", "–"),
     ("start", "exp059_rel_Gtile48_startstate", "G-tile48 (exp059)", "tiles"),
     ("start", "exp053_rel_Gslam48_startstate", "G-slam48 (exp053)", "SLAM"),
+    ("pose in base (D1)", "exp051_rel_Gtile48_posestate", "G-tile48 (exp051)", "tiles"),
 ]
 PAIRS = [("gripper", "exp019_rel_Gtile48", "exp046_rel_Gslam48_head"),
          ("start", "exp059_rel_Gtile48_startstate", "exp053_rel_Gslam48_startstate")]
@@ -62,8 +64,9 @@ def table():
     eps = {tuple(r["episodes"]) for r in res.values()}
     assert len(eps) == 1, f"arms evaluated on different robot-val episodes: {eps}"
     L = [f"Robot val, episodes {list(eps.pop())}, best checkpoint by robot val. Position in mm (median per step j; chunk mean "
-         "over all 100 steps), rotation and gripper chunk means. Val losses compare only within a state (one stats file "
-         "per state); exp049's is in joint space.", "",
+         "over all 100 steps), rotation and gripper chunk means. Val losses compare across all relative arms (the three "
+         "stats files have identical action statistics; they differ only in the state's); exp049's is in joint space. "
+         "D1 (exp051) needs tiles for its state too (the tool pose in the robot base), like Yosub's joint state.", "",
          "| state | arm | glove labels | step | val | pos j14 / j49 / j99 / chunk mean (mm) | rot | gripper |",
          "|---|---|---|---|---|---|---|---|"]
 
