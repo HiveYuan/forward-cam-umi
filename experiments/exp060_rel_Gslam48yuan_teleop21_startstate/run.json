@@ -1,0 +1,23 @@
+{
+ "invocations": [
+  {
+   "git_commit": "4eeeaf5e1f1007e510dac68c1bd85f59be5be7ab",
+   "git_clean": true,
+   "lerobot_checkout": "0cae109fb8b793b9049709dc6a79e61514511016",
+   "packages": {
+    "lerobot": "0.5.2",
+    "torch": "2.11.0",
+    "torchvision": "0.26.0",
+    "torchcodec": "0.11.1",
+    "numpy": "2.2.6"
+   },
+   "gpu": "NVIDIA GeForce RTX 3090",
+   "config": "experiments/exp060_rel_Gslam48yuan_teleop21_startstate/config.yaml",
+   "output_dir": "/home/student/yuanliu-hawaii/work/train/exp060_rel_Gslam48yuan_teleop21_startstate",
+   "steps": 50000,
+   "seed": 1000,
+   "start": "2026-11-17T18:43:22-10:00",
+   "end": "2026-11-17T19:34:06-10:00"
+  }
+ ]
+}
