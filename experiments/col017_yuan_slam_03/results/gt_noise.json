@@ -1,0 +1,41 @@
+{
+ "frames_with_all_tiles": 58,
+ "tile_switch": {
+  "n": 174,
+  "rot_deg_median": 0.2896476109001562,
+  "rot_deg_p95": 0.8090579003761909,
+  "trans_mm_median": 3.7990457117265466,
+  "trans_mm_p95": 14.97160333699887
+ },
+ "method": "by_dt: same tiles at both ends, (A vs B relative motion) / sqrt(2); tile_switch: |A - B| absolute, i.e. ends seeing different tile pairs",
+ "by_dt": {
+  "0.08": {
+   "n": 123,
+   "rot_deg_median": 0.14733361660206548,
+   "rot_deg_p95": 0.5649802538975481,
+   "trans_mm_median": 1.688405399655575,
+   "trans_mm_p95": 6.168013735182535
+  },
+  "0.5": {
+   "n": 51,
+   "rot_deg_median": 0.14213710571767435,
+   "rot_deg_p95": 0.5612281472979257,
+   "trans_mm_median": 1.7458934605793714,
+   "trans_mm_p95": 5.875939252058495
+  },
+  "1.0": {
+   "n": 51,
+   "rot_deg_median": 0.14240437118028768,
+   "rot_deg_p95": 0.4113184930870911,
+   "trans_mm_median": 1.4727190176184946,
+   "trans_mm_p95": 3.6670659828746808
+  },
+  "2.0": {
+   "n": 27,
+   "rot_deg_median": 0.32724082298920976,
+   "rot_deg_p95": 0.4829781647002443,
+   "trans_mm_median": 3.1772247044356843,
+   "trans_mm_p95": 8.896976178619317
+  }
+ }
+}

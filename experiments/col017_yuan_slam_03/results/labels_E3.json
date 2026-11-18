@@ -1,0 +1,179 @@
+{
+ "ref": "E3",
+ "anchors": 260,
+ "excluded": [],
+ "by_step": {
+  "1": {
+   "dt_s": 0.06666666666666667,
+   "n": 255,
+   "pos_mm_median": 1.2109303587399047,
+   "pos_mm_p90": 7.302135520424062,
+   "rot_deg_median": 0.17205186979939,
+   "rot_deg_p90": 0.7759650519875155
+  },
+  "2": {
+   "dt_s": 0.13333333333333333,
+   "n": 250,
+   "pos_mm_median": 1.7401684162587947,
+   "pos_mm_p90": 9.221775738993502,
+   "rot_deg_median": 0.20116001953616747,
+   "rot_deg_p90": 1.1249089952830027
+  },
+  "4": {
+   "dt_s": 0.26666666666666666,
+   "n": 240,
+   "pos_mm_median": 2.045307673076751,
+   "pos_mm_p90": 11.339337319435948,
+   "rot_deg_median": 0.2389253703807983,
+   "rot_deg_p90": 1.4306034524088016
+  },
+  "8": {
+   "dt_s": 0.5333333333333333,
+   "n": 224,
+   "pos_mm_median": 2.561915459486852,
+   "pos_mm_p90": 13.461158811394409,
+   "rot_deg_median": 0.3074725008530649,
+   "rot_deg_p90": 1.4402699979421842
+  },
+  "15": {
+   "dt_s": 1.0,
+   "n": 200,
+   "pos_mm_median": 3.7421900318783416,
+   "pos_mm_p90": 14.809395509863979,
+   "rot_deg_median": 0.4267266766846417,
+   "rot_deg_p90": 1.8292137706771312
+  },
+  "30": {
+   "dt_s": 2.0,
+   "n": 164,
+   "pos_mm_median": 6.36943065972973,
+   "pos_mm_p90": 16.22362818554755,
+   "rot_deg_median": 0.6438264411116812,
+   "rot_deg_p90": 2.208097110486229
+  },
+  "60": {
+   "dt_s": 4.0,
+   "n": 82,
+   "pos_mm_median": 9.765529535149655,
+   "pos_mm_p90": 15.947225708810192,
+   "rot_deg_median": 0.8979266261585523,
+   "rot_deg_p90": 2.1228439731862765
+  },
+  "100": {
+   "dt_s": 6.666666666666667,
+   "n": 3,
+   "pos_mm_median": 14.846098401281814,
+   "pos_mm_p90": 14.854847546801775,
+   "rot_deg_median": 2.02232259607384,
+   "rot_deg_p90": 2.0567624979241064
+  }
+ },
+ "chunk": {
+  "15": {
+   "anchors": 256,
+   "pos_mm_mean": 5.009574136656612,
+   "pos_mm_median": 4.394461490636322,
+   "pos_mm_p90": 10.728297828550303,
+   "rot_deg_mean": 0.6182389813037161,
+   "rot_deg_median": 0.523179041346578,
+   "rot_deg_p90": 1.29577577412647,
+   "pooled_pos_mm_mean": 4.859818064201372,
+   "pooled_rot_deg_mean": 0.5709780603657986
+  },
+  "30": {
+   "anchors": 257,
+   "pos_mm_mean": 6.038891152745674,
+   "pos_mm_median": 5.077514332025724,
+   "pos_mm_p90": 11.360124917164656,
+   "rot_deg_mean": 0.7459696471118328,
+   "rot_deg_median": 0.6240218856667081,
+   "rot_deg_p90": 1.4723905653651488,
+   "pooled_pos_mm_mean": 5.963805514542057,
+   "pooled_rot_deg_mean": 0.6949774002622118
+  },
+  "50": {
+   "anchors": 257,
+   "pos_mm_mean": 6.738955707057102,
+   "pos_mm_median": 6.273301429886302,
+   "pos_mm_p90": 11.727055251216745,
+   "rot_deg_mean": 0.8388110404959758,
+   "rot_deg_median": 0.73294922426822,
+   "rot_deg_p90": 1.5368452126766492,
+   "pooled_pos_mm_mean": 6.810689032527573,
+   "pooled_rot_deg_mean": 0.7967795770013623
+  },
+  "100": {
+   "anchors": 257,
+   "pos_mm_mean": 7.2338989602125405,
+   "pos_mm_median": 6.656376072256351,
+   "pos_mm_p90": 11.727055251216745,
+   "rot_deg_mean": 0.9172887335517913,
+   "rot_deg_median": 0.8048209327115639,
+   "rot_deg_p90": 1.5822452971711949,
+   "pooled_pos_mm_mean": 7.4129118573599735,
+   "pooled_rot_deg_mean": 0.8940853556739426
+  }
+ },
+ "kept_episodes": 15,
+ "without_flagged": {
+  "ref": "E3",
+  "anchors": 0,
+  "excluded": [
+   "ep10",
+   "ep11",
+   "ep13",
+   "ep16",
+   "ep20",
+   "ep29",
+   "ep36"
+  ],
+  "by_step": {},
+  "chunk": {
+   "15": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "30": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "50": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   },
+   "100": {
+    "anchors": 0,
+    "pos_mm_mean": null,
+    "pos_mm_median": null,
+    "pos_mm_p90": null,
+    "rot_deg_mean": null,
+    "rot_deg_median": null,
+    "rot_deg_p90": null,
+    "pooled_pos_mm_mean": null,
+    "pooled_rot_deg_mean": null
+   }
+  },
+  "kept_episodes": 10
+ }
+}
