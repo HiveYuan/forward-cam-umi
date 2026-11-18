@@ -1,0 +1,16 @@
+# exp061_rel_Gslam48yuanslow_startstate: exp053_rel_Gslam48_startstate on pilot_mix_gHs3_yuan_rel_slam_v1_slow175 (batch yuan_slam_b1s): the template's 242 episodes (calib/train_eps_pilot_mix_gHs3_48.txt) + 121 collected episodes (all sessions; the collected val episodes, meta/val_episodes_collected.json, held out); everything else as exp053_rel_Gslam48_startstate.
+# Written by python -m slam.ingest.
+experiment: exp061_rel_Gslam48yuanslow_startstate
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset:
+  repo: pilot_mix_gHs3_yuan_rel_slam_v1_slow175
+  root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_yuan_rel_slam_v1_slow175
+  episodes: experiments/exp061_rel_Gslam48yuanslow_startstate/train_episodes.txt
+relative:
+  masks:
+  - slam_valid
+  - ik_unreached
+  anchor: anchor_pose
+  state: startpose_gripper
+  stats: calib/rel_action_stats_teleop172_startstate.json
+output_dir: /home/student/yuanliu-hawaii/work/train/exp061_rel_Gslam48yuanslow_startstate
