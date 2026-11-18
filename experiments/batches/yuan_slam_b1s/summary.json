@@ -1,0 +1,502 @@
+{
+ "batch": "yuan_slam_b1s",
+ "sessions": [
+  {
+   "session": "yuan_slam_02",
+   "experiment": "col015_yuan_slam_02",
+   "configured": 10,
+   "kept": 10,
+   "drops": {},
+   "slam_valid": 0.9808394160583942,
+   "label_err_1s_mm": 3.1308155628323027,
+   "scale_abs_err_median": 0.08522701932021659,
+   "scale_bias_median": 0.008285342989648337,
+   "width_head_vs_wrist": {
+    "median": 0.05130963091577968,
+    "p90": 0.26584784961084207
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_02b",
+   "experiment": "col016_yuan_slam_02b",
+   "configured": 27,
+   "kept": 23,
+   "drops": {
+    "gripper coverage": 4
+   },
+   "slam_valid": 0.9607135272881716,
+   "label_err_1s_mm": 3.156022335187455,
+   "scale_abs_err_median": 0.10667649457619033,
+   "scale_bias_median": -0.05525510699236802,
+   "width_head_vs_wrist": {
+    "median": 0.05672116741787192,
+    "p90": 0.23011874370546923
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_04",
+   "experiment": "col018_yuan_slam_04",
+   "configured": 33,
+   "kept": 30,
+   "drops": {
+    "gripper coverage": 3
+   },
+   "slam_valid": 0.9559315730754927,
+   "label_err_1s_mm": 3.9032312272749103,
+   "scale_abs_err_median": 0.09836567965494819,
+   "scale_bias_median": -0.022675276224291607,
+   "width_head_vs_wrist": {
+    "median": 0.044959009871326505,
+    "p90": 0.1962939463108128
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_05",
+   "experiment": "col019_yuan_slam_05",
+   "configured": 35,
+   "kept": 32,
+   "drops": {
+    "gripper coverage": 3
+   },
+   "slam_valid": 0.9657364888731896,
+   "label_err_1s_mm": 3.070648118594696,
+   "scale_abs_err_median": 0.10739511571624205,
+   "scale_bias_median": -0.07221569484451151,
+   "width_head_vs_wrist": {
+    "median": 0.04592725947185283,
+    "p90": 0.19384464628881778
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  },
+  {
+   "session": "yuan_slam_06",
+   "experiment": "col020_yuan_slam_06",
+   "configured": 42,
+   "kept": 39,
+   "drops": {
+    "gripper coverage": 3
+   },
+   "slam_valid": 0.9798987707881417,
+   "label_err_1s_mm": 3.1418549528397013,
+   "scale_abs_err_median": 0.10423245117607677,
+   "scale_bias_median": -0.06251481448987367,
+   "width_head_vs_wrist": {
+    "median": 0.04479743812515086,
+    "p90": 0.17421595552922195
+   },
+   "status": "exported",
+   "accepted_by_review": false
+  }
+ ],
+ "episodes_kept": 134,
+ "what_if": {
+  "variants": {
+   "current": {
+    "label_err_1s_mm_max": 8.0,
+    "slam_valid_min": 0.9,
+    "grip_coverage_min": 0.7,
+    "max_rejected_fraction": 0.3
+   },
+   "coverage >= 0.6": {
+    "label_err_1s_mm_max": 8.0,
+    "slam_valid_min": 0.9,
+    "grip_coverage_min": 0.6,
+    "max_rejected_fraction": 0.3
+   },
+   "coverage >= 0.5": {
+    "label_err_1s_mm_max": 8.0,
+    "slam_valid_min": 0.9,
+    "grip_coverage_min": 0.5,
+    "max_rejected_fraction": 0.3
+   },
+   "coverage >= 0.5, no session holds": {
+    "label_err_1s_mm_max": 1000000000.0,
+    "slam_valid_min": 0.0,
+    "grip_coverage_min": 0.5,
+    "max_rejected_fraction": 1.0
+   }
+  },
+  "sessions": {
+   "yuan_slam_02": {
+    "current": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9808394160583942
+    },
+    "coverage >= 0.6": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9808394160583942
+    },
+    "coverage >= 0.5": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9808394160583942
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 10,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9808394160583942
+    }
+   },
+   "yuan_slam_02b": {
+    "current": {
+     "kept": 23,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9607135272881716
+    },
+    "coverage >= 0.6": {
+     "kept": 27,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9598487576521426
+    },
+    "coverage >= 0.5": {
+     "kept": 27,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9598487576521426
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 27,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9598487576521426
+    }
+   },
+   "yuan_slam_04": {
+    "current": {
+     "kept": 30,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9559315730754927
+    },
+    "coverage >= 0.6": {
+     "kept": 30,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9559315730754927
+    },
+    "coverage >= 0.5": {
+     "kept": 31,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9565453557848995
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 31,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9565453557848995
+    }
+   },
+   "yuan_slam_05": {
+    "current": {
+     "kept": 32,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9657364888731896
+    },
+    "coverage >= 0.6": {
+     "kept": 34,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9673224408136045
+    },
+    "coverage >= 0.5": {
+     "kept": 35,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9659863945578231
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 35,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9659863945578231
+    }
+   },
+   "yuan_slam_06": {
+    "current": {
+     "kept": 39,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9798987707881417
+    },
+    "coverage >= 0.6": {
+     "kept": 41,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9803677588828978
+    },
+    "coverage >= 0.5": {
+     "kept": 41,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9803677588828978
+    },
+    "coverage >= 0.5, no session holds": {
+     "kept": 41,
+     "held": false,
+     "reasons": [],
+     "slam_valid": 0.9803677588828978
+    }
+   }
+  },
+  "totals": {
+   "current": {
+    "kept": 134,
+    "kept_not_held": 134
+   },
+   "coverage >= 0.6": {
+    "kept": 142,
+    "kept_not_held": 142
+   },
+   "coverage >= 0.5": {
+    "kept": 144,
+    "kept_not_held": 144
+   },
+   "coverage >= 0.5, no session holds": {
+    "kept": 144,
+    "kept_not_held": 144
+   }
+  }
+ },
+ "mix": {
+  "mix": {
+   "dataset": "/home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_yuan_rel_slam_v1_slow175",
+   "base_episodes": 378,
+   "new_episodes": 134,
+   "shards": [
+    "yuan_slam_02__col015_yuan_slam_02__ad2e99c7",
+    "yuan_slam_02b__col016_yuan_slam_02b__e2430c88",
+    "yuan_slam_04__col018_yuan_slam_04__7e03c85c",
+    "yuan_slam_05__col019_yuan_slam_05__38b1517c",
+    "yuan_slam_06__col020_yuan_slam_06__99ed579a"
+   ],
+   "time": "2026-11-17 19:56:44"
+  },
+  "verify": {
+   "dataset": "/home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_yuan_rel_slam_v1_slow175",
+   "mix_time": "2026-11-17 19:56:44",
+   "collected": {
+    "episodes": 134,
+    "steps": 24856,
+    "slam_valid": 0.96793532371521,
+    "gripper_p1_p50_p99": [
+     0.2,
+     0.275,
+     0.667
+    ]
+   },
+   "base_glove": {
+    "gripper_p1_p50_p99": [
+     0.211,
+     0.542,
+     0.744
+    ]
+   },
+   "motion_1s": {
+    "base_glove": {
+     "median_mm": 45.04805841501453,
+     "p90_mm": 98.97610888915291,
+     "mean_direction": [
+      -0.204,
+      0.066,
+      0.266
+     ]
+    },
+    "collected": {
+     "median_mm": 36.06901863746446,
+     "p90_mm": 96.31805631743399,
+     "mean_direction": [
+      -0.332,
+      0.038,
+      0.201
+     ]
+    }
+   },
+   "rel_chunk_check": {
+    "episodes": [
+     375,
+     377,
+     378,
+     379
+    ],
+    "anchors": 405,
+    "state_dim": 10,
+    "action_shape": [
+     100,
+     10
+    ]
+   },
+   "contact_sheet": "/home/student/yuanliu-hawaii/work/ingest/yuan_slam_b1s/frames_base_vs_collected.jpg",
+   "problems": []
+  }
+ },
+ "policies": [
+  {
+   "arm": "Yosub paper G48, joint space (paper val 0.295; physical errors from our reproduction exp049_joint_G48, val 0.291)",
+   "exp": "exp049_joint_G48",
+   "step": "44000",
+   "loss": 0.2946,
+   "pos": [
+    36.46612144734311,
+    50.02121803223811,
+    105.46143105439123,
+    65.2374648320737
+   ],
+   "rot": 16.18289088537604,
+   "grip": 0.10927408109863673
+  },
+  {
+   "arm": "exp052_rel_T48_startstate",
+   "exp": "exp052_rel_T48_startstate",
+   "step": "46000",
+   "loss": 0.5025240001433036,
+   "pos": [
+    40.904891512197324,
+    75.73713499193298,
+    147.3510794491625,
+    87.09506211318684
+   ],
+   "rot": 18.54498935839105,
+   "grip": 0.11605961703257799
+  },
+  {
+   "arm": "exp053_rel_Gslam48_startstate",
+   "exp": "exp053_rel_Gslam48_startstate",
+   "step": "48000",
+   "loss": 0.4470363619572976,
+   "pos": [
+    34.07974560029706,
+    65.1956546906643,
+    120.80549385602961,
+    71.14988967528137
+   ],
+   "rot": 16.72167412457444,
+   "grip": 0.12200622480777243
+  },
+  {
+   "arm": "exp058_rel_Gslam48yuan_startstate",
+   "exp": "exp058_rel_Gslam48yuan_startstate",
+   "step": "42000",
+   "loss": 0.4599245819098809,
+   "pos": [
+    32.098099958046824,
+    71.83829015779394,
+    138.37530687017795,
+    77.06520752223354
+   ],
+   "rot": 17.277319251826377,
+   "grip": 0.14029239090565987
+  },
+  {
+   "arm": "exp061_rel_Gslam48yuanslow_startstate",
+   "exp": "exp061_rel_Gslam48yuanslow_startstate",
+   "step": "40000",
+   "loss": 0.44593820926897665,
+   "pos": [
+    29.18615840262774,
+    68.46271793930731,
+    131.83187415615373,
+    73.96422858659948
+   ],
+   "rot": 16.358434377964706,
+   "grip": 0.12976035829257138
+  },
+  {
+   "arm": "exp062_rel_Gslam48yuanslow_teleop21_startstate",
+   "exp": "exp062_rel_Gslam48yuanslow_teleop21_startstate",
+   "step": "30000",
+   "loss": 0.4505724053172504,
+   "pos": [
+    32.543489273138164,
+    71.55124682393847,
+    121.52193646520678,
+    74.94110233602589
+   ],
+   "rot": 15.866141359404129,
+   "grip": 0.14722971341226193
+  }
+ ],
+ "collected_val": [
+  {
+   "arm": "exp053_rel_Gslam48_startstate (without the collected data)",
+   "step": 48000,
+   "loss": 0.5879244517271411,
+   "pos": [
+    40.94352430713789,
+    131.17408148694307,
+    196.56139277881152,
+    113.54221010038582
+   ],
+   "rot": 22.658107282623295,
+   "grip": 0.14066167066655083
+  },
+  {
+   "arm": "exp052_rel_T48_startstate (without the collected data)",
+   "step": 46000,
+   "loss": 0.6446289392384705,
+   "pos": [
+    95.47926585743583,
+    178.78982720035006,
+    185.3482378172843,
+    150.1925937931826
+   ],
+   "rot": 22.484361388541522,
+   "grip": 0.23639183860793606
+  },
+  {
+   "arm": "exp058_rel_Gslam48yuan_startstate (without the collected data)",
+   "step": 42000,
+   "loss": 0.3195137061027638,
+   "pos": [
+    21.000663444246527,
+    54.923772994886406,
+    81.20790787992067,
+    58.29207089223253
+   ],
+   "rot": 12.198910264769298,
+   "grip": 0.0846496156785057
+  },
+  {
+   "arm": "exp061_rel_Gslam48yuanslow_startstate",
+   "step": 40000,
+   "loss": 0.334415085777104,
+   "pos": [
+    24.761911883035538,
+    59.96355626857536,
+    89.18878920630964,
+    61.23375190752758
+   ],
+   "rot": 13.205174663323639,
+   "grip": 0.08630750211490092
+  },
+  {
+   "arm": "exp062_rel_Gslam48yuanslow_teleop21_startstate",
+   "step": 30000,
+   "loss": 0.3379899869200164,
+   "pos": [
+    24.484586491162162,
+    59.92669090890012,
+    93.989334461209,
+    61.20948862408108
+   ],
+   "rot": 13.52905182498324,
+   "grip": 0.08882597347158953
+  }
+ ]
+}
