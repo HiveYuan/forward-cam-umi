@@ -2,44 +2,6 @@
  "batch": "yuan_slam_b1",
  "sessions": [
   {
-   "session": "yuan_slam_01",
-   "experiment": "col013_yuan_slam_01",
-   "configured": 8,
-   "kept": 6,
-   "drops": {
-    "gripper coverage": 2
-   },
-   "slam_valid": 0.8717366628830874,
-   "label_err_1s_mm": null,
-   "scale_abs_err_median": 0.09435388741220851,
-   "scale_bias_median": 0.023417915371243714,
-   "width_head_vs_wrist": {
-    "median": 0.02413277760245669,
-    "p90": 0.1665643083843515
-   },
-   "status": "held: slam_valid 0.872 < 0.9",
-   "accepted_by_review": false
-  },
-  {
-   "session": "yuan_slam_01b",
-   "experiment": "col014_yuan_slam_01b",
-   "configured": 23,
-   "kept": 15,
-   "drops": {
-    "gripper coverage": 8
-   },
-   "slam_valid": 0.9518716577540107,
-   "label_err_1s_mm": 4.384502893080088,
-   "scale_abs_err_median": 0.06582637922639245,
-   "scale_bias_median": 0.015317850566380464,
-   "width_head_vs_wrist": {
-    "median": 0.040133326402424244,
-    "p90": 0.21783041312586138
-   },
-   "status": "held: 8/23 episodes dropped (> 30%)",
-   "accepted_by_review": false
-  },
-  {
    "session": "yuan_slam_02",
    "experiment": "col015_yuan_slam_02",
    "configured": 10,
@@ -73,25 +35,6 @@
     "p90": 0.23011874370546923
    },
    "status": "exported",
-   "accepted_by_review": false
-  },
-  {
-   "session": "yuan_slam_03",
-   "experiment": "col017_yuan_slam_03",
-   "configured": 32,
-   "kept": 16,
-   "drops": {
-    "gripper coverage": 16
-   },
-   "slam_valid": 0.8947996183206107,
-   "label_err_1s_mm": 4.1056360128095335,
-   "scale_abs_err_median": 0.11828689169401507,
-   "scale_bias_median": -0.07364464596422615,
-   "width_head_vs_wrist": {
-    "median": 0.05868383028081048,
-    "p90": 0.2770454182304652
-   },
-   "status": "held: 16/32 episodes dropped (> 30%); slam_valid 0.895 < 0.9",
    "accepted_by_review": false
   },
   {
@@ -152,7 +95,7 @@
    "accepted_by_review": false
   }
  ],
- "episodes_kept": 171,
+ "episodes_kept": 134,
  "what_if": {
   "variants": {
    "current": {
@@ -181,66 +124,6 @@
    }
   },
   "sessions": {
-   "yuan_slam_01": {
-    "current": {
-     "kept": 6,
-     "held": true,
-     "reasons": [
-      "slam_valid 0.872 < 0.9"
-     ],
-     "slam_valid": 0.8717366628830874
-    },
-    "coverage >= 0.6": {
-     "kept": 8,
-     "held": true,
-     "reasons": [
-      "slam_valid 0.854 < 0.9"
-     ],
-     "slam_valid": 0.8539841468502295
-    },
-    "coverage >= 0.5": {
-     "kept": 8,
-     "held": true,
-     "reasons": [
-      "slam_valid 0.854 < 0.9"
-     ],
-     "slam_valid": 0.8539841468502295
-    },
-    "coverage >= 0.5, no session holds": {
-     "kept": 8,
-     "held": false,
-     "reasons": [],
-     "slam_valid": 0.8539841468502295
-    }
-   },
-   "yuan_slam_01b": {
-    "current": {
-     "kept": 15,
-     "held": true,
-     "reasons": [
-      "8/23 episodes dropped (> 30%)"
-     ],
-     "slam_valid": 0.9518716577540107
-    },
-    "coverage >= 0.6": {
-     "kept": 19,
-     "held": false,
-     "reasons": [],
-     "slam_valid": 0.9315168029064487
-    },
-    "coverage >= 0.5": {
-     "kept": 20,
-     "held": false,
-     "reasons": [],
-     "slam_valid": 0.9350068775790922
-    },
-    "coverage >= 0.5, no session holds": {
-     "kept": 20,
-     "held": false,
-     "reasons": [],
-     "slam_valid": 0.9350068775790922
-    }
-   },
    "yuan_slam_02": {
     "current": {
      "kept": 10,
@@ -291,37 +174,6 @@
      "held": false,
      "reasons": [],
      "slam_valid": 0.9608832807570978
-    }
-   },
-   "yuan_slam_03": {
-    "current": {
-     "kept": 16,
-     "held": true,
-     "reasons": [
-      "16/32 episodes dropped (> 30%)",
-      "slam_valid 0.895 < 0.9"
-     ],
-     "slam_valid": 0.8947996183206107
-    },
-    "coverage >= 0.6": {
-     "kept": 18,
-     "held": true,
-     "reasons": [
-      "14/32 episodes dropped (> 30%)"
-     ],
-     "slam_valid": 0.9029374201787995
-    },
-    "coverage >= 0.5": {
-     "kept": 24,
-     "held": false,
-     "reasons": [],
-     "slam_valid": 0.9138958594730239
-    },
-    "coverage >= 0.5, no session holds": {
-     "kept": 24,
-     "held": false,
-     "reasons": [],
-     "slam_valid": 0.9138958594730239
     }
    },
    "yuan_slam_04": {
@@ -405,21 +257,178 @@
   },
   "totals": {
    "current": {
-    "kept": 171,
+    "kept": 134,
     "kept_not_held": 134
    },
    "coverage >= 0.6": {
-    "kept": 187,
-    "kept_not_held": 161
+    "kept": 142,
+    "kept_not_held": 142
    },
    "coverage >= 0.5": {
-    "kept": 196,
-    "kept_not_held": 188
+    "kept": 144,
+    "kept_not_held": 144
    },
    "coverage >= 0.5, no session holds": {
-    "kept": 196,
-    "kept_not_held": 196
+    "kept": 144,
+    "kept_not_held": 144
    }
   }
- }
+ },
+ "mix": {
+  "mix": {
+   "dataset": "/home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_yuan_rel_slam_v1",
+   "base_episodes": 378,
+   "new_episodes": 134,
+   "shards": [
+    "yuan_slam_02__col015_yuan_slam_02__37bca954",
+    "yuan_slam_02b__col016_yuan_slam_02b__e1dd29fe",
+    "yuan_slam_04__col018_yuan_slam_04__fc267f48",
+    "yuan_slam_05__col019_yuan_slam_05__3b6a170f",
+    "yuan_slam_06__col020_yuan_slam_06__b0155987"
+   ],
+   "time": "2026-11-17 16:02:50"
+  },
+  "verify": {
+   "dataset": "/home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_yuan_rel_slam_v1",
+   "mix_time": "2026-11-17 16:02:50",
+   "collected": {
+    "episodes": 134,
+    "steps": 35477,
+    "slam_valid": 0.9686839580535889,
+    "gripper_p1_p50_p99": [
+     0.2,
+     0.275,
+     0.667
+    ]
+   },
+   "base_glove": {
+    "gripper_p1_p50_p99": [
+     0.211,
+     0.542,
+     0.744
+    ]
+   },
+   "motion_1s": {
+    "base_glove": {
+     "median_mm": 45.04805841501453,
+     "p90_mm": 98.97610888915291,
+     "mean_direction": [
+      -0.204,
+      0.066,
+      0.266
+     ]
+    },
+    "collected": {
+     "median_mm": 24.946775223736687,
+     "p90_mm": 69.53002451227734,
+     "mean_direction": [
+      -0.353,
+      0.033,
+      0.19
+     ]
+    }
+   },
+   "rel_chunk_check": {
+    "episodes": [
+     375,
+     377,
+     378,
+     379
+    ],
+    "anchors": 577,
+    "state_dim": 10,
+    "action_shape": [
+     100,
+     10
+    ]
+   },
+   "contact_sheet": "/home/student/yuanliu-hawaii/work/ingest/yuan_slam_b1/frames_base_vs_collected.jpg",
+   "problems": []
+  }
+ },
+ "policies": [
+  {
+   "arm": "Yosub paper G48, joint space (paper val 0.295; physical errors from our reproduction exp049_joint_G48, val 0.291)",
+   "exp": "exp049_joint_G48",
+   "step": "44000",
+   "loss": 0.2946,
+   "pos": [
+    36.46612144734311,
+    50.02121803223811,
+    105.46143105439123,
+    65.2374648320737
+   ],
+   "rot": 16.18289088537604,
+   "grip": 0.10927408109863673
+  },
+  {
+   "arm": "exp052_rel_T48_startstate",
+   "exp": "exp052_rel_T48_startstate",
+   "step": "46000",
+   "loss": 0.5025240001433036,
+   "pos": [
+    40.904891512197324,
+    75.73713499193298,
+    147.3510794491625,
+    87.09506211318684
+   ],
+   "rot": 18.54498935839105,
+   "grip": 0.11605961703257799
+  },
+  {
+   "arm": "exp058_rel_Gslam48yuan_startstate",
+   "exp": "exp058_rel_Gslam48yuan_startstate",
+   "step": "42000",
+   "loss": 0.4599245819098809,
+   "pos": [
+    32.098099958046824,
+    71.83829015779394,
+    138.37530687017795,
+    77.06520752223354
+   ],
+   "rot": 17.277319251826377,
+   "grip": 0.14029239090565987
+  }
+ ],
+ "collected_val": [
+  {
+   "arm": "exp053_rel_Gslam48_startstate (without the collected data)",
+   "step": 48000,
+   "loss": 0.5763283420617445,
+   "pos": [
+    35.11168290957716,
+    122.38905752063121,
+    181.19224388161436,
+    108.627519411964
+   ],
+   "rot": 21.8164193946502,
+   "grip": 0.14667238296187615
+  },
+  {
+   "arm": "exp052_rel_T48_startstate (without the collected data)",
+   "step": 46000,
+   "loss": 0.6342951890042318,
+   "pos": [
+    95.74419552605733,
+    176.46159322650567,
+    185.13780901536055,
+    148.6452042285906
+   ],
+   "rot": 21.496126757486827,
+   "grip": 0.23483082052907006
+  },
+  {
+   "arm": "exp058_rel_Gslam48yuan_startstate",
+   "step": 42000,
+   "loss": 0.273957008049151,
+   "pos": [
+    17.000760752598815,
+    40.28662214171475,
+    67.81463611099258,
+    46.328048030512434
+   ],
+   "rot": 10.574068297427578,
+   "grip": 0.07874902414683428
+  }
+ ]
 }
