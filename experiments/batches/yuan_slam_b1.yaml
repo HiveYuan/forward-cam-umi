@@ -3,8 +3,10 @@ description: >-
   The eight formal yuan_slam sessions (2026-11-15/16, glove unit yuan, Yosub's red block -> bin task, tiles kept
   as GT), appended to the D2a dataset; D2a (exp053) retrained with them.
 bucket: gs://yuan-headcam-umi-collect/yuan
-sessions: [yuan_slam_01, yuan_slam_01b, yuan_slam_02, yuan_slam_02b, yuan_slam_03, yuan_slam_04, yuan_slam_05,
-           yuan_slam_06]
+# Sessions (user, 2026-11-17, option a): only the five sessions that pass the gates (134 episodes). yuan_slam_01
+# (slam_valid 0.872), yuan_slam_01b (8/23 dropped) and yuan_slam_03 (16/32 dropped, slam_valid 0.895) are left out,
+# not accepted; their SLAM results stay in col013 / col014 / col017.
+sessions: [yuan_slam_02, yuan_slam_02b, yuan_slam_04, yuan_slam_05, yuan_slam_06]
 overrides:
   yuan_slam_06: {include: [2, 14, 17]}       # field-QC false FAILs (IPPE ambiguity); user-approved 2026-11-16
 # Scale (user, 2026-11-17): Bpar = Bnet on the keyframes with enough parallax. The head moves little in these
@@ -12,11 +14,14 @@ overrides:
 # bias 17.7 / -13.1% -> 10.1 / -4.6%). Stage 1 under Bnet: col005-col012 (report at 3709f4e).
 slam:
   scale: {primary: Bpar, params: {min_parallax: 0.1}}
-# Stage 1 (user, 2026-11-16): SLAM, gates and export of every session under the current gates, then a look at
-# the report's "What other gates would keep" table before deciding on the gates. No mix, no training yet: the
-# two keys below stay commented out until then (a change of gates re-exports only; SLAM is not rerun).
-# dataset:
-#   out: pilot_mix_gHs3_yuan_rel_slam_v1
-# train:
-#   - {exp: exp058_rel_Gslam48yuan_startstate, template: exp053_rel_Gslam48_startstate}
+# Gates (user, 2026-11-17): the defaults (gripper coverage >= 0.7 etc.).
+# Stage 2 (user, 2026-11-17): mix and train exp058 = exp053 (D2a) unchanged + the collected train episodes.
+# Known risk, accepted for now (user: look at it once trained): frames are sampled uniformly, so the teleop share of
+# the training frames drops from 18% (10,443 of 58,975) to about 11% (yuan adds ~32k train frames, ~35%). The robot
+# val is teleop in the lab scene while yuan is a kitchen, so robot val may get worse; a teleop-oversampling arm would
+# be the follow-up.
+dataset:
+  out: pilot_mix_gHs3_yuan_rel_slam_v1
+train:
+  - {exp: exp058_rel_Gslam48yuan_startstate, template: exp053_rel_Gslam48_startstate}
 compare: [exp052_rel_T48_startstate]
