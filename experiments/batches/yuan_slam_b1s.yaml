@@ -1,0 +1,24 @@
+batch: yuan_slam_b1s
+description: >-
+  yuan_slam_b1's five gated sessions re-exported with slow 1.75 instead of 2.5 (follow-up 2 to exp058, user
+  2026-11-17): yuan moves at 0.70x the HHs3 glove speed while moving (p50 2.33 vs 3.34 mm/step, p90 5.0 vs 7.0, at
+  slow 2.5), so 2.5 / 1.43 = 1.75 matches both. Same experiments (col015/016/018/019/020, scale Bpar) and gates.
+bucket: gs://yuan-headcam-umi-collect/yuan
+sessions: [yuan_slam_02, yuan_slam_02b, yuan_slam_04, yuan_slam_05, yuan_slam_06]
+overrides:
+  yuan_slam_06: {include: [2, 14, 17]}       # field-QC false FAILs (IPPE ambiguity); user-approved 2026-11-16
+slam:
+  scale: {primary: Bpar, params: {min_parallax: 0.1}}
+dataset:
+  out: pilot_mix_gHs3_yuan_rel_slam_v1_slow175
+  slow: 1.75
+# Note: the collected val set is re-timed too, so its numbers are not comparable with yuan_slam_b1's; robot val and
+# glove val are the same episodes and labels.
+train:
+  - {exp: exp061_rel_Gslam48yuanslow_startstate, template: exp053_rel_Gslam48_startstate}
+  - exp: exp062_rel_Gslam48yuanslow_teleop21_startstate
+    template: exp053_rel_Gslam48_startstate
+    sampling:
+      groups: {teleop: [0, 178], glove: [178, 378], collected: [378, 100000]}
+      shares: {teleop: 0.21}
+compare: [exp052_rel_T48_startstate, exp053_rel_Gslam48_startstate, exp058_rel_Gslam48yuan_startstate]

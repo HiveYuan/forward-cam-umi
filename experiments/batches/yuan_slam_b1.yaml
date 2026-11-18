@@ -24,4 +24,11 @@ dataset:
   out: pilot_mix_gHs3_yuan_rel_slam_v1
 train:
   - {exp: exp058_rel_Gslam48yuan_startstate, template: exp053_rel_Gslam48_startstate}
+  # exp058 (2026-11-17): robot val chunk mean 77.1 vs exp053 71.1 mm. Follow-up 1 (user): restore the teleop share of
+  # the training anchors to exp053's 21% (10,443 of 49,652; it was 13% in exp058 after masking, not the 11% by frames).
+  - exp: exp060_rel_Gslam48yuan_teleop21_startstate
+    template: exp053_rel_Gslam48_startstate
+    sampling:
+      groups: {teleop: [0, 178], glove: [178, 378], collected: [378, 100000]}
+      shares: {teleop: 0.21}
 compare: [exp052_rel_T48_startstate]
