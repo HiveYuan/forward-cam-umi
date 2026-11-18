@@ -3,7 +3,7 @@
  "sessions": [
   {
    "session": "yuan_slam_01",
-   "experiment": "col005_yuan_slam_01",
+   "experiment": "col013_yuan_slam_01",
    "configured": 8,
    "kept": 6,
    "drops": {
@@ -11,8 +11,8 @@
    },
    "slam_valid": 0.8717366628830874,
    "label_err_1s_mm": null,
-   "scale_abs_err_median": 0.06423788187580753,
-   "scale_bias_median": -0.033580719396881564,
+   "scale_abs_err_median": 0.09435388741220851,
+   "scale_bias_median": 0.023417915371243714,
    "width_head_vs_wrist": {
     "median": 0.02413277760245669,
     "p90": 0.1665643083843515
@@ -22,16 +22,16 @@
   },
   {
    "session": "yuan_slam_01b",
-   "experiment": "col006_yuan_slam_01b",
+   "experiment": "col014_yuan_slam_01b",
    "configured": 23,
    "kept": 15,
    "drops": {
     "gripper coverage": 8
    },
    "slam_valid": 0.9518716577540107,
-   "label_err_1s_mm": 4.4563864201512615,
-   "scale_abs_err_median": 0.09060205125795795,
-   "scale_bias_median": -0.03369672264291523,
+   "label_err_1s_mm": 4.384502893080088,
+   "scale_abs_err_median": 0.06582637922639245,
+   "scale_bias_median": 0.015317850566380464,
    "width_head_vs_wrist": {
     "median": 0.040133326402424244,
     "p90": 0.21783041312586138
@@ -41,14 +41,14 @@
   },
   {
    "session": "yuan_slam_02",
-   "experiment": "col007_yuan_slam_02",
+   "experiment": "col015_yuan_slam_02",
    "configured": 10,
    "kept": 10,
    "drops": {},
    "slam_valid": 0.9817833173537871,
-   "label_err_1s_mm": 3.4115070369029983,
-   "scale_abs_err_median": 0.13954953621636806,
-   "scale_bias_median": -0.024935988695576283,
+   "label_err_1s_mm": 3.1308155628323027,
+   "scale_abs_err_median": 0.08522701932021659,
+   "scale_bias_median": 0.008285342989648337,
    "width_head_vs_wrist": {
     "median": 0.05130963091577968,
     "p90": 0.26584784961084207
@@ -58,16 +58,16 @@
   },
   {
    "session": "yuan_slam_02b",
-   "experiment": "col008_yuan_slam_02b",
+   "experiment": "col016_yuan_slam_02b",
    "configured": 27,
    "kept": 23,
    "drops": {
     "gripper coverage": 4
    },
    "slam_valid": 0.9616128552298765,
-   "label_err_1s_mm": 4.0222791265352935,
-   "scale_abs_err_median": 0.18828752461415788,
-   "scale_bias_median": -0.18828752461415788,
+   "label_err_1s_mm": 3.156022335187455,
+   "scale_abs_err_median": 0.10667649457619033,
+   "scale_bias_median": -0.05525510699236802,
    "width_head_vs_wrist": {
     "median": 0.05672116741787192,
     "p90": 0.23011874370546923
@@ -77,16 +77,16 @@
   },
   {
    "session": "yuan_slam_03",
-   "experiment": "col009_yuan_slam_03",
+   "experiment": "col017_yuan_slam_03",
    "configured": 32,
    "kept": 16,
    "drops": {
     "gripper coverage": 16
    },
    "slam_valid": 0.8947996183206107,
-   "label_err_1s_mm": 5.907048666612484,
-   "scale_abs_err_median": 0.31506884994453455,
-   "scale_bias_median": -0.2865482813414253,
+   "label_err_1s_mm": 4.1056360128095335,
+   "scale_abs_err_median": 0.11828689169401507,
+   "scale_bias_median": -0.07364464596422615,
    "width_head_vs_wrist": {
     "median": 0.05868383028081048,
     "p90": 0.2770454182304652
@@ -96,16 +96,16 @@
   },
   {
    "session": "yuan_slam_04",
-   "experiment": "col010_yuan_slam_04",
+   "experiment": "col018_yuan_slam_04",
    "configured": 33,
    "kept": 30,
    "drops": {
     "gripper coverage": 3
    },
    "slam_valid": 0.9568504758180159,
-   "label_err_1s_mm": 4.552568876529801,
-   "scale_abs_err_median": 0.28396465995333275,
-   "scale_bias_median": -0.2098118198124042,
+   "label_err_1s_mm": 3.9032312272749103,
+   "scale_abs_err_median": 0.09836567965494819,
+   "scale_bias_median": -0.022675276224291607,
    "width_head_vs_wrist": {
     "median": 0.044959009871326505,
     "p90": 0.1962939463108128
@@ -115,16 +115,16 @@
   },
   {
    "session": "yuan_slam_05",
-   "experiment": "col011_yuan_slam_05",
+   "experiment": "col019_yuan_slam_05",
    "configured": 35,
    "kept": 32,
    "drops": {
     "gripper coverage": 3
    },
    "slam_valid": 0.9669677100086601,
-   "label_err_1s_mm": 3.6796076124147525,
-   "scale_abs_err_median": 0.2082325226013042,
-   "scale_bias_median": -0.17325095435931304,
+   "label_err_1s_mm": 3.070648118594696,
+   "scale_abs_err_median": 0.10739511571624205,
+   "scale_bias_median": -0.07221569484451151,
    "width_head_vs_wrist": {
     "median": 0.04592725947185283,
     "p90": 0.19384464628881778
@@ -134,16 +134,16 @@
   },
   {
    "session": "yuan_slam_06",
-   "experiment": "col012_yuan_slam_06",
+   "experiment": "col020_yuan_slam_06",
    "configured": 42,
    "kept": 39,
    "drops": {
     "gripper coverage": 3
    },
    "slam_valid": 0.9799453053783045,
-   "label_err_1s_mm": 4.006566892426608,
-   "scale_abs_err_median": 0.1450693398160579,
-   "scale_bias_median": -0.10602981417588725,
+   "label_err_1s_mm": 3.1418549528397013,
+   "scale_abs_err_median": 0.10423245117607677,
+   "scale_bias_median": -0.06251481448987367,
    "width_head_vs_wrist": {
     "median": 0.04479743812515086,
     "p90": 0.17421595552922195
