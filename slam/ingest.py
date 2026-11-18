@@ -59,7 +59,8 @@ DEFAULTS = {
     "gates": {"label_err_1s_mm_max": 8.0, "slam_valid_min": 0.9, "grip_coverage_min": 0.7,
               "max_rejected_fraction": 0.3},
     "accept_held": [],
-    "slam": {"run": "E3", "masks": "sam3_v2_head", "gripper": "head", "target_fps": 26.27},
+    "slam": {"run": "E3", "masks": "sam3_v2_head", "gripper": "head", "target_fps": 26.27,
+             "scale": None},             # None: the template's scale; {primary: Bpar, params: {...}} replaces it
     "dataset": {"base": {"repo": "pilot_mix_gHs3_rel_slam_v3",
                          "root": str(C.WORK / "lerobot" / "pilot_mix_gHs3_rel_slam_v3"),
                          "glove_first_episode": 178},
@@ -346,7 +347,7 @@ class Ingest:
         from slam import collect as K
         sl, ov = self.b["slam"], self.b["overrides"].get(ds) or {}
         kw = dict(masks=sl["masks"], gripper=sl["gripper"], target_fps=sl["target_fps"],
-                  include=ov.get("include", []), exclude=ov.get("exclude", []))
+                  include=ov.get("include", []), exclude=ov.get("exclude", []), scale=sl.get("scale"))
         want, _, _ = K.build_config(ds, "x", **kw)
         want.pop("experiment")
         same = []

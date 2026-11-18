@@ -561,10 +561,31 @@ def episodes_for(ds, all_episodes=False):
     return keep, sorted(drop & set(eps))
 
 
+def set_scale(cfg, scale, run="E3"):
+    """Replace the primary scale method of `run` in a config: scale = {primary: <slam.scale method>, params: {...}}.
+    The new method's parameters are its defaults, overlaid with the old primary's parameters it shares (e.g. the
+    depth node, z_max, min_cells of Bnet -> Bpar), overlaid with `params`. Checks are kept."""
+    from slam.pipeline.spec import scale_method_defaults
+    defaults = scale_method_defaults()
+    m = scale["primary"]
+    if m not in defaults or m == "tiles":
+        raise SystemExit(f"scale.primary {m!r}: one of {sorted(k for k in defaults if k != 'tiles')}")
+    unknown = set(scale.get("params") or {}) - set(defaults[m])
+    if unknown:
+        raise SystemExit(f"scale.params {sorted(unknown)}: not parameters of {m} ({sorted(defaults[m])})")
+    blk = cfg["scale"][run]
+    old = blk["methods"].pop(blk["primary"], {}) if blk["primary"] not in blk["checks"] else {}
+    blk["primary"] = m
+    blk["methods"][m] = {**defaults[m], **{k: v for k, v in old.items() if k in defaults[m]},
+                         **(scale.get("params") or {})}
+    return cfg
+
+
 def build_config(ds, exp, masks="sam3_v2_head", gripper="head", target_fps=26.27, all_episodes=False,
-                 include=(), exclude=()):
+                 include=(), exclude=(), scale=None):
     """The experiment config of session `ds` with the current defaults: (cfg dict, header comment, warnings).
-    `include` / `exclude`: episodes added back / removed by hand after review (e.g. field-QC false FAILs)."""
+    `include` / `exclude`: episodes added back / removed by hand after review (e.g. field-QC false FAILs).
+    `scale`: None keeps the template's scale; {primary, params} replaces its primary method (set_scale)."""
     import yaml
     if ds not in C.SESSIONS:
         raise SystemExit(f"{ds} is not registered: no valid {ds}_session.json in {raw_dir()}")
@@ -588,6 +609,8 @@ def build_config(ds, exp, masks="sam3_v2_head", gripper="head", target_fps=26.27
                          "params": {**cfg["preprocess"]["params"], "target_fps": target_fps}}
     cfg["masks"]["tiles"]["impl"] = "tile_geometry_k"        # resampled frames are matched by k
     cfg["labels"]["params"]["gripper"] = gripper
+    if scale:
+        set_scale(cfg, scale)
     from slam.pipeline import registry as R
     warn = []
     if ("masks", masks) not in R.IMPLS:
@@ -598,8 +621,9 @@ def build_config(ds, exp, masks="sam3_v2_head", gripper="head", target_fps=26.27
         warn.append(f"slam.labels.load_gripper has no source '{gripper}' in this checkout yet")
     by_hand = "".join([f"; added by hand {sorted(include)}" if include else "",
                        f"; removed by hand {sorted(exclude)}" if exclude else ""])
+    sc = f", scale {scale['primary']}" if scale else ""
     head = (f"# {exp}: collected session {ds} (unit {s['glove']}), current defaults from {TEMPLATE.relative_to(C.REPO)}"
-            f"\n# with motion masks {masks} and the head-camera gripper width. Episodes: {len(keep)} kept, "
+            f"\n# with motion masks {masks}{sc} and the head-camera gripper width. Episodes: {len(keep)} kept, "
             f"excluded {dropped} (session exclusions + field-QC FAILs{by_hand}).\n# Written by python -m slam.collect "
             f"config; run with HEADCAM_DATA_REPO={C.COLLECT_REPO}:\n#   python -m slam.run experiments/{exp}/config.yaml\n")
     return cfg, head, warn
@@ -614,8 +638,9 @@ def cmd_config(a):
     out = C.REPO / "experiments" / a.exp / "config.yaml"
     if out.exists() and not a.force:
         raise SystemExit(f"{out} exists")
+    scale = {"primary": a.scale, "params": json.loads(a.scale_params or "{}")} if a.scale else None
     cfg, head, warn = build_config(a.dataset, a.exp, a.masks, a.gripper, a.target_fps, a.all_episodes,
-                                   a.include, a.exclude)
+                                   a.include, a.exclude, scale)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(config_text(cfg, head))
     print(f"wrote {out}")
@@ -659,6 +684,8 @@ def main():
     p.add_argument("--all-episodes", action="store_true", help="keep field-QC FAILs and exclusions (pilot checks)")
     p.add_argument("--include", type=int, nargs="*", default=[], help="episodes to add back after review (QC false FAILs)")
     p.add_argument("--exclude", type=int, nargs="*", default=[], help="episodes to remove after review")
+    p.add_argument("--scale", help="primary scale method replacing the template's (e.g. Bpar); checks are kept")
+    p.add_argument("--scale-params", help='JSON parameters of --scale, e.g. \'{"min_parallax": 0.1}\'')
     p.add_argument("--force", action="store_true")
     p = sub.add_parser("handeye-provisional")
     p.add_argument("--unit", required=True); p.add_argument("--from", dest="src", required=True)

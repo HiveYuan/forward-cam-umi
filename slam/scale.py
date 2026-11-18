@@ -44,6 +44,18 @@ slam.labels --scale, slam.evaluate --scale, slam.report):
   Bnet   the network's metric depth as is, no ball (k = 1): s = median(D_net / z_slam) on B's
          background cells (exp008: networks that take the camera K). Needs no marker.
 
+  Bpar   Bnet on the keyframes with enough parallax (2026-11-17). DROID's keyframe depth is only
+         as good as the baseline it was triangulated from: at baseline / depth < 0.01 DROID x the
+         tile-oracle scale over the tile GT depth is ~3.7 (the depth comes out far, so s comes out
+         low), above ~0.1 it is ~1.0, while the network's depth on the same pixels stays within
+         1.00-1.07 of GT. Keyframe parallax p_j = max distance from keyframe j's camera centre to
+         those of its keyframe neighbours within +-`neighbours` (finite poses only), over the
+         median SLAM depth of the cells it is compared on (scale-free). s = median of D_net / z_slam
+         over the keyframes with p_j >= min_parallax; with fewer than min_kf such keyframes, over
+         the fallback_top keyframes of highest parallax. Collected kitchen sessions (head moved
+         little, episode-keyframe parallax 0.04-0.06 vs glove7 0.11): |err| / bias 17.7 / -13.1%
+         -> 10.1 / -4.6%; paper sessions 4.9 / +3.8% -> 5.7 / +4.7% (prototype, 192 + 194 segments).
+
   B+Acheck  decision of 2026-11-08: B is the method, A only cross-checks. s = B's result on
          every segment; where A also succeeds, the relative difference s_A/s_B - 1 is recorded
          and |diff| > threshold (10%) flags the segment. Flags are informational only: they
@@ -242,13 +254,14 @@ def ball_depth_pairs(ctx, correction="faces", min_facing=0.7):
     return pairs
 
 
-def background_ratios(ctx, valid, alpha, beta=0.0, z_max=4.0, min_cells=200, depth_window=None):
+def background_ratios(ctx, valid, alpha, beta=0.0, z_max=4.0, min_cells=200, depth_window=None, info=None):
     """Corrected network depth alpha * d + beta over DROID's keyframe depth on the background:
     cells valid under the masks (valid: (T, H/8, W/8)), finite, 0.1 < corrected depth < z_max,
     inverse depth > 1e-3, not on the grid border, optionally within depth_window of the ball's
     depth. Keyframes without a finite SLAM pose (their frame's T_slam_cam row, or kf_pose_cw
     where saved) and keyframes with fewer than min_cells such cells are left out.
-    Returns (ratios: one array per used keyframe, per-keyframe medians)."""
+    Returns (ratios: one array per used keyframe, per-keyframe medians). `info`, a list, receives
+    per used keyframe {"kf": keyframe index, "z_slam_median": median SLAM depth of its cells}."""
     S, z, kf_t, disp, depth = ctx["S"], ctx["z"], ctx["kf_t"], ctx["disp"], ctx["depth"]
     W, H = ctx["size"]
     T_sc = z["T_slam_cam"]
@@ -272,7 +285,36 @@ def background_ratios(ctx, valid, alpha, beta=0.0, z_max=4.0, min_cells=200, dep
             continue
         per_kf.append(depth_ratio_scale(1.0, zc, zs, m))
         ratios.append(zc[m] / zs[m])
+        if info is not None:
+            info.append({"kf": j, "z_slam_median": float(np.median(zs[m]))})
     return ratios, per_kf
+
+
+def keyframe_centres(ctx):
+    """(n_kf, 3) keyframe camera centres in SLAM units (NaN rows where the pose is not finite):
+    from kf_pose_cw (world->camera [t, q xyzw], the poses DROID's keyframe depth belongs to) where
+    saved, else the trajectory T_slam_cam at the keyframe frames."""
+    z, kf_t = ctx["z"], ctx["kf_t"]
+    if "kf_pose_cw" in z.files:
+        P = z["kf_pose_cw"].astype(float)
+        ok = np.isfinite(P).all(1)
+        out = np.full((len(P), 3), np.nan)
+        if ok.any():
+            R = G.quat_to_R(P[ok, 3:])                          # (n, 3, 3) world->camera
+            out[ok] = -np.einsum("nji,nj->ni", R, P[ok, :3])    # -R^T t
+        return out
+    return np.asarray(z["T_slam_cam"][kf_t][:, :3, 3], float)
+
+
+def keyframe_parallax(centres, j, z_med, neighbours=2):
+    """Baseline of keyframe j to its keyframe neighbours within +-neighbours (largest distance between
+    finite centres) over its median SLAM depth z_med: a scale-free measure of how well DROID's depth
+    at j is triangulated. 0 without a finite neighbour."""
+    if not np.isfinite(centres[j]).all() or not z_med > 0:
+        return 0.0
+    nb = [k for k in range(max(0, j - neighbours), min(len(centres), j + neighbours + 1))
+          if k != j and np.isfinite(centres[k]).all()]
+    return float(max((np.linalg.norm(centres[j] - centres[k]) for k in nb), default=0.0) / z_med)
 
 
 def _run_valid_cells(seg, ctx, mask_names, mask_dilate_px):
@@ -330,6 +372,33 @@ def scale_depth_net(seg, run, model="da2-metric-indoor-large", z_max=4.0, min_ce
     pr = np.array([(d, zt) for d, zt, _ in ball_depth_pairs(ctx)]).reshape(-1, 2)
     return {"s": float(np.median(np.concatenate(ratios))), "ok": True, "s_per_keyframe": per_kf, "model": model,
             "k_ball": float(np.median(pr[:, 1] / pr[:, 0])) if len(pr) else float("nan"), "ball_samples": len(pr)}
+
+
+def scale_depth_net_parallax(seg, run, model="da2-metric-indoor-large", z_max=4.0, min_cells=200,
+                             min_parallax=0.1, neighbours=2, min_kf=2, fallback_top=3, mask_names=None,
+                             mask_dilate_px=8, **_):
+    """Bpar: Bnet over the keyframes whose parallax (keyframe_parallax) is >= min_parallax; with fewer
+    than min_kf of them, over the fallback_top keyframes of highest parallax. s = median of D_net / z_slam
+    over the chosen keyframes' cells (Bnet's cells and gates). Reports which keyframes were used."""
+    ctx, err = _depth_inputs(seg, run, model)
+    if err is not None:
+        return err
+    valid = _run_valid_cells(seg, ctx, mask_names, mask_dilate_px)
+    info = []
+    ratios, per_kf = background_ratios(ctx, valid, 1.0, 0.0, z_max, min_cells, None, info=info)
+    if not per_kf:
+        return {"s": float("nan"), "ok": False, "error": "no keyframe with enough valid background"}
+    centres = keyframe_centres(ctx)
+    par = [keyframe_parallax(centres, r["kf"], r["z_slam_median"], neighbours) for r in info]
+    use = [i for i, p in enumerate(par) if p >= min_parallax]
+    fallback = len(use) < min_kf
+    if fallback:
+        use = sorted(range(len(par)), key=lambda i: -par[i])[:fallback_top]
+    s_all = float(np.median(np.concatenate(ratios)))
+    return {"s": float(np.median(np.concatenate([ratios[i] for i in use]))), "ok": True, "model": model,
+            "s_bnet": s_all, "fallback": fallback, "kf_used": [info[i]["kf"] for i in sorted(use)],
+            "kf_parallax": [round(p, 4) for p in par], "s_per_keyframe": per_kf,
+            "parallax_max": float(max(par)), "n_kf": len(par), "n_kf_used": len(use)}
 
 
 # ------------------------------------------------------------------ session-level ball correction
@@ -465,8 +534,8 @@ def scale_b_with_a_check(seg, run, model="da2-metric-indoor-large", threshold=0.
 
 METHODS = {"none": scale_none, "native": scale_native, "tiles": scale_tiles, "A": scale_static_ball,
            "B": scale_depth_ball, "B+Acheck": scale_b_with_a_check, "Bsession": scale_depth_ball_session,
-           "Bnet": scale_depth_net}
-TAKES_MODEL = ("B", "B+Acheck", "Bsession", "Bnet")
+           "Bnet": scale_depth_net, "Bpar": scale_depth_net_parallax}
+TAKES_MODEL = ("B", "B+Acheck", "Bsession", "Bnet", "Bpar")
 COMPOSITE_METHODS = ("B+Acheck",)        # built from other methods; not a config-level method
 # methods that need a session-level quantity computed over every segment first (keyword -> what):
 # the caller (slam.pipeline.impl_analysis.scale_run) pools it with session_k_of_run and passes it

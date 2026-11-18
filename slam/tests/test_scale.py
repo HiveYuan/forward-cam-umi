@@ -225,6 +225,28 @@ def test_provenance_of_mask_kwargs():
         assert p1["mask_names"] == ["motion"] and p1["mask_dilate_px"] == 4
 
 
+def test_keyframe_parallax():
+    """Camera centres from DROID's world->camera keyframe poses; parallax = largest baseline to a finite
+    neighbour within +-neighbours over the keyframe's median depth (scale-free)."""
+    class Z(dict):
+        files = property(lambda self: list(self))
+    R = G.rt_to_T(np.array([[0, 0.3, 0], [0.1, 0, 0], [0, 0, 0], [0, 0, 0.2]]), np.zeros((4, 3)))[:, :3, :3]
+    C = np.array([[0, 0, 0], [0.05, 0, 0], [0.30, 0, 0], [0.31, 0.0, 0]])
+    t = -(R @ C[..., None])[..., 0]                                  # world->camera translation
+    pose = np.concatenate([t, G.R_to_quat(R)], 1)
+    pose[3] = np.nan                                                 # a keyframe without a pose
+    ctx = {"z": Z(kf_pose_cw=pose), "kf_t": np.arange(4)}
+    c = SC.keyframe_centres(ctx)
+    assert np.allclose(c[:3], C[:3]) and np.isnan(c[3]).all()
+    assert abs(SC.keyframe_parallax(c, 0, 1.0, neighbours=1) - 0.05) < 1e-12
+    assert abs(SC.keyframe_parallax(c, 0, 2.0, neighbours=2) - 0.15) < 1e-12      # 0.30 / 2
+    assert abs(SC.keyframe_parallax(c, 2, 1.0, neighbours=1) - 0.25) < 1e-12      # keyframe 3 has no pose
+    assert SC.keyframe_parallax(c, 3, 1.0) == 0.0
+    d = __import__("slam.pipeline.spec", fromlist=["x"]).scale_method_defaults()
+    assert "Bpar" in SC.TAKES_MODEL and d["Bpar"]["depth"] == "" and d["Bpar"]["min_parallax"] == 0.1
+    assert set(d["Bpar"]) - {"min_parallax", "neighbours", "min_kf", "fallback_top"} == set(d["Bnet"])
+
+
 if __name__ == "__main__":
     for name, f in list(globals().items()):
         if name.startswith("test_"):

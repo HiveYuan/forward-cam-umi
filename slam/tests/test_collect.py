@@ -91,6 +91,25 @@ def test_registry_reads_session_files():
             C.SESSIONS.update(old_sessions)
 
 
+def test_set_scale_replaces_the_primary():
+    import copy
+    import yaml
+    cfg = yaml.safe_load(open(K.TEMPLATE))
+    old = copy.deepcopy(cfg["scale"]["E3"])
+    out = K.set_scale(copy.deepcopy(cfg), {"primary": "Bpar", "params": {"min_parallax": 0.12}})["scale"]["E3"]
+    assert out["primary"] == "Bpar" and out["checks"] == old["checks"] and old["primary"] not in out["methods"]
+    assert out["methods"]["A"] == old["methods"]["A"]
+    bp = out["methods"]["Bpar"]
+    assert bp["min_parallax"] == 0.12 and bp["fallback_top"] == 3
+    assert all(bp[k] == v for k, v in old["methods"][old["primary"]].items())     # depth node, z_max, min_cells
+    for bad in ({"primary": "tiles"}, {"primary": "Bpar", "params": {"nope": 1}}):
+        try:
+            K.set_scale(copy.deepcopy(cfg), bad)
+            raise AssertionError(bad)
+        except SystemExit:
+            pass
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
