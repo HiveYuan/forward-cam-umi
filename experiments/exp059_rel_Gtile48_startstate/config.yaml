@@ -1,0 +1,11 @@
+# exp059_rel_Gtile48_startstate: the tile control for exp053_rel_Gslam48_startstate (D2a), for Yosub's request of a clean
+# tile-vs-SLAM comparison in the same action space (sync meeting 2026-11-17). Identical to exp053 except the dataset:
+# pilot_mix_gHs3_rel_tile_v3 instead of _rel_slam_v3. The two differ only in the glove poses (tiles: FK of Yosub's HHs3
+# joints; SLAM: exp039-exp044); teleop half, gripper, images and the slam_valid / ik_unreached flags are identical
+# (checked column by column, 2026-11-17), so the start pose is taken at the same step (the first slam-valid one) in both.
+# Same stats file as exp053, so the robot val losses are directly comparable. The gripper-state pair is exp019 / exp046.
+experiment: exp059_rel_Gtile48_startstate
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset: {repo: pilot_mix_gHs3_rel_tile_v3, root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_rel_tile_v3, episodes: calib/train_eps_pilot_mix_gHs3_48.txt}
+relative: {masks: [slam_valid, ik_unreached], anchor: anchor_pose, state: startpose_gripper, stats: calib/rel_action_stats_teleop172_startstate.json}
+output_dir: /home/student/yuanliu-hawaii/work/train/exp059_rel_Gtile48_startstate
