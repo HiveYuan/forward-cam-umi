@@ -1,0 +1,65 @@
+{
+ "runs": {
+  "E1": {
+   "scale_label": null,
+   "scale": null,
+   "labels": {
+    "oracle": null,
+    "scaled": null
+   },
+   "eval": {
+    "oracle": null,
+    "scaled": null
+   },
+   "slam": {
+    "keyframes_per_segment": 13.7,
+    "runtime_s_per_segment": 28.97285625934601,
+    "valid_frac": 1.0,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3": {
+   "scale_label": "Bpar+Acheck",
+   "scale": "scale_E3.json",
+   "labels": {
+    "oracle": "labels_E3.json",
+    "scaled": "labels_E3@Bpar+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bpar+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 11.5,
+    "runtime_s_per_segment": 27.80751852989197,
+    "valid_frac": 0.8131305873394012,
+    "tracked_frac": 0.9700085689802913
+   }
+  }
+ },
+ "gt_noise": "gt_noise.json",
+ "segments": [
+  "ep00",
+  "ep01",
+  "ep03",
+  "ep04",
+  "ep05",
+  "ep07",
+  "ep08",
+  "ep09",
+  "ep11",
+  "ep12"
+ ],
+ "evaluate": {
+  "fail_deg": 2.0,
+  "dts": [
+   0.08,
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   6.67
+  ]
+ }
+}
