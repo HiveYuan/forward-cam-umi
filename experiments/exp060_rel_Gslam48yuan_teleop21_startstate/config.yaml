@@ -1,0 +1,29 @@
+# exp060_rel_Gslam48yuan_teleop21_startstate: exp053_rel_Gslam48_startstate on pilot_mix_gHs3_yuan_rel_slam_v1 (batch yuan_slam_b1); sampling shares {'teleop': 0.21} over groups {'teleop': [0, 178], 'glove': [178, 378], 'collected': [378, 100000]}: the template's 242 episodes (calib/train_eps_pilot_mix_gHs3_48.txt) + 121 collected episodes (all sessions; the collected val episodes, meta/val_episodes_collected.json, held out); everything else as exp053_rel_Gslam48_startstate.
+# Written by python -m slam.ingest.
+experiment: exp060_rel_Gslam48yuan_teleop21_startstate
+base_train_config: calib/yosub_train_configs/mix_gHs3_48/train_config.json
+dataset:
+  repo: pilot_mix_gHs3_yuan_rel_slam_v1
+  root: /home/student/yuanliu-hawaii/work/lerobot/pilot_mix_gHs3_yuan_rel_slam_v1
+  episodes: experiments/exp060_rel_Gslam48yuan_teleop21_startstate/train_episodes.txt
+relative:
+  masks:
+  - slam_valid
+  - ik_unreached
+  anchor: anchor_pose
+  state: startpose_gripper
+  stats: calib/rel_action_stats_teleop172_startstate.json
+output_dir: /home/student/yuanliu-hawaii/work/train/exp060_rel_Gslam48yuan_teleop21_startstate
+sampling:
+  groups:
+    teleop:
+    - 0
+    - 178
+    glove:
+    - 178
+    - 378
+    collected:
+    - 378
+    - 100000
+  shares:
+    teleop: 0.21
