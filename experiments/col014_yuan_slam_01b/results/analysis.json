@@ -1,0 +1,78 @@
+{
+ "runs": {
+  "E1": {
+   "scale_label": null,
+   "scale": null,
+   "labels": {
+    "oracle": null,
+    "scaled": null
+   },
+   "eval": {
+    "oracle": null,
+    "scaled": null
+   },
+   "slam": {
+    "keyframes_per_segment": 15.73913043478261,
+    "runtime_s_per_segment": 47.96548018248185,
+    "valid_frac": 1.0,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3": {
+   "scale_label": "Bpar+Acheck",
+   "scale": "scale_E3.json",
+   "labels": {
+    "oracle": "labels_E3.json",
+    "scaled": "labels_E3@Bpar+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bpar+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 13.652173913043478,
+    "runtime_s_per_segment": 37.23796984423762,
+    "valid_frac": 0.8090247719184213,
+    "tracked_frac": 0.9460714746484324
+   }
+  }
+ },
+ "gt_noise": "gt_noise.json",
+ "segments": [
+  "ep01",
+  "ep02",
+  "ep03",
+  "ep04",
+  "ep05",
+  "ep06",
+  "ep08",
+  "ep09",
+  "ep11",
+  "ep15",
+  "ep17",
+  "ep18",
+  "ep19",
+  "ep20",
+  "ep21",
+  "ep22",
+  "ep23",
+  "ep24",
+  "ep25",
+  "ep26",
+  "ep27",
+  "ep28",
+  "ep29"
+ ],
+ "evaluate": {
+  "fail_deg": 2.0,
+  "dts": [
+   0.08,
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   6.67
+  ]
+ }
+}

@@ -1,0 +1,848 @@
+{
+ "run": "E3",
+ "label": "Bpar+Acheck",
+ "primary": "Bpar",
+ "checks": [
+  "A"
+ ],
+ "flag_threshold": 0.1,
+ "methods": {
+  "Bpar": {
+   "depth": "da3m",
+   "z_max": 4.0,
+   "min_cells": 200,
+   "min_parallax": 0.1,
+   "neighbours": 2,
+   "min_kf": 2,
+   "fallback_top": 3,
+   "_depth_node": "depth.da3m@E3"
+  },
+  "A": {
+   "window_s": 1.0,
+   "step_s": 0.25,
+   "res_max_mm": 5.0,
+   "min_baseline_mm": 20.0,
+   "min_frames": 10
+  }
+ },
+ "rows": [
+  {
+   "segment": "ep01",
+   "s": 1.0058131270179729,
+   "ok": true,
+   "oracle_s": 0.9441773112555523,
+   "err": 0.06527991620605489,
+   "primary": {
+    "s": 1.0058131270179729,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.9809252937575366,
+    "fallback": true,
+    "kf_used": [
+     5,
+     8,
+     9
+    ],
+    "n_kf_parallax": 12,
+    "n_s_per_keyframe": 12,
+    "parallax_max": 0.13524704115130895,
+    "n_kf": 12,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep02",
+   "s": 0.7283446315987021,
+   "ok": true,
+   "oracle_s": 0.6555177488641166,
+   "err": 0.11109826219164942,
+   "primary": {
+    "s": 0.7283446315987021,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.675798895115804,
+    "fallback": false,
+    "n_kf_used": 5,
+    "n_kf_parallax": 12,
+    "n_s_per_keyframe": 12,
+    "parallax_max": 0.29977557259714993,
+    "n_kf": 12,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep03",
+   "s": 0.11374275425896485,
+   "ok": true,
+   "oracle_s": 0.1188710799126562,
+   "err": -0.043141911871748206,
+   "primary": {
+    "s": 0.11374275425896485,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.11486551410257562,
+    "fallback": false,
+    "n_kf_used": 6,
+    "n_kf_parallax": 16,
+    "n_s_per_keyframe": 16,
+    "parallax_max": 0.14806704510396426,
+    "n_kf": 16,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.1455040447288997,
+     "ok": true,
+     "diff": 0.2792379231262683,
+     "err": 0.22404915338375653
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "A"
+   ]
+  },
+  {
+   "segment": "ep04",
+   "s": 0.43551691650009167,
+   "ok": true,
+   "oracle_s": 0.38013460398723425,
+   "err": 0.14569132073731783,
+   "primary": {
+    "s": 0.43551691650009167,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.40538466526004413,
+    "fallback": false,
+    "n_kf_used": 5,
+    "n_kf_parallax": 19,
+    "n_s_per_keyframe": 19,
+    "parallax_max": 0.15086708470662438,
+    "n_kf": 19,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.3886441972622411,
+     "ok": true,
+     "diff": -0.10762548471028388,
+     "err": 0.02238573701459856
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "A"
+   ]
+  },
+  {
+   "segment": "ep05",
+   "s": 0.1420362454558699,
+   "ok": true,
+   "oracle_s": 0.14593649228228361,
+   "err": -0.02672564459662019,
+   "primary": {
+    "s": 0.1420362454558699,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.14012259282037576,
+    "fallback": false,
+    "kf_used": [
+     6,
+     8,
+     12
+    ],
+    "n_kf_parallax": 15,
+    "n_s_per_keyframe": 15,
+    "parallax_max": 0.12387416829048511,
+    "n_kf": 15,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep06",
+   "s": 1.2876276303322811,
+   "ok": true,
+   "oracle_s": 1.27337563056235,
+   "err": 0.011192298193767991,
+   "primary": {
+    "s": 1.2876276303322811,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 1.0819867377713308,
+    "fallback": true,
+    "kf_used": [
+     5,
+     6,
+     7
+    ],
+    "n_kf_parallax": 9,
+    "n_s_per_keyframe": 9,
+    "parallax_max": 0.17009954864381935,
+    "n_kf": 9,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep08",
+   "s": 0.2295674685568656,
+   "ok": true,
+   "oracle_s": 0.21538917879241484,
+   "err": 0.06582637922639245,
+   "primary": {
+    "s": 0.2295674685568656,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.2274712861825492,
+    "fallback": true,
+    "kf_used": [
+     6,
+     7,
+     12
+    ],
+    "n_kf_parallax": 15,
+    "n_s_per_keyframe": 15,
+    "parallax_max": 0.09737699216085943,
+    "n_kf": 15,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.2107028270802903,
+     "ok": true,
+     "diff": -0.08217471576074975,
+     "err": -0.02175760053684539
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep09",
+   "s": 0.255149181149136,
+   "ok": true,
+   "oracle_s": 0.7323019705801701,
+   "err": -0.6515792782218068,
+   "primary": {
+    "s": 0.255149181149136,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 1.0995020749733158,
+    "fallback": true,
+    "kf_used": [
+     5,
+     7,
+     8
+    ],
+    "n_kf_parallax": 10,
+    "n_s_per_keyframe": 10,
+    "parallax_max": 0.03434509928719269,
+    "n_kf": 10,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep11",
+   "s": 0.6590494873144053,
+   "ok": true,
+   "oracle_s": 0.6319282014101008,
+   "err": 0.04291830281317632,
+   "primary": {
+    "s": 0.6590494873144053,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.6399062927812338,
+    "fallback": false,
+    "n_kf_used": 6,
+    "n_kf_parallax": 16,
+    "n_s_per_keyframe": 16,
+    "parallax_max": 0.14488580806781073,
+    "n_kf": 16,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep15",
+   "s": 0.061682039756078666,
+   "ok": true,
+   "oracle_s": 0.06495710523647548,
+   "err": -0.0504188951843525,
+   "primary": {
+    "s": 0.061682039756078666,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.05889196012114439,
+    "fallback": false,
+    "kf_used": [
+     9,
+     10
+    ],
+    "n_kf_parallax": 16,
+    "n_s_per_keyframe": 16,
+    "parallax_max": 0.17239581000915635,
+    "n_kf": 16,
+    "n_kf_used": 2,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep17",
+   "s": 0.7817171895796946,
+   "ok": true,
+   "oracle_s": 0.8695820227954336,
+   "err": -0.1010426054270086,
+   "primary": {
+    "s": 0.7817171895796946,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.6900392926581844,
+    "fallback": false,
+    "n_kf_used": 5,
+    "n_kf_parallax": 15,
+    "n_s_per_keyframe": 15,
+    "parallax_max": 0.15789302056166382,
+    "n_kf": 15,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.8519312909413317,
+     "ok": true,
+     "diff": 0.0898203369423014,
+     "err": -0.020297949349689093
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep18",
+   "s": 0.3957492161200662,
+   "ok": true,
+   "oracle_s": 0.33607480764435754,
+   "err": 0.17756287326022235,
+   "primary": {
+    "s": 0.3957492161200662,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.38978585428912993,
+    "fallback": false,
+    "kf_used": [
+     6,
+     7,
+     9
+    ],
+    "n_kf_parallax": 15,
+    "n_s_per_keyframe": 15,
+    "parallax_max": 0.17967182338852594,
+    "n_kf": 15,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.4275619331326082,
+     "ok": true,
+     "diff": 0.08038605186495262,
+     "err": 0.2722225034643613
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep19",
+   "s": 0.370497808620712,
+   "ok": true,
+   "oracle_s": 0.11702768026591831,
+   "err": 2.1658989375747817,
+   "primary": {
+    "s": 0.370497808620712,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.32434293317373886,
+    "fallback": false,
+    "kf_used": [
+     8,
+     9,
+     10
+    ],
+    "n_kf_parallax": 12,
+    "n_s_per_keyframe": 12,
+    "parallax_max": 0.25324836373014825,
+    "n_kf": 12,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep20",
+   "s": 1.9615470139951867,
+   "ok": true,
+   "oracle_s": 1.9592171032466488,
+   "err": 0.0011892049863575505,
+   "primary": {
+    "s": 1.9615470139951867,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.38651646767675635,
+    "fallback": true,
+    "kf_used": [
+     0,
+     6,
+     7
+    ],
+    "n_kf_parallax": 9,
+    "n_s_per_keyframe": 9,
+    "parallax_max": 0.0667124574006898,
+    "n_kf": 9,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep21",
+   "s": 1.0807622351221653,
+   "ok": true,
+   "oracle_s": 1.0103158632738003,
+   "err": 0.06972707685702617,
+   "primary": {
+    "s": 1.0807622351221653,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.8240425060448615,
+    "fallback": true,
+    "kf_used": [
+     5,
+     10,
+     11
+    ],
+    "n_kf_parallax": 13,
+    "n_s_per_keyframe": 13,
+    "parallax_max": 0.13815719498147877,
+    "n_kf": 13,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep22",
+   "s": 0.7422386472171638,
+   "ok": true,
+   "oracle_s": 0.8811251468161246,
+   "err": -0.15762403343136455,
+   "primary": {
+    "s": 0.7422386472171638,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.6252615326570776,
+    "fallback": true,
+    "kf_used": [
+     7,
+     9,
+     11
+    ],
+    "n_kf_parallax": 14,
+    "n_s_per_keyframe": 14,
+    "parallax_max": 0.07544672314846068,
+    "n_kf": 14,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 1.1201548564809507,
+     "ok": true,
+     "diff": 0.509157278027341,
+     "err": 0.2712778207823723
+    }
+   },
+   "flagged": true,
+   "flagged_by": [
+    "A"
+   ]
+  },
+  {
+   "segment": "ep23",
+   "s": 0.36111295922955833,
+   "ok": true,
+   "oracle_s": 0.3414517172923514,
+   "err": 0.05758132392221338,
+   "primary": {
+    "s": 0.36111295922955833,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.3466231039419654,
+    "fallback": false,
+    "n_kf_used": 7,
+    "n_kf_parallax": 17,
+    "n_s_per_keyframe": 17,
+    "parallax_max": 0.1900479662625415,
+    "n_kf": 17,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep24",
+   "s": 0.8800659332846408,
+   "ok": true,
+   "oracle_s": 0.7851694928706808,
+   "err": 0.12086108958080666,
+   "primary": {
+    "s": 0.8800659332846408,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.8563074595099351,
+    "fallback": false,
+    "n_kf_used": 5,
+    "n_kf_parallax": 15,
+    "n_s_per_keyframe": 15,
+    "parallax_max": 0.1263440101328115,
+    "n_kf": 15,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.9150685045563606,
+     "ok": true,
+     "diff": 0.03977266923749778,
+     "err": 0.16544072695788548
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep25",
+   "s": 0.7313749543563972,
+   "ok": true,
+   "oracle_s": 0.7348942384125482,
+   "err": -0.004788830653718268,
+   "primary": {
+    "s": 0.7313749543563972,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.6728043451043959,
+    "fallback": false,
+    "kf_used": [
+     5,
+     6,
+     8,
+     9
+    ],
+    "n_kf_parallax": 12,
+    "n_s_per_keyframe": 12,
+    "parallax_max": 0.12568691657225345,
+    "n_kf": 12,
+    "n_kf_used": 4,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep26",
+   "s": 0.40839278734983964,
+   "ok": true,
+   "oracle_s": 0.40223146586265923,
+   "err": 0.015317850566380464,
+   "primary": {
+    "s": 0.40839278734983964,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.38155392245221265,
+    "fallback": false,
+    "kf_used": [
+     7,
+     8,
+     9,
+     12
+    ],
+    "n_kf_parallax": 17,
+    "n_s_per_keyframe": 17,
+    "parallax_max": 0.1590878453576821,
+    "n_kf": 17,
+    "n_kf_used": 4,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.41507176388562494,
+     "ok": true,
+     "diff": 0.016354296017632386,
+     "err": 0.03192265924652937
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep27",
+   "s": 0.7261220542595765,
+   "ok": true,
+   "oracle_s": 0.7333683969210426,
+   "err": -0.00988090391117058,
+   "primary": {
+    "s": 0.7261220542595765,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.7281564772574711,
+    "fallback": true,
+    "kf_used": [
+     4,
+     5,
+     8
+    ],
+    "n_kf_parallax": 10,
+    "n_s_per_keyframe": 10,
+    "parallax_max": 0.09526039161927889,
+    "n_kf": 10,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep28",
+   "s": 0.0361723138672545,
+   "ok": true,
+   "oracle_s": 0.040000747881947615,
+   "err": -0.09570906089035625,
+   "primary": {
+    "s": 0.0361723138672545,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.025752729301075306,
+    "fallback": false,
+    "kf_used": [
+     5,
+     6,
+     12
+    ],
+    "n_kf_parallax": 14,
+    "n_s_per_keyframe": 14,
+    "parallax_max": 0.12068693668154674,
+    "n_kf": 14,
+    "n_kf_used": 3,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": 0.038140532231463915,
+     "ok": true,
+     "diff": 0.05441228812268961,
+     "err": -0.0465045217647847
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  },
+  {
+   "segment": "ep29",
+   "s": 0.5733434023291011,
+   "ok": true,
+   "oracle_s": 0.49278988281579905,
+   "err": 0.16346423155649958,
+   "primary": {
+    "s": 0.5733434023291011,
+    "ok": true,
+    "model": "da3-metric-large",
+    "s_bnet": 0.4432532913028808,
+    "fallback": false,
+    "n_kf_used": 5,
+    "n_kf_parallax": 11,
+    "n_s_per_keyframe": 11,
+    "parallax_max": 0.3001027610610376,
+    "n_kf": 11,
+    "method": "Bpar"
+   },
+   "checks": {
+    "A": {
+     "s": null,
+     "ok": false,
+     "diff": null,
+     "err": null
+    }
+   },
+   "flagged": false,
+   "flagged_by": []
+  }
+ ],
+ "summary": {
+  "segments": 23,
+  "segments_ok": 23,
+  "n_compared": 23,
+  "abs_err_median": 0.06582637922639245,
+  "abs_err_p90": 0.17474314491947782,
+  "bias_median": 0.015317850566380464,
+  "flagged": [
+   "ep03",
+   "ep04",
+   "ep22"
+  ],
+  "both": [
+   "ep03",
+   "ep04",
+   "ep08",
+   "ep17",
+   "ep18",
+   "ep22",
+   "ep24",
+   "ep26",
+   "ep28"
+  ],
+  "without_flagged": {
+   "n_compared": 20,
+   "abs_err_median": 0.06555314771622367,
+   "abs_err_p90": 0.2249645137563815,
+   "bias_median": 0.029118076689778394
+  },
+  "methods": {
+   "Bpar": {
+    "segments_ok": 23,
+    "n_compared": 23,
+    "abs_err_median": 0.06582637922639245,
+    "abs_err_p90": 0.17474314491947782,
+    "bias_median": 0.015317850566380464
+   },
+   "A": {
+    "segments_ok": 9,
+    "n_compared": 9,
+    "abs_err_median": 0.0465045217647847,
+    "abs_err_p90": 0.27146675731877007,
+    "bias_median": 0.03192265924652937
+   }
+  }
+ }
+}
