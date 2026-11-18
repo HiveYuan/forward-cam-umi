@@ -1,0 +1,88 @@
+{
+ "runs": {
+  "E1": {
+   "scale_label": null,
+   "scale": null,
+   "labels": {
+    "oracle": null,
+    "scaled": null
+   },
+   "eval": {
+    "oracle": null,
+    "scaled": null
+   },
+   "slam": {
+    "keyframes_per_segment": 15.121212121212121,
+    "runtime_s_per_segment": 34.123769882953525,
+    "valid_frac": 1.0,
+    "tracked_frac": 1.0
+   }
+  },
+  "E3": {
+   "scale_label": "Bpar+Acheck",
+   "scale": "scale_E3.json",
+   "labels": {
+    "oracle": "labels_E3.json",
+    "scaled": "labels_E3@Bpar+Acheck.json"
+   },
+   "eval": {
+    "oracle": "eval_oracle",
+    "scaled": "eval_Bpar+Acheck"
+   },
+   "slam": {
+    "keyframes_per_segment": 12.030303030303031,
+    "runtime_s_per_segment": 29.98648873242465,
+    "valid_frac": 0.833872215314345,
+    "tracked_frac": 0.9172074729596853
+   }
+  }
+ },
+ "gt_noise": "gt_noise.json",
+ "segments": [
+  "ep00",
+  "ep01",
+  "ep02",
+  "ep04",
+  "ep08",
+  "ep09",
+  "ep12",
+  "ep15",
+  "ep17",
+  "ep18",
+  "ep19",
+  "ep20",
+  "ep21",
+  "ep22",
+  "ep23",
+  "ep24",
+  "ep26",
+  "ep27",
+  "ep28",
+  "ep30",
+  "ep31",
+  "ep32",
+  "ep33",
+  "ep34",
+  "ep35",
+  "ep36",
+  "ep38",
+  "ep39",
+  "ep40",
+  "ep41",
+  "ep42",
+  "ep43",
+  "ep44"
+ ],
+ "evaluate": {
+  "fail_deg": 2.0,
+  "dts": [
+   0.08,
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   6.67
+  ]
+ }
+}
